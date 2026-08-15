@@ -1,0 +1,19 @@
+README.md
+  s_4b32e161377335::t_5458e0b0abb514 492-501
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "63e83c8fff8919e4c7ba750f8e0afe8d58d40799",
+  "prompts": {},
+  "sessions": {
+    "s_4b32e161377335": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ffcb71851ffeqAqwTsysR7HQ6L",
+        "model": "deepseek-v4-flash-0731"
+      },
+      "human_author": "changlu <939974883@qq.com>"
+    }
+  }
+}
