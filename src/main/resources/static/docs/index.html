@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="OpenReach 快速启动文档" />
+  <title>快速启动 · OpenReach Docs</title>
+  <link rel="icon" href="/assets/logo-mark.png" /><link rel="stylesheet" href="/assets/site.css" />
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('openreach-theme');
+        var theme = saved === 'dark' || saved === 'light' ? saved : 'light';
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light';
+      }
+    })();
+  </script>
+</head>
+<body class="docs-body">
+<header class="nav-wrap"><div class="container nav"><a class="brand" href="/"><img src="/assets/logo-mark.png" alt="OpenReach" /><span>OpenReach</span></a><nav class="nav-links"><a href="/">首页</a><a class="docs-only active" href="/docs/">文档</a><a class="nav-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer" aria-label="OpenReach GitHub">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.3 11.3 0 0 0-3.57 22c.57.1.77-.25.77-.55v-2.16c-3.16.69-3.83-1.34-3.83-1.34-.51-1.31-1.26-1.66-1.26-1.66-1.03-.7.08-.69.08-.69 1.14.08 1.74 1.17 1.74 1.17 1.01 1.74 2.66 1.24 3.31.95.1-.74.4-1.24.72-1.52-2.52-.29-5.18-1.26-5.18-5.6 0-1.24.44-2.25 1.17-3.04-.12-.29-.51-1.44.11-3 0 0 .95-.3 3.11 1.16A10.8 10.8 0 0 1 12 6.05c.96 0 1.92.13 2.83.38 2.16-1.47 3.11-1.16 3.11-1.16.62 1.56.23 2.71.11 3 .73.79 1.17 1.8 1.17 3.04 0 4.35-2.66 5.31-5.19 5.6.41.35.77 1.04.77 2.1v3.14c0 .3.21.66.78.55A11.3 11.3 0 0 0 12 .7Z"/></svg>
+        <span>GitHub</span>
+      </a><button class="theme-toggle" type="button" data-theme-toggle role="switch" aria-checked="false" aria-label="切换深色主题" title="切换主题">
+        <span class="theme-track" aria-hidden="true">
+          <svg class="theme-sun" viewBox="0 0 24 24"><path d="M12 4V2m0 20v-2M4 12H2m20 0h-2M6.34 6.34 4.93 4.93m14.14 14.14-1.41-1.41M17.66 6.34l1.41-1.41M4.93 19.07l1.41-1.41"/><circle cx="12" cy="12" r="4"/></svg>
+          <span class="theme-thumb"></span>
+          <svg class="theme-moon" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
+        </span>
+      </button><a class="nav-primary nav-download" href="/downloads/openreach-skill.zip" download>下载 Skill</a></nav></div></header>
+<div class="docs-layout">
+  <aside class="docs-sidebar"><div class="label">文档</div><a class="active" href="/docs/">1. 快速启动</a><a href="/docs/api.html">2. 官方接口文档</a><div class="sidebar-project">
+      <div class="label">项目</div>
+      <a class="sidebar-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer">GitHub 仓库 ↗</a>
+      <a href="/community">交流群</a>
+    </div>
+  </aside>
+  <main class="docs-main">
+    <div class="mobile-docs"><select data-doc-select aria-label="切换文档"><option value="/docs/" selected>1. 快速启动</option><option value="/docs/api.html">2. 官方接口文档</option></select></div>
+    <div class="doc-eyebrow">Getting Started</div><h1>快速启动</h1>
+    <p class="lead">从启动 OpenReach 到完成第一次 Search / Image Search / Read 调用。服务启动后，根地址就是内置官网，无需额外部署前端。</p>
+
+    <h2>1. Docker 一键启动（推荐）</h2>
+    <p>最快的体验方式。不需要 Clone 项目，也不依赖 Compose 文件；只要本机已安装 Docker，复制下面一条命令即可启动：</p>
+    <div class="codebox"><button class="copy-btn" data-copy="#docker-run">复制</button><pre id="docker-run">docker run -d \
+  --name openreach \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  codercl/openreach:latest</pre></div>
+    <p>启动完成后直接访问：</p>
+    <ul><li>官网：<code>http://localhost:8080/</code></li><li>文档：<code>http://localhost:8080/docs/</code></li><li>API Base URL：<code>http://localhost:8080/api/web</code></li></ul>
+    <div class="codebox"><button class="copy-btn" data-copy="#docker-manage">复制</button><pre id="docker-manage"># 查看容器
+docker ps --filter name=openreach
+
+# 查看日志
+docker logs -f openreach
+
+# 停止并删除
+docker rm -f openreach</pre></div>
+    <div class="note"><strong>端口冲突？</strong> 把 <code>-p 8080:8080</code> 改成例如 <code>-p 18080:8080</code>，然后访问 <code>http://localhost:18080</code>。</div>
+
+    <h2>2. Docker Compose（可选）</h2>
+    <p>如果你已经 Clone 了工程，或者希望用配置文件管理容器，可以继续使用项目内置 Compose：</p>
+    <div class="codebox"><button class="copy-btn" data-copy="#compose">复制</button><pre id="compose">docker compose up -d
+
+docker compose ps
+docker compose logs -f openreach</pre></div>
+
+    <h2>3. 源码启动</h2>
+    <p>适合开发、调试和二次开发。要求 JDK 17+、Maven 3.9+。</p>
+    <div class="codebox"><button class="copy-btn" data-copy="#source-run">复制</button><pre id="source-run">mvn clean test
+mvn spring-boot:run</pre></div>
+    <div class="note">OpenReach 默认监听 <code>8080</code> 端口。启动后 Spring Boot 会直接托管官网和文档静态资源。</div>
+
+    <h2>4. 第一次调用</h2>
+    <h3>搜索网页</h3>
+    <div class="codebox"><button class="copy-btn" data-copy="#search-curl">复制</button><pre id="search-curl">curl -X POST 'http://localhost:8080/api/web/search' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": "Spring Boot AI Agent",
+    "limit": 5,
+    "region": "auto",
+    "provider": "auto"
+  }'</pre></div>
+    <h3>文搜图</h3>
+    <div class="codebox"><button class="copy-btn" data-copy="#image-curl">复制</button><pre id="image-curl">curl -X POST 'http://localhost:8080/api/web/image-search' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": "杭州西湖夜景",
+    "limit": 8,
+    "region": "auto",
+    "provider": "auto"
+  }'</pre></div>
+    <h3>读取网页</h3>
+    <div class="codebox"><button class="copy-btn" data-copy="#read-curl">复制</button><pre id="read-curl">curl -X POST 'http://localhost:8080/api/web/read' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "url": "https://spring.io/projects/spring-boot/",
+    "maxChars": 20000
+  }'</pre></div>
+
+    <h2>5. 使用 OpenReach Skill / Python CLI</h2>
+    <p>项目根目录内置 <code>skills/openreach/</code>，官网也提供 ZIP 一键下载。CLI 只依赖 Python 标准库，不需要额外安装 requests。</p>
+    <div class="codebox"><button class="copy-btn" data-copy="#skill-cli">复制</button><pre id="skill-cli">export OPENREACH_BASE_URL=http://localhost:8080
+
+python3 skills/openreach/scripts/openreach.py search "AI Agent" --region auto --provider auto --limit 5
+python3 skills/openreach/scripts/openreach.py image-search "杭州西湖" --region auto --provider auto --limit 8
+python3 skills/openreach/scripts/openreach.py read "https://spring.io/projects/spring-boot/" --max-chars 20000</pre></div>
+    <p>推荐 Agent 调用顺序：<code>search(query)</code> 发现可信来源 → 对候选 URL 使用 <code>read(url)</code> → 再由模型总结、对比或引用。</p>
+
+    <h2>6. 当前边界</h2>
+    <ul><li>免费搜索 Provider 属于 best-effort，不承诺商业 SLA。</li><li>微信公众号仅支持公开可访问页面；搜索可发现性依赖搜索引擎是否已收录。</li><li>当前 Read 聚焦 HTML / SSR 页面，不保证强 JavaScript、登录、验证码或严格反爬页面可完整读取。</li><li>生产级 SERP、精确 Geo、高 QPS 场景建议通过 Provider SPI 扩展商业搜索服务。</li></ul>
+
+    
+    <h2 id="skill">下载并初始化 OpenReach Skill</h2>
+    <p>部署到服务器后，官网右上角点击 <strong>下载 Skill</strong>，或直接访问 <code>/downloads/openreach-skill.zip</code>。解压后只需要提供服务器 IP：</p>
+    <div class="codebox"><button class="copy-btn" data-copy="#skill-init">复制</button><pre id="skill-init">python3 scripts/openreach.py init 192.168.1.20
+python3 scripts/openreach.py doctor</pre></div>
+    <p><code>init</code> 会先调用 <code>GET /api/web/health</code> 做前置连通性检查，成功后才写入当前 Skill 的 <code>config.json</code>。之后 Search / Image Search / Read 都自动使用这个地址。</p>
+    <div class="codebox"><button class="copy-btn" data-copy="#skill-search">复制</button><pre id="skill-search">python3 scripts/openreach.py search "OpenReach AI Agent" \
+  --region auto \
+  --provider auto \
+  --limit 5</pre></div>
+    <div class="note"><strong>region：</strong>默认 <code>auto</code>，不传时也等价于 <code>auto</code>。建议所有示例和 Agent 调用都显式展示；明确地域时可传 CN / JP / US 等，由 Provider best-effort 映射。</div>
+
+
+    <section id="community" class="docs-community">
+      <div class="doc-eyebrow">Project & Community</div>
+      <h2>项目与社区</h2>
+      <p>OpenReach 是开源项目。源码、问题反馈和后续版本都以 GitHub 仓库为核心；如果你正在做 Provider 扩展、私有化部署或 Agent Search，也可以加入项目交流群。</p>
+      <div class="community-grid">
+        <article class="community-card github-card">
+          <div class="community-icon">GH</div>
+          <div>
+            <h3>GitHub 仓库</h3>
+            <p>查看源码、提交 Issue、参与贡献或关注后续 Roadmap。</p>
+            <a class="text-link" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer">github.com/changluya/openreach ↗</a>
+          </div>
+        </article>
+        <article class="community-card qr-card">
+          <button class="qr-preview-button" type="button" data-qr-preview="/assets/wechat-group.png" aria-label="点击放大 OpenReach 开源项目交流群二维码">
+            <img src="/assets/wechat-group.png" alt="OpenReach 开源项目交流群二维码" loading="lazy" />
+            <span>点击放大</span>
+          </button>
+          <div>
+            <h3>OpenReach 微信交流群</h3>
+            <p>扫码加入项目交流群，交流部署、搜索 Provider、Skill 和 Agent Search 使用实践。</p>
+            <span class="qr-note">点击二维码可放大查看；二维码如过期，以项目后续更新为准。</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <div class="doc-next"><a href="/docs/api.html">下一篇：官方接口文档 →</a></div>
+  </main>
+</div>
+<script src="/assets/site.js"></script>
+</body>
+</html>

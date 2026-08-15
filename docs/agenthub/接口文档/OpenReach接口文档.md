@@ -1,6 +1,6 @@
 # OpenReach 接口文档
 
-> 适用版本：**v0.1.0** · 服务默认地址：`http://localhost:8080`
+> 适用版本：**v0.1.1** · 服务默认地址：`http://localhost:8080`
 
 本文档基于当前工程源码（`io.github.changlu.openreach`）维护 OpenReach 对外 HTTP 接口的完整说明，面向 Agent 集成方、HTTP 插件开发者和 API 调用方。
 
@@ -10,9 +10,12 @@
 
 | 能力 | 方法 | 路径 | 说明 |
 |---|---|---|---|
+| Health | `GET` | `/api/web/health` | 服务连通性检查，不访问外部 Provider |
 | Web Search | `POST` | `/api/web/search` | 网页搜索，多 Provider 自动降级 |
 | Image Search | `POST` | `/api/web/image-search` | 文搜图，多图片 Provider 自动降级 |
 | Web Read | `POST` | `/api/web/read` | 读取网页正文，内置 SSRF 防护 |
+
+其中 Health 用于部署/Skill 初始化的前置连通性检查。
 
 Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabilityController.java`。
 
@@ -54,7 +57,7 @@ Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabi
 |---|---|---|---|---|---|
 | `query` | string | 是 | - | `@NotBlank` | 搜索关键词或自然语言问题 |
 | `limit` | int | 否 | `10` | `@Min(1)` `@Max(20)` | 最多返回条数，服务端还会受配置 `max-results`（默认 20）钳制 |
-| `region` | string | 否 | `CN` | - | 搜索区域，各 Provider 支持程度不同 |
+| `region` | string | 否 | `auto` | - | 搜索区域，各 Provider 支持程度不同 |
 | `provider` | string | 否 | `auto` | - | 渠道，见 [第 5 章 Provider 矩阵](#51-web-search) |
 
 校验失败返回 `400 VALIDATION_ERROR`（如 `query` 为空）。
@@ -67,7 +70,7 @@ Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabi
 |---|---|---|
 | `provider` | string | 实际使用的渠道（`auto` 时为 `auto`，不会替换为具体渠道名） |
 | `query` | string | 回显原始查询词 |
-| `region` | string | 生效区域（未传时为 `CN`） |
+| `region` | string | 生效区域（未传时为 `auto`） |
 | `count` | int | `items` 条数 |
 | `latencyMs` | long | 请求耗时（毫秒） |
 | `items` | array | 搜索结果列表，见 `SearchItem` |
@@ -94,14 +97,14 @@ Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabi
 ```bash
 curl -sS -X POST 'http://localhost:8080/api/web/search' \
   -H 'Content-Type: application/json' \
-  -d '{"query":"Spring Boot AI Agent","limit":5,"region":"CN","provider":"auto"}'
+  -d '{"query":"Spring Boot AI Agent","limit":5,"region":"auto","provider":"auto"}'
 ```
 
 ```json
 {
   "provider": "auto",
   "query": "Spring Boot AI Agent",
-  "region": "CN",
+  "region": "auto",
   "count": 5,
   "latencyMs": 2453,
   "items": [
@@ -128,7 +131,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/search' \
 |---|---|---|---|---|---|
 | `query` | string | 是 | - | `@NotBlank` | 文搜图关键词或自然语言描述 |
 | `limit` | int | 否 | `10` | `@Min(1)` `@Max(30)` | 最多返回条数，服务端还会受配置 `max-results`（默认 30）钳制 |
-| `region` | string | 否 | `CN` | - | 图片搜索区域，各 Provider 支持程度不同 |
+| `region` | string | 否 | `auto` | - | 图片搜索区域，各 Provider 支持程度不同 |
 | `provider` | string | 否 | `auto` | - | 渠道，见 [第 5 章 Provider 矩阵](#52-image-search) |
 
 ### 4.2 响应字段
@@ -176,14 +179,14 @@ curl -sS -X POST 'http://localhost:8080/api/web/search' \
 ```bash
 curl -sS -X POST 'http://localhost:8080/api/web/image-search' \
   -H 'Content-Type: application/json' \
-  -d '{"query":"杭州西湖夜景","limit":8,"region":"CN","provider":"auto"}'
+  -d '{"query":"杭州西湖夜景","limit":8,"region":"auto","provider":"auto"}'
 ```
 
 ```json
 {
   "provider": "auto",
   "query": "杭州西湖夜景",
-  "region": "CN",
+  "region": "auto",
   "count": 8,
   "latencyMs": 1876,
   "items": [

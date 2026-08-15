@@ -34,7 +34,8 @@ public class BingImageSearchProvider implements ImageSearchProvider {
 
     @Override
     public List<ImageSearchItem> search(String query, int limit, String region) {
-        String cc = region == null || region.isBlank() || "wt-wt".equalsIgnoreCase(region) ? "CN" : region;
+        String cc = region == null || region.isBlank() || "auto".equalsIgnoreCase(region)
+                || "wt-wt".equalsIgnoreCase(region) ? "CN" : region;
         URI uri = URI.create(properties.getImageSearch().getBingUrl()
                 + "?q=" + encode(query)
                 + "&async=1&first=1&count=" + Math.max(35, limit)

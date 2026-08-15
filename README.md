@@ -14,7 +14,7 @@
   <img alt="Spring Boot 4.1" src="https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white" />
   <img alt="Maven 3.9+" src="https://img.shields.io/badge/Maven-3.9%2B-C71A36?logo=apachemaven&logoColor=white" />
   <img alt="Docker Ready" src="https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white" />
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.0-blue" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.1.1-blue" />
 </p>
 
 <p align="center">
@@ -22,6 +22,13 @@
 </p>
 
 ---
+
+## 项目入口
+
+- **GitHub：** https://github.com/changluya/openreach
+- **内置官网：** 服务启动后访问 `http://localhost:8080/`
+- **官方文档：** `http://localhost:8080/docs/`
+- **OpenReach Skill：** 官网右上角可直接下载
 
 ## OpenReach 是什么？
 
@@ -50,12 +57,15 @@ read(url)            -> 读取网页 / 提取正文与元数据
 | **Web Search** | `POST /api/web/search` | ✅ | 多 Provider 自动降级 | 标题、URL、摘要、排名、来源 |
 | **Image Search** | `POST /api/web/image-search` | ✅ | 多图片 Provider 自动降级 | 原图、缩略图、来源页、站点、尺寸、License |
 | **Web Read** | `POST /api/web/read` | ✅ | Safe HTTP Fetch + Jsoup | 标题、正文、最终 URL、元数据、Links |
+| **Health Check** | `GET /api/web/health` | ✅ | 无外部 Provider 依赖 | 部署、Skill init / doctor 连通性检查 |
 | **Provider Auto Fallback** | 内部能力 | ✅ | Provider SPI + Router | 上游失败后自动切换下一渠道 |
 | **URL 去重** | 内部能力 | ✅ | Search / ImageSearch 聚合层 | 去除重复结果 |
 | **SSRF Protection** | Read 内部能力 | ✅ | DNS / IP / Redirect 校验 | 拦截危险 URL |
 | **响应体限制** | Read 内部能力 | ✅ | max-bytes / max-chars | 避免异常大页面 |
 | **Agent HTTP Plugin** | `docs/agenthub/skills/` | ✅ | 标准 HTTP Plugin JSON | Search / Image Search / Read |
 | **Docker 部署** | Docker / Compose | ✅ | Runtime-only Image | amd64 / arm64 运行模型 |
+| **内置官网 / Docs** | `/` · `/docs/` | ✅ | Spring Boot Static Resources | 服务启动即访问，无需独立前端 |
+| **OpenReach Skill** | `skills/openreach/` | ✅ | Python Tool + CLI | Init / Doctor / Search / Image Search / Read |
 | **Dynamic Browser Read** | - | ⏳ | 预留 Playwright Reader | JS 渲染页面 |
 | **Commercial SERP** | - | ⏳ | 预留 Premium Provider | 稳定 SERP / Geo / 垂直搜索 |
 
@@ -68,7 +78,7 @@ read(url)            -> 读取网页 / 提取正文与元数据
 | HTML / SSR 网页读取 | ✅ | 当前 Read 核心场景 |
 | Provider 自动降级 | ✅ | 超时、解析失败、空结果时继续下一 Provider |
 | Region 参数 | ⚠️ | 已统一参数，但不同 Provider 的支持程度不同 |
-| Pagination | ❌ | v0.1.0 聚焦首屏 / Top-N |
+| Pagination | ❌ | v0.1.1 聚焦首屏 / Top-N |
 | Freshness 统一过滤 | ❌ | 尚未形成跨 Provider 统一协议 |
 | 精确 Geo | ❌ | 不承诺商业级地理定位 |
 | Knowledge Graph / Shopping / Places | ❌ | 后续以垂直 Provider 扩展 |
@@ -114,45 +124,15 @@ Agent 总结、问答、对比、引用或继续深度检索
 
 > **微信公众号说明：** OpenReach 可以对公开可访问的微信文章 URL 尝试执行 `read`；也可以通过 Web Search 尝试发现已经被搜索引擎收录的微信公众号文章。实际可发现性取决于搜索引擎收录情况，页面能否读取则取决于微信页面当时的访问策略、反爬限制和网络环境，因此属于 best-effort 能力，不承诺所有公众号文章都能稳定搜索或读取。
 
-> 对于需要登录、验证码、强 JavaScript 渲染或严格反爬的页面，当前 v0.1.0 的静态 HTTP Reader 可能无法完整读取，后续计划通过 Playwright / Browser Reader 扩展动态页面能力。
+> 对于需要登录、验证码、强 JavaScript 渲染或严格反爬的页面，当前 v0.1.1 的静态 HTTP Reader 可能无法完整读取，后续计划通过 Playwright / Browser Reader 扩展动态页面能力。
 
 ---
 
 ## 5 分钟快速开始
 
-### 方式一：Docker Compose 一键部署
+### 方式一：Docker 一键启动（推荐）
 
-适合普通使用者。**当 `codercl/openreach:latest` 镜像已经发布到镜像仓库后**，项目根目录直接执行：
-
-```bash
-docker compose up -d
-```
-
-默认服务地址：
-
-```text
-http://localhost:8080
-```
-
-查看状态：
-
-```bash
-docker compose ps
-```
-
-查看日志：
-
-```bash
-docker compose logs -f openreach
-```
-
-停止服务：
-
-```bash
-docker compose down
-```
-
-也可以直接使用 Docker：
+适合普通使用者。**不需要 Clone 工程，也不依赖 Compose 文件**；当 `codercl/openreach:latest` 镜像已经发布到镜像仓库后，直接执行一条命令：
 
 ```bash
 docker run -d \
@@ -162,9 +142,48 @@ docker run -d \
   codercl/openreach:latest
 ```
 
+服务启动后同时内置 OpenReach 官网与文档站点：
+
+```text
+官网        http://localhost:8080/
+快速启动    http://localhost:8080/docs/
+接口文档    http://localhost:8080/docs/api.html
+```
+
+常用管理命令：
+
+```bash
+# 查看容器
+docker ps --filter name=openreach
+
+# 查看日志
+docker logs -f openreach
+
+# 停止并删除
+docker rm -f openreach
+```
+
+如果宿主机 `8080` 已被占用，可以改成 `-p 18080:8080`，此时访问 `http://localhost:18080`。
+
 ---
 
-### 方式二：源码直接启动
+### 方式二：Docker Compose（可选）
+
+适合已经 Clone 工程、希望通过配置文件管理容器的场景：
+
+```bash
+docker compose up -d
+```
+
+```bash
+docker compose ps
+docker compose logs -f openreach
+docker compose down
+```
+
+---
+
+### 方式三：源码直接启动
 
 适合开发、调试和二次开发。
 
@@ -193,9 +212,17 @@ mvn spring-boot:run
 http://localhost:8080
 ```
 
+服务启动后同时内置 OpenReach 官网与文档站点：
+
+```text
+官网        http://localhost:8080/
+快速启动    http://localhost:8080/docs/
+接口文档    http://localhost:8080/docs/api.html
+```
+
 ---
 
-### 方式三：源码构建 Docker 并启动
+### 方式四：源码构建 Docker 并启动
 
 当前 Dockerfile 是 **Runtime-only Image**：Maven 在宿主机编译并执行测试，Docker 只负责把生成的 JAR 封装成运行镜像。
 
@@ -238,7 +265,7 @@ curl -X POST 'http://localhost:8080/api/web/search' \
   -d '{
     "query": "Spring Boot AI Agent",
     "limit": 5,
-    "region": "CN",
+    "region": "auto",
     "provider": "auto"
   }'
 ```
@@ -251,7 +278,7 @@ curl -X POST 'http://localhost:8080/api/web/image-search' \
   -d '{
     "query": "杭州西湖夜景",
     "limit": 8,
-    "region": "CN",
+    "region": "auto",
     "provider": "auto"
   }'
 ```
@@ -278,7 +305,67 @@ curl -X POST 'http://localhost:8080/api/web/read' \
 ./bin/quick/smoke-test.sh
 ```
 
+
 ---
+
+## OpenReach Skill / Python CLI
+
+OpenReach 内置一个可独立下载的 Python Skill。服务部署后，官网右上角点击 **「下载 Skill」** 即可获取：
+
+```text
+http://<你的 OpenReach 服务器>:8080/downloads/openreach-skill.zip
+```
+
+项目源码中对应目录：
+
+```text
+skills/openreach/
+├── SKILL.md                     # Agent 使用说明 + ChatGPT-like Search SOP
+├── README.md
+├── config.example.json
+├── scripts/
+│   └── openreach.py             # Python Tool + CLI
+└── tests/
+    └── test_openreach.py
+```
+
+Skill **无需第三方 Python 依赖**。下载解压后，只需要提供一次 OpenReach 服务器 IP：
+
+```bash
+python3 scripts/openreach.py init 192.168.1.20
+```
+
+默认组成 `http://192.168.1.20:8080`。`init` 会先调用 `GET /api/web/health` 执行前置连通性检查，成功后才将地址写入当前 Skill 的 `config.json`：
+
+```json
+{
+  "base_url": "http://192.168.1.20:8080"
+}
+```
+
+之后所有 Tool 自动读取配置：
+
+```bash
+python3 scripts/openreach.py doctor
+python3 scripts/openreach.py search "AI Agent" --region auto --provider auto --limit 5
+python3 scripts/openreach.py image-search "杭州西湖" --region auto --provider auto --limit 8
+python3 scripts/openreach.py read "https://spring.io/projects/spring-boot/" --max-chars 20000
+```
+
+Python Tool 也可以直接调用：
+
+```python
+from skills.openreach import doctor, search, image_search, read
+
+doctor()
+results = search("OpenReach AI Agent", region="auto", provider="auto", limit=5)
+```
+
+`search` / `image-search` 的 `region` 默认均为 **`auto`**，省略时等价于 `auto`；为了让 Agent 调用链和日志更清楚，README、官网与 Skill 示例均显式展示该参数。明确地域时可以传 `CN`、`JP`、`US` 等，由 Provider best-effort 映射。
+
+Skill 内还提供基于项目 ChatGPT Search 调研抽象出的 Agentic Search SOP：**Query Planning → Search → Source Selection → Read → Evidence Check → 再搜索/再读取 → Cross-source Verification → Citation**。
+
+详细说明见：[skills/openreach/SKILL.md](skills/openreach/SKILL.md)
 
 ## Provider 支持
 
@@ -370,6 +457,10 @@ openreach/
 │       ├── config/                 # 配置
 │       └── web/                    # HTTP Controller
 ├── src/test/java/                  # 单元测试
+├── src/main/resources/static/      # 内置官网与在线文档
+│   ├── index.html                  # http://localhost:8080/
+│   └── docs/                       # /docs/ 与 /docs/api.html
+├── skills/openreach/               # OpenReach Skill / Python CLI
 ├── docs/
 │   ├── 核心市场调研分析/
 │   ├── 核心搜索接口设计/
@@ -395,7 +486,8 @@ openreach/
 | 本地镜像启动验收 | `./bin/quick/docker-verify.sh` |
 | 公网接口 Smoke Test | `./bin/quick/smoke-test.sh` |
 | 一键发布 Docker Hub | `./bin/quick/release.sh` |
-| Docker Compose 启动 | `docker compose up -d` |
+| Docker 一键启动 | `docker run -d --name openreach --restart unless-stopped -p 8080:8080 codercl/openreach:latest` |
+| Docker Compose 启动（可选） | `docker compose up -d` |
 | Docker Compose 停止 | `docker compose down` |
 
 更多说明：[bin/quick/README.md](bin/quick/README.md)
@@ -433,6 +525,7 @@ openreach/
 
 ---
 
+
 ## AgentHub / HTTP Plugin
 
 项目已经提供标准 HTTP Plugin JSON：
@@ -456,7 +549,7 @@ read
 ## Roadmap
 
 ```text
-v0.1.0
+v0.1.1
 ├── Web Search                     ✅
 ├── Image Search                   ✅
 ├── Web Read                       ✅
@@ -521,17 +614,17 @@ read(url)
 
 > **Agents depend on stable capabilities, not on a specific search vendor.**
 
-Quick start:
+Quick start with Docker:
+
+```bash
+docker run -d --name openreach --restart unless-stopped -p 8080:8080 codercl/openreach:latest
+```
+
+For local development:
 
 ```bash
 mvn clean test
 mvn spring-boot:run
-```
-
-Or, after the public Docker image is available:
-
-```bash
-docker compose up -d
 ```
 
 See the Chinese sections above for the full capability matrix, provider support, API examples, architecture and deployment documentation.

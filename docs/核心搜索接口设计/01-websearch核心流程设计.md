@@ -1,7 +1,7 @@
 # WebSearch 核心流程设计
 
 > 对应接口：`POST /api/web/search`  
-> 当前版本：OpenReach v0.1.0  
+> 当前版本：OpenReach v0.1.1  
 > 核心目标：给 Agent 提供一个统一、轻量、可容错、可替换 Provider 的网页发现能力。
 
 ---
@@ -53,7 +53,7 @@ Content-Type: application/json
 {
   "query": "杭州 AI Agent 开源框架",
   "limit": 5,
-  "region": "CN",
+  "region": "auto",
   "provider": "auto"
 }
 ```
@@ -64,7 +64,7 @@ Content-Type: application/json
 |---|---:|---|
 | `query` | ✅ | 搜索关键词 |
 | `limit` | ❌ | 1~20，默认 10 |
-| `region` | ❌ | 默认 `CN`，Provider 尽力映射，不承诺精确 Geo |
+| `region` | ❌ | 默认 `auto`，Provider 尽力映射，不承诺精确 Geo |
 | `provider` | ❌ | `auto/bing/baidu/sogou/so360/duckduckgo` |
 
 响应：
@@ -73,7 +73,7 @@ Content-Type: application/json
 {
   "provider": "auto",
   "query": "杭州 AI Agent 开源框架",
-  "region": "CN",
+  "region": "auto",
   "count": 5,
   "latencyMs": 320,
   "items": [

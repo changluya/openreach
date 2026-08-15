@@ -106,3 +106,16 @@ coverage/
 
 # ---------- Misc tooling ----------
 *.retry
+
+# ---------- Python (project skills) ----------
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# OpenReach Skill local server configuration
+skills/openreach/config.json

@@ -28,7 +28,7 @@ docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
-  codercl/openreach:0.1.0
+  codercl/openreach:0.1.1
 ```
 
 Docker 会根据客户机器自动选择：
@@ -63,7 +63,7 @@ docker compose up -d
 固定版本：
 
 ```bash
-OPENREACH_IMAGE=codercl/openreach:0.1.0 docker compose up -d
+OPENREACH_IMAGE=codercl/openreach:0.1.1 docker compose up -d
 ```
 
 修改宿主机端口：
@@ -180,13 +180,13 @@ docker login
 然后推荐直接使用项目脚本：
 
 ```bash
-./bin/quick/release.sh 0.1.0
+./bin/quick/release.sh 0.1.1
 ```
 
 脚本会构建并推送：
 
 ```text
-codercl/openreach:0.1.0
+codercl/openreach:0.1.1
 codercl/openreach:latest
 ```
 
@@ -204,7 +204,7 @@ linux/arm64
 
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t codercl/openreach:0.1.0 \
+  -t codercl/openreach:0.1.1 \
   -t codercl/openreach:latest \
   --push \
   .
@@ -223,7 +223,7 @@ docker buildx build \
 发布后：
 
 ```bash
-docker buildx imagetools inspect codercl/openreach:0.1.0
+docker buildx imagetools inspect codercl/openreach:0.1.1
 ```
 
 至少应确认：
@@ -360,11 +360,11 @@ docker compose logs -f openreach
 # 停止
 docker compose down
 
-# 一键发布 0.1.0 多架构镜像
-./bin/quick/release.sh 0.1.0
+# 一键发布 0.1.1 多架构镜像
+./bin/quick/release.sh 0.1.1
 
 # 检查远程 manifest
-docker buildx imagetools inspect codercl/openreach:0.1.0
+docker buildx imagetools inspect codercl/openreach:0.1.1
 ```
 
 ---

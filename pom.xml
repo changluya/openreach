@@ -13,7 +13,7 @@
 
     <groupId>io.github.changlu</groupId>
     <artifactId>openreach</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <name>OpenReach</name>
     <description>Open-source Web access infrastructure for AI Agents</description>
 

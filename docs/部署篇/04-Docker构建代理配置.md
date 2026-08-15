@@ -40,7 +40,7 @@ http://127.0.0.1:7891
 
 ```bash
 OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
-./bin/quick/release.sh 0.1.0
+./bin/quick/release.sh 0.1.1
 ```
 
 脚本会自动处理：
@@ -142,20 +142,20 @@ Maven Package
 
 ```bash
 OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
-./bin/quick/release.sh 0.1.0
+./bin/quick/release.sh 0.1.1
 ```
 
 等价底层命令：
 
 ```bash
 OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
-./bin/quick/docker-publish.sh 0.1.0 codercl openreach
+./bin/quick/docker-publish.sh 0.1.1 codercl openreach
 ```
 
 最终发布：
 
 ```text
-codercl/openreach:0.1.0
+codercl/openreach:0.1.1
 codercl/openreach:latest
 ```
 
@@ -225,7 +225,7 @@ Linux 下 Docker 容器通常不能通过 `127.0.0.1` 访问宿主机代理。
 
 ```bash
 OPENREACH_BUILD_PROXY=http://192.168.1.10:7891 \
-./bin/quick/release.sh 0.1.0
+./bin/quick/release.sh 0.1.1
 ```
 
 ## 11. 核心原则

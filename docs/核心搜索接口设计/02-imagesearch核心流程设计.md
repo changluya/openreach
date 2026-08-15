@@ -1,7 +1,7 @@
 # ImageSearch 核心流程设计
 
 > 对应接口：`POST /api/web/image-search`  
-> 当前版本：OpenReach v0.1.0  
+> 当前版本：OpenReach v0.1.1  
 > 核心目标：给 Agent 提供独立的“文本发现图片”能力，并保留图片来源页面和版权元数据。
 
 ---
@@ -54,7 +54,7 @@ Content-Type: application/json
 {
   "query": "杭州西湖夜景",
   "limit": 8,
-  "region": "CN",
+  "region": "auto",
   "provider": "auto"
 }
 ```
@@ -65,7 +65,7 @@ Content-Type: application/json
 |---|---:|---|
 | `query` | ✅ | 图片搜索文本 |
 | `limit` | ❌ | 1~30，默认 10 |
-| `region` | ❌ | 默认 CN，Provider best-effort |
+| `region` | ❌ | 默认 auto，Provider best-effort |
 | `provider` | ❌ | `auto/bing/baidu/sogou/openverse` |
 
 响应：
@@ -74,7 +74,7 @@ Content-Type: application/json
 {
   "provider": "auto",
   "query": "杭州西湖夜景",
-  "region": "CN",
+  "region": "auto",
   "count": 8,
   "latencyMs": 560,
   "items": [

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -32,6 +33,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UpstreamException.class)
     public ResponseEntity<Map<String, Object>> upstream(UpstreamException ex) {
         return response(HttpStatus.BAD_GATEWAY, "UPSTREAM_ERROR", ex.getMessage());
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> notFound(NoResourceFoundException ex) {
+        return response(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

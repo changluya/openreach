@@ -1,7 +1,7 @@
 # Read 核心流程设计
 
 > 对应接口：`POST /api/web/read`  
-> 当前版本：OpenReach v0.1.0  
+> 当前版本：OpenReach v0.1.1  
 > 核心目标：安全读取指定公网 URL，并把 HTML 转换为适合 Agent 消费的正文、元数据和链接。
 
 ---

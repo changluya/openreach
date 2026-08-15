@@ -16,7 +16,7 @@ public record SearchRequest(
     }
 
     public String effectiveRegion() {
-        return region == null || region.isBlank() ? "CN" : region.trim();
+        return region == null || region.isBlank() ? "auto" : region.trim();
     }
 
     public String effectiveProvider(String configuredDefault) {

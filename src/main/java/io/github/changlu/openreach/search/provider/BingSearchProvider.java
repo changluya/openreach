@@ -26,7 +26,8 @@ public class BingSearchProvider implements SearchProvider {
 
     @Override
     public List<SearchItem> search(String query, int limit, String region) {
-        String cc = "CN".equalsIgnoreCase(region) || "wt-wt".equalsIgnoreCase(region) ? "CN" : region;
+        String cc = region == null || region.isBlank() || "auto".equalsIgnoreCase(region)
+                || "CN".equalsIgnoreCase(region) || "wt-wt".equalsIgnoreCase(region) ? "CN" : region;
         URI uri = URI.create(properties.getSearch().getBingUrl()
                 + "?q=" + encode(query) + "&setlang=zh-CN&cc=" + encode(cc));
         Document doc = http.get(name(), uri);

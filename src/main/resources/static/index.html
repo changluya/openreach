@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="OpenReach - 面向 AI Agent 的开源 Web 访问基础设施，统一提供 Search、Image Search、Read 三大 Web 原语。" />
+  <title>OpenReach · Web Access Infrastructure for AI Agents</title>
+  <link rel="icon" href="/assets/logo-mark.png" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('openreach-theme');
+        var theme = saved === 'dark' || saved === 'light' ? saved : 'light';
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light';
+      }
+    })();
+  </script>
+</head>
+<body>
+<header class="nav-wrap">
+  <div class="container nav">
+    <a class="brand" href="/"><img src="/assets/logo-mark.png" alt="OpenReach" /><span>OpenReach</span></a>
+    <nav class="nav-links" aria-label="主导航">
+      <a class="nav-section-link" href="#capabilities">能力</a>
+      <a class="nav-section-link" href="#usecases">场景</a>
+      <a class="nav-section-link" href="#providers">Provider</a>
+      <a class="docs-only" href="/docs/">文档</a>
+      <a class="nav-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer" aria-label="OpenReach GitHub">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.3 11.3 0 0 0-3.57 22c.57.1.77-.25.77-.55v-2.16c-3.16.69-3.83-1.34-3.83-1.34-.51-1.31-1.26-1.66-1.26-1.66-1.03-.7.08-.69.08-.69 1.14.08 1.74 1.17 1.74 1.17 1.01 1.74 2.66 1.24 3.31.95.1-.74.4-1.24.72-1.52-2.52-.29-5.18-1.26-5.18-5.6 0-1.24.44-2.25 1.17-3.04-.12-.29-.51-1.44.11-3 0 0 .95-.3 3.11 1.16A10.8 10.8 0 0 1 12 6.05c.96 0 1.92.13 2.83.38 2.16-1.47 3.11-1.16 3.11-1.16.62 1.56.23 2.71.11 3 .73.79 1.17 1.8 1.17 3.04 0 4.35-2.66 5.31-5.19 5.6.41.35.77 1.04.77 2.1v3.14c0 .3.21.66.78.55A11.3 11.3 0 0 0 12 .7Z"/></svg>
+        <span>GitHub</span>
+      </a>
+      <button class="theme-toggle" type="button" data-theme-toggle role="switch" aria-checked="false" aria-label="切换深色主题" title="切换主题">
+        <span class="theme-track" aria-hidden="true">
+          <svg class="theme-sun" viewBox="0 0 24 24"><path d="M12 4V2m0 20v-2M4 12H2m20 0h-2M6.34 6.34 4.93 4.93m14.14 14.14-1.41-1.41M17.66 6.34l1.41-1.41M4.93 19.07l1.41-1.41"/><circle cx="12" cy="12" r="4"/></svg>
+          <span class="theme-thumb"></span>
+          <svg class="theme-moon" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
+        </span>
+      </button>
+      <a class="nav-primary nav-download" href="/downloads/openreach-skill.zip" download>下载 Skill</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="container">
+      <div class="eyebrow"><span class="dot"></span> Open-source · Self-hosted · Agent Ready</div>
+      <h1><span class="gradient-text">让 AI Agent 更简单地触达开放 Web</span></h1>
+      <p>OpenReach 是面向 AI Agent 的开源 Web 访问基础设施。用统一接口完成网页搜索、文搜图和正文读取，并通过多 Provider 自动降级减少对单一搜索厂商的绑定。</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="/docs/">5 分钟快速启动 →</a>
+        <a class="btn" href="/docs/api.html">查看官方接口</a>
+      </div>
+      <div class="primitives">
+        <div class="primitive"><code>search(query)</code><span>搜索网页，发现官网、新闻、博客、技术文档和公开信息源。</span></div>
+        <div class="primitive"><code>image-search(query)</code><span>通过文本发现图片、缩略图、来源页面和 License 元数据。</span></div>
+        <div class="primitive"><code>read(url)</code><span>读取公开网页，提取标题、正文、元数据和页面链接。</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="capabilities" class="section section-tight">
+    <div class="container">
+      <div class="section-head"><div class="kicker">Core capabilities</div><h2>只给 Agent 三个稳定原语</h2><p>上层 Agent 依赖能力，不依赖厂商。底层 Provider 可以替换、降级和持续扩展。</p></div>
+      <div class="grid-3">
+        <article class="card"><div class="icon-box">S</div><h3>Web Search</h3><p>多搜索 Provider 自动 fallback，输出标题、URL、摘要、排名与来源，适合先发现可靠信息源。</p><span class="endpoint">POST /api/web/search</span></article>
+        <article class="card"><div class="icon-box">I</div><h3>Image Search</h3><p>支持国内优先的文搜图路由，返回原图、缩略图、来源页、尺寸以及开放许可信息。</p><span class="endpoint">POST /api/web/image-search</span></article>
+        <article class="card"><div class="icon-box">R</div><h3>Web Read</h3><p>安全获取公开 HTML 页面，提取正文和元数据，并内置 URL 安全校验、跳转限制与响应体限制。</p><span class="endpoint">POST /api/web/read</span></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="usecases" class="section">
+    <div class="container">
+      <div class="section-head"><div class="kicker">Use cases</div><h2>从“搜到”到“读懂”</h2><p>OpenReach 将信息源发现与正文读取串成一条 Agent 可直接调用的 Web 访问链路。</p></div>
+      <div class="usecases">
+        <div class="usecase"><b>企业 / 产品官网</b><span>发现官网、产品页、解决方案、价格页、更新日志，再继续读取正文。</span></div>
+        <div class="usecase"><b>技术文档 / 开源项目</b><span>搜索官方文档、GitHub 相关页面、技术博客和使用说明。</span></div>
+        <div class="usecase"><b>新闻 / 行业资讯</b><span>发现新闻、媒体报道和行业动态，并读取原始来源供 Agent 交叉分析。</span></div>
+        <div class="usecase"><b>微信公众号公开文章</b><span>尝试搜索已被搜索引擎收录的公开推文，或直接读取公开文章 URL。</span></div>
+        <div class="usecase"><b>Research Agent</b><span>Search 批量发现来源，再 Read 多页面，完成汇总、对比、归纳和引用。</span></div>
+        <div class="usecase"><b>企业智能助手</b><span>给内部 Agent 增加实时 Web 信息获取能力，降低上层工具与具体厂商耦合。</span></div>
+        <div class="usecase"><b>内容生产</b><span>搜索博客、专栏和公开内容站点，辅助摘要、选题、资料整理与事实核查。</span></div>
+        <div class="usecase"><b>文搜图 / 配图</b><span>通过 image-search 发现图片及来源页，为内容生产和素材发现提供入口。</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container banner">
+      <div class="banner-grid">
+        <div>
+          <div class="kicker">Quick start</div>
+          <h2>一个命令启动，浏览器直接看到官网</h2>
+          <p>无需 Clone 工程、无需准备 Compose 文件，直接执行一条 <strong>docker run</strong> 即可启动。源码开发场景再使用 Maven。服务启动后访问 <strong>http://localhost:8080</strong> 即可看到当前官网。</p>
+          <div class="hero-actions" style="justify-content:flex-start;margin-top:22px"><a class="btn" href="/docs/">打开快速启动文档</a></div>
+        </div>
+        <div class="codebox"><button class="copy-btn" data-copy="#docker-code">复制</button><pre id="docker-code">docker run -d \
+  --name openreach \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  codercl/openreach:latest
+
+# Website  http://localhost:8080/
+# Docs     http://localhost:8080/docs/</pre></div>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="skill" class="section">
+    <div class="container banner skill-banner">
+      <div class="banner-grid">
+        <div>
+          <div class="kicker">Agent Skill</div>
+          <h2>下载后只填一次服务器 IP</h2>
+          <p>OpenReach Skill 使用 Python 标准库封装 <strong>doctor / search / image-search / read</strong>。初始化先检查服务连通性，成功后把 Base URL 写入 Skill 自己的 <code>config.json</code>，后续命令自动复用。</p>
+          <div class="hero-actions" style="justify-content:flex-start;margin-top:22px">
+            <a class="btn" href="/downloads/openreach-skill.zip" download>下载 openreach-skill.zip</a>
+            <a class="btn" href="/docs/#skill">查看 Skill 用法</a>
+          </div>
+        </div>
+        <div class="codebox"><pre>python3 scripts/openreach.py init 192.168.1.20
+python3 scripts/openreach.py doctor
+
+python3 scripts/openreach.py search "AI Agent" \
+  --region auto \
+  --provider auto \
+  --limit 5</pre></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="providers" class="section">
+    <div class="container">
+      <div class="section-head"><div class="kicker">Provider routing</div><h2>免费渠道优先，多路自动降级</h2><p>当前版本聚焦国内开发与自托管场景。免费 Provider 属于 best-effort 能力；生产级 SLA 可通过 SPI 接入商业 Provider。</p></div>
+      <h3>Web Search</h3>
+      <div class="provider-row"><span class="pill">Bing 中国</span><span class="pill">百度</span><span class="pill">搜狗</span><span class="pill">360 搜索</span><span class="pill">DuckDuckGo</span></div>
+      <h3 style="margin-top:26px">Image Search</h3>
+      <div class="provider-row"><span class="pill">Bing Images</span><span class="pill">百度图片</span><span class="pill">搜狗图片</span><span class="pill">Openverse API</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head"><div class="kicker">Agent flow</div><h2>典型调用链路</h2><p>先发现来源，再读取正文，最后把干净内容交给模型处理。</p></div>
+      <div class="pipeline">
+        <div class="step"><small>01</small><b>User Question</b><span>产品、公司、技术或热点问题</span></div><div class="arrow">→</div>
+        <div class="step"><small>02</small><b>search()</b><span>发现官网、新闻、博客、公开文章</span></div><div class="arrow">→</div>
+        <div class="step"><small>03</small><b>read()</b><span>提取标题、正文、元数据与 Links</span></div><div class="arrow">→</div>
+        <div class="step"><small>04</small><b>Agent</b><span>总结、对比、问答、引用与继续检索</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head"><div class="kicker">Engineering</div><h2>为开源与二次开发准备</h2><p>JDK 17 + Spring Boot，提供 Provider SPI、SSRF 防护、Docker 部署与可直接安装的 OpenReach Skill。</p></div>
+      <div class="table-wrap"><table><thead><tr><th>能力</th><th>状态</th><th>说明</th></tr></thead><tbody>
+        <tr><td><strong>Provider Auto Fallback</strong></td><td class="status">✓ 已支持</td><td>上游超时、解析失败、空结果时继续下一渠道</td></tr>
+        <tr><td><strong>SSRF Protection</strong></td><td class="status">✓ 已支持</td><td>Read 链路进行 DNS / IP / Redirect 安全校验</td></tr>
+        <tr><td><strong>Docker / Compose</strong></td><td class="status">✓ 已支持</td><td>Runtime-only 镜像，支持 amd64 / arm64 发布模型</td></tr>
+        <tr><td><strong>OpenReach Skill</strong></td><td class="status">✓ 已支持</td><td>Python 标准库 CLI 封装 search / image-search / read</td></tr>
+        <tr><td><strong>Dynamic Browser Read</strong></td><td>Roadmap</td><td>计划扩展 Playwright / Browser Reader</td></tr>
+      </tbody></table></div>
+    </div>
+  </section>
+
+  <section id="community" class="section community-home">
+    <div class="container community-strip">
+      <div>
+        <div class="kicker">Open source community</div>
+        <h2>源码、文档与社区都在这里</h2>
+        <p>查看 OpenReach 源码与 Issue，或者加入项目交流群交流部署、Provider 扩展和 Agent Search 实践。</p>
+      </div>
+      <div class="community-actions">
+        <a class="btn primary" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer">前往 GitHub →</a>
+        <a class="btn" href="/community">查看交流群</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer"><div class="container footer-inner"><a class="brand" href="/"><img src="/assets/logo-mark.png" alt="" /><span>OpenReach</span></a><span>Open-source Web access infrastructure for AI Agents. · <a class="footer-link" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer">GitHub</a></span></div></footer>
+<script src="/assets/site.js"></script>
+</body>
+</html>

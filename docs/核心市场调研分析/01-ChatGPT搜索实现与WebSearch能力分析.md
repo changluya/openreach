@@ -498,7 +498,7 @@ read(sourcePageUrl)
 | 截图能力 | 本质 | 建议基础接口 | 当前状态 |
 |---|---|---|---|
 | Search | 通用网页发现 | `search` | ✅ V1 |
-| Images | 文搜图 | `image-search` | ✅ OpenReach v0.1.0 |
+| Images | 文搜图 | `image-search` | ✅ OpenReach v0.1.1 |
 | News | 时效性网页/新闻实体 | `news-search` | 后续 |
 | Maps | 地图 SERP | `map-search` | 后续，优先商业 Provider |
 | Places | POI / Business Entity | `place-search` | 后续，优先商业 Provider |
@@ -594,7 +594,7 @@ L1  Provider
 
 # 11. V1/V2 对标目标
 
-## V1 原型 / OpenReach v0.1.0
+## V1 原型 / OpenReach v0.1.1
 
 目标不是对标完整 ChatGPT Search，而是先获得：
 

@@ -8,7 +8,7 @@
     "staticHeaders": "{\"Content-Type\":\"application/json\",\"Accept\":\"application/json\"}",
     "maskConfig": "[{\"sourceType\":2,\"key\":\"baseUrl\",\"exportValue\":\"{{BASE_URL}}\"}]",
     "description": "OpenReach 为 Agent 提供网页搜索、文搜图和网页正文读取能力。内置国内优先的多搜索渠道自动降级，并支持指定 Provider。",
-    "installConfig": "{\"installDesc\":\"导入后请确认 BASE_URL 指向已启动的 OpenReach 服务。默认本地地址为 http://localhost:8080；部署到服务器或容器环境时请替换为实际可访问地址。无需 API Key。\",\"installVersion\":\"v0.1.0\"}",
+    "installConfig": "{\"installDesc\":\"导入后请确认 BASE_URL 指向已启动的 OpenReach 服务。默认本地地址为 http://localhost:8080；部署到服务器或容器环境时请替换为实际可访问地址。无需 API Key。\",\"installVersion\":\"v0.1.1\"}",
     "methods": [
       {
         "methodName": "searchWeb",
@@ -37,11 +37,11 @@
           },
           {
             "methodParamName": "region",
-            "methodParamDescription": "搜索区域，默认 CN。不同 Provider 对区域参数的支持程度不同",
+            "methodParamDescription": "搜索区域，默认 auto；未传等价于 auto。不同 Provider 对区域参数的支持程度不同",
             "mappedName": "region",
             "useTypeValue": 2,
             "dataTypeValue": 1,
-            "defaultValue": "CN",
+            "defaultValue": "auto",
             "required": 0
           },
           {
@@ -82,11 +82,11 @@
           },
           {
             "methodParamName": "region",
-            "methodParamDescription": "图片搜索区域，默认 CN。不同 Provider 对区域参数的支持程度不同",
+            "methodParamDescription": "图片搜索区域，默认 auto；未传等价于 auto。不同 Provider 对区域参数的支持程度不同",
             "mappedName": "region",
             "useTypeValue": 2,
             "dataTypeValue": 1,
-            "defaultValue": "CN",
+            "defaultValue": "auto",
             "required": 0
           },
           {

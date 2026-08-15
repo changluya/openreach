@@ -296,7 +296,7 @@ Provider Extensions / Raw Metadata（可选）
 
 # 5. Serper Images 对当前文搜图设计的启发
 
-当前 Java OpenReach v0.1.0 设计：
+当前 Java OpenReach v0.1.1 设计：
 
 ```text
 POST /api/web/image-search
@@ -508,7 +508,7 @@ license
 licenseUrl
 ```
 
-并且工程 OpenReach v0.1.0：
+并且工程 OpenReach v0.1.1：
 
 > **只返回图片候选 URL 与来源元数据，不把搜索结果图片视为天然可商用素材，也不自动下载/重分发图片。**
 
@@ -642,7 +642,7 @@ Geo
 因此当前最佳路线仍然是：
 
 ```text
-V1 原型 / OpenReach v0.1.0
+V1 原型 / OpenReach v0.1.1
 免费 Provider
     +
 稳定 SPI

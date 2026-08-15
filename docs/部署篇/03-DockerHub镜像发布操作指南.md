@@ -5,7 +5,7 @@
 本文默认示例 Docker Hub Namespace 为 `codercl`，最终镜像：
 
 ```text
-codercl/openreach:0.1.0
+codercl/openreach:0.1.1
 codercl/openreach:latest
 ```
 
@@ -121,7 +121,7 @@ docker rm -f openreach-local
 推荐直接使用项目脚本：
 
 ```bash
-./bin/quick/release.sh 0.1.0
+./bin/quick/release.sh 0.1.1
 ```
 
 脚本会执行：
@@ -137,7 +137,7 @@ docker rm -f openreach-local
     +
 构建 linux/arm64
     ↓
-Push codercl/openreach:0.1.0
+Push codercl/openreach:0.1.1
     ↓
 Push codercl/openreach:latest
     ↓
@@ -151,7 +151,7 @@ Push codercl/openreach:latest
 
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t codercl/openreach:0.1.0 \
+  -t codercl/openreach:0.1.1 \
   -t codercl/openreach:latest \
   --push \
   .
@@ -162,7 +162,7 @@ docker buildx build \
 ## 6. 验证多架构 Manifest
 
 ```bash
-docker buildx imagetools inspect codercl/openreach:0.1.0
+docker buildx imagetools inspect codercl/openreach:0.1.1
 ```
 
 至少应看到：
@@ -221,7 +221,7 @@ docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
-  codercl/openreach:0.1.0
+  codercl/openreach:0.1.1
 ```
 
 ---
@@ -243,7 +243,7 @@ docker compose up -d
 如果需要固定版本：
 
 ```bash
-OPENREACH_IMAGE=codercl/openreach:0.1.0 docker compose up -d
+OPENREACH_IMAGE=codercl/openreach:0.1.1 docker compose up -d
 ```
 
 如果你还没有发布 Docker Hub 镜像，需要从当前源码本地构建，则执行：
@@ -268,7 +268,7 @@ docker login
 发布后：
 
 ```text
-codercl/openreach:0.1.0
+codercl/openreach:0.1.1
 codercl/openreach:0.1.1
 codercl/openreach:latest  -> 当前稳定版本
 ```
@@ -289,7 +289,7 @@ http://127.0.0.1:7891
 
 ```bash
 OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
-./bin/quick/release.sh 0.1.0
+./bin/quick/release.sh 0.1.1
 ```
 
 macOS 下脚本会自动把宿主机回环地址转换成 BuildKit 容器可访问的：

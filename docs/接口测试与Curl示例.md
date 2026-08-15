@@ -47,7 +47,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/search' \
   -d '{
     "query": "杭州 AI Agent 开源框架",
     "limit": 5,
-    "region": "CN",
+    "region": "auto",
     "provider": "auto"
   }'
 ```
@@ -66,7 +66,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/search' \
   -d '{
     "query": "Spring Boot Agent",
     "limit": 5,
-    "region": "CN",
+    "region": "auto",
     "provider": "baidu"
   }'
 ```
@@ -79,7 +79,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/search' \
   -d '{
     "query": "Spring Boot AI Agent",
     "limit": 5,
-    "region": "CN",
+    "region": "auto",
     "provider": "bing"
   }'
 ```
@@ -96,7 +96,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/image-search' \
   -d '{
     "query": "杭州西湖夜景",
     "limit": 8,
-    "region": "CN",
+    "region": "auto",
     "provider": "auto"
   }'
 ```

@@ -30,7 +30,9 @@ public class DuckDuckGoSearchProvider implements SearchProvider {
 
     @Override
     public List<SearchItem> search(String query, int limit, String region) {
-        String kl = "CN".equalsIgnoreCase(region) ? "cn-zh" : region;
+        String kl = region == null || region.isBlank() || "auto".equalsIgnoreCase(region)
+                ? "wt-wt"
+                : ("CN".equalsIgnoreCase(region) ? "cn-zh" : region);
         URI uri = URI.create(properties.getSearch().getDuckduckgoUrl()
                 + "?q=" + encode(query) + "&kl=" + encode(kl));
         Document doc = http.get(name(), uri);

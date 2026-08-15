@@ -56,7 +56,7 @@ linux/arm64
 普通情况下执行：
 
 ```bash
-docker build -t codercl/openreach:0.1.0 .
+docker build -t codercl/openreach:0.1.1 .
 ```
 
 构建出来的镜像通常对应当前构建机器的架构。
@@ -96,13 +96,13 @@ Dockerfile 是否能构建多架构，只是前提。
 用户看到的镜像名称可能只有一个：
 
 ```text
-codercl/openreach:0.1.0
+codercl/openreach:0.1.1
 ```
 
 但它背后可以同时包含多个架构版本：
 
 ```text
-codercl/openreach:0.1.0
+codercl/openreach:0.1.1
         │
         ▼
    Manifest List
@@ -137,7 +137,7 @@ codercl/openreach:arm64
 更标准的方式是：
 
 ```text
-codercl/openreach:0.1.0
+codercl/openreach:0.1.1
 ```
 
 一个 Tag 自动适配多个架构。
@@ -298,7 +298,7 @@ Buildx 可以：
 OpenReach 发布正式镜像时推荐：
 
 ```bash
-docker buildx build   --platform linux/amd64,linux/arm64   -t codercl/openreach:0.1.0   -t codercl/openreach:latest   --push   .
+docker buildx build   --platform linux/amd64,linux/arm64   -t codercl/openreach:0.1.1   -t codercl/openreach:latest   --push   .
 ```
 
 这里：
@@ -527,7 +527,7 @@ x86_64 / amd64
 发布完后建议执行：
 
 ```bash
-docker buildx imagetools inspect codercl/openreach:0.1.0
+docker buildx imagetools inspect codercl/openreach:0.1.1
 ```
 
 理想情况下应该看到：
@@ -586,7 +586,7 @@ Docker Hub
 OpenReach 源代码：
 
 ```text
-github.com/codercl/openreach
+github.com/changluya/openreach
 ```
 
 OpenReach Docker 镜像：
@@ -617,7 +617,7 @@ Docker Hub Account
     └── Repository
         └── openreach
             ├── Tag: latest
-            ├── Tag: 0.1.0
+            ├── Tag: 0.1.1
             ├── Tag: 0.1.1
             └── Tag: 0.2.0
 ```
@@ -625,7 +625,7 @@ Docker Hub Account
 完整镜像名称：
 
 ```text
-codercl/openreach:0.1.0
+codercl/openreach:0.1.1
 ```
 
 拆解：
@@ -639,7 +639,7 @@ openreach
     ↓
 Repository
 
-0.1.0
+0.1.1
     ↓
 Tag
 ```
@@ -661,13 +661,13 @@ latest
 例如当前正式稳定版本：
 
 ```text
-0.1.0
+0.1.1
 ```
 
 可以同时推：
 
 ```text
-codercl/openreach:0.1.0
+codercl/openreach:0.1.1
 codercl/openreach:latest
 ```
 
@@ -693,7 +693,7 @@ latest
 
 ```text
 精确版本：
-0.1.0
+0.1.1
 
 稳定入口：
 latest
@@ -708,7 +708,7 @@ docker run codercl/openreach:latest
 生产环境：
 
 ```bash
-docker run codercl/openreach:0.1.0
+docker run codercl/openreach:0.1.1
 ```
 
 原因是生产环境更希望：
@@ -991,13 +991,13 @@ Manifest List
    ↓
 Docker Hub
    ↓
-0.1.0 + latest
+0.1.1 + latest
 ```
 
 对应命令：
 
 ```bash
-docker buildx build   --platform linux/amd64,linux/arm64   -t codercl/openreach:0.1.0   -t codercl/openreach:latest   --push   .
+docker buildx build   --platform linux/amd64,linux/arm64   -t codercl/openreach:0.1.1   -t codercl/openreach:latest   --push   .
 ```
 
 ---
@@ -1145,7 +1145,7 @@ docker buildx imagetools inspect ...
                          │
              ┌───────────┴───────────┐
              ▼                       ▼
-           0.1.0                   latest
+           0.1.1                   latest
                          │
                          ▼
                     docker run

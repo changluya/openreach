@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="OpenReach 官方 API 文档" />
+  <title>官方接口文档 · OpenReach Docs</title>
+  <link rel="icon" href="/assets/logo-mark.png" /><link rel="stylesheet" href="/assets/site.css" />
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('openreach-theme');
+        var theme = saved === 'dark' || saved === 'light' ? saved : 'light';
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light';
+      }
+    })();
+  </script>
+</head>
+<body class="docs-body">
+<header class="nav-wrap"><div class="container nav"><a class="brand" href="/"><img src="/assets/logo-mark.png" alt="OpenReach" /><span>OpenReach</span></a><nav class="nav-links"><a href="/">首页</a><a class="docs-only active" href="/docs/">文档</a><a class="nav-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer" aria-label="OpenReach GitHub">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.3 11.3 0 0 0-3.57 22c.57.1.77-.25.77-.55v-2.16c-3.16.69-3.83-1.34-3.83-1.34-.51-1.31-1.26-1.66-1.26-1.66-1.03-.7.08-.69.08-.69 1.14.08 1.74 1.17 1.74 1.17 1.01 1.74 2.66 1.24 3.31.95.1-.74.4-1.24.72-1.52-2.52-.29-5.18-1.26-5.18-5.6 0-1.24.44-2.25 1.17-3.04-.12-.29-.51-1.44.11-3 0 0 .95-.3 3.11 1.16A10.8 10.8 0 0 1 12 6.05c.96 0 1.92.13 2.83.38 2.16-1.47 3.11-1.16 3.11-1.16.62 1.56.23 2.71.11 3 .73.79 1.17 1.8 1.17 3.04 0 4.35-2.66 5.31-5.19 5.6.41.35.77 1.04.77 2.1v3.14c0 .3.21.66.78.55A11.3 11.3 0 0 0 12 .7Z"/></svg>
+        <span>GitHub</span>
+      </a><button class="theme-toggle" type="button" data-theme-toggle role="switch" aria-checked="false" aria-label="切换深色主题" title="切换主题">
+        <span class="theme-track" aria-hidden="true">
+          <svg class="theme-sun" viewBox="0 0 24 24"><path d="M12 4V2m0 20v-2M4 12H2m20 0h-2M6.34 6.34 4.93 4.93m14.14 14.14-1.41-1.41M17.66 6.34l1.41-1.41M4.93 19.07l1.41-1.41"/><circle cx="12" cy="12" r="4"/></svg>
+          <span class="theme-thumb"></span>
+          <svg class="theme-moon" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
+        </span>
+      </button><a class="nav-primary nav-download" href="/downloads/openreach-skill.zip" download>下载 Skill</a></nav></div></header>
+<div class="docs-layout">
+  <aside class="docs-sidebar"><div class="label">文档</div><a href="/docs/">1. 快速启动</a><a class="active" href="/docs/api.html">2. 官方接口文档</a><div class="sidebar-project">
+      <div class="label">项目</div>
+      <a class="sidebar-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer">GitHub 仓库 ↗</a>
+      <a href="/community">交流群</a>
+    </div>
+  </aside>
+  <main class="docs-main">
+    <div class="mobile-docs"><select data-doc-select aria-label="切换文档"><option value="/docs/">1. 快速启动</option><option value="/docs/api.html" selected>2. 官方接口文档</option></select></div>
+    <div class="doc-eyebrow">API Reference · v0.1.1</div><h1>官方接口文档</h1>
+    <p class="lead">OpenReach 当前提供三个核心 HTTP POST 能力，并额外提供一个无外部依赖的 Health 接口用于部署与 Skill 初始化检查。以下参数以当前 Java DTO 和 Controller 为准。</p>
+    <div class="note">Base URL：<code>http://localhost:8080</code>。所有接口路径统一位于 <code>/api/web</code>。</div>
+
+
+    <section class="endpoint-block">
+      <h2 style="margin-top:0"><span class="method get">GET</span>/api/web/health</h2>
+      <p>服务连通性检查。该接口不调用外部搜索 Provider，官网 Skill 的 <code>init</code> 与 <code>doctor</code> 会把它作为使用 Search / Image Search / Read 前的环境前置条件。</p>
+      <div class="codebox"><button class="copy-btn" data-copy="#api-health">复制</button><pre id="api-health">curl 'http://localhost:8080/api/web/health'</pre></div>
+      <p>成功响应：<code>{"status":"UP","service":"openreach"}</code></p>
+    </section>
+
+    <section class="endpoint-block">
+      <h2 style="margin-top:0"><span class="method">POST</span>/api/web/search</h2>
+      <p>搜索网页并返回候选信息源。<code>provider=auto</code> 时按配置顺序自动降级。</p>
+      <h3>请求参数</h3>
+      <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
+        <tr><td><code>query</code></td><td>string</td><td>是</td><td>非空搜索关键词</td></tr>
+        <tr><td><code>limit</code></td><td>integer</td><td>否</td><td>1–20，默认 10，并受服务端 max-results 限制</td></tr>
+        <tr><td><code>region</code></td><td>string</td><td>否</td><td>默认 auto；未传等价于 auto；不同 Provider best-effort 映射</td></tr>
+        <tr><td><code>provider</code></td><td>string</td><td>否</td><td>默认 auto；可选 bing / baidu / sogou / so360 / duckduckgo</td></tr>
+      </tbody></table></div>
+      <h3>示例</h3>
+      <div class="codebox"><button class="copy-btn" data-copy="#api-search">复制</button><pre id="api-search">curl -X POST 'http://localhost:8080/api/web/search' \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"OpenReach AI Agent","limit":5,"region":"auto","provider":"auto"}'</pre></div>
+      <p>响应字段：<code>provider</code>、<code>query</code>、<code>region</code>、<code>count</code>、<code>latencyMs</code>、<code>items[]</code>。每个 item 包含 <code>rank</code>、<code>title</code>、<code>url</code>、<code>snippet</code>、<code>source</code>。</p>
+    </section>
+
+    <section class="endpoint-block">
+      <h2 style="margin-top:0"><span class="method">POST</span>/api/web/image-search</h2>
+      <p>根据文本搜索图片与来源页面。</p>
+      <h3>请求参数</h3>
+      <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
+        <tr><td><code>query</code></td><td>string</td><td>是</td><td>非空图片搜索关键词</td></tr>
+        <tr><td><code>limit</code></td><td>integer</td><td>否</td><td>1–30，默认 10，并受服务端 max-results 限制</td></tr>
+        <tr><td><code>region</code></td><td>string</td><td>否</td><td>默认 auto；未传等价于 auto</td></tr>
+        <tr><td><code>provider</code></td><td>string</td><td>否</td><td>默认 auto；可选 bing / baidu / sogou / openverse</td></tr>
+      </tbody></table></div>
+      <h3>示例</h3>
+      <div class="codebox"><button class="copy-btn" data-copy="#api-image">复制</button><pre id="api-image">curl -X POST 'http://localhost:8080/api/web/image-search' \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"杭州西湖夜景","limit":8,"region":"auto","provider":"auto"}'</pre></div>
+      <p>响应 items 可包含：<code>rank</code>、<code>title</code>、<code>imageUrl</code>、<code>thumbnailUrl</code>、<code>sourcePageUrl</code>、<code>provider</code>、<code>source</code>、<code>domain</code>、<code>width</code>、<code>height</code>、<code>imageFormat</code>、<code>license</code>、<code>licenseUrl</code>。</p>
+    </section>
+
+    <section class="endpoint-block">
+      <h2 style="margin-top:0"><span class="method">POST</span>/api/web/read</h2>
+      <p>获取公开网页并提取标题、正文、元数据和页面链接。读取链路包含 SSRF 防护和跳转限制。</p>
+      <h3>请求参数</h3>
+      <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
+        <tr><td><code>url</code></td><td>string</td><td>是</td><td>需要读取的非空 HTTP(S) URL</td></tr>
+        <tr><td><code>maxChars</code></td><td>integer</td><td>否</td><td>1000–200000；服务端默认最大正文字符数为 50000</td></tr>
+      </tbody></table></div>
+      <h3>示例</h3>
+      <div class="codebox"><button class="copy-btn" data-copy="#api-read">复制</button><pre id="api-read">curl -X POST 'http://localhost:8080/api/web/read' \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://spring.io/projects/spring-boot/","maxChars":20000}'</pre></div>
+      <p>响应字段：<code>url</code>、<code>finalUrl</code>、<code>title</code>、<code>content</code>、<code>contentType</code>、<code>reader</code>、<code>truncated</code>、<code>latencyMs</code>、<code>metadata</code>、<code>links</code>。</p>
+    </section>
+
+    <h2>错误响应</h2>
+    <p>错误统一返回时间戳、HTTP 状态码、错误码和信息。</p>
+    <div class="codebox"><pre>{
+  "timestamp": "2026-08-15T03:00:00Z",
+  "status": 400,
+  "code": "VALIDATION_ERROR",
+  "message": "query: must not be blank"
+}</pre></div>
+    <p>常见错误码：<code>BAD_REQUEST</code>、<code>VALIDATION_ERROR</code>、<code>UPSTREAM_ERROR</code>、<code>INTERNAL_ERROR</code>。</p>
+
+    <h2>Provider 默认顺序</h2>
+    <ul><li>Web Search：Bing 中国 → 百度 → 搜狗 → 360 → DuckDuckGo</li><li>Image Search：Bing Images → 百度图片 → 搜狗图片 → Openverse</li></ul>
+    <div class="note">免费搜索结果依赖公开页面结构、访问策略和网络环境，因此属于 best-effort。Openverse 使用其公开 API。</div>
+
+    <section id="community" class="api-community docs-community">
+      <div class="doc-eyebrow">Project & Community</div>
+      <h2>源码与交流群</h2>
+      <div class="community-grid compact">
+        <article class="community-card github-card">
+          <div class="community-icon">GH</div><div><h3>GitHub</h3><p>接口实现与最新代码以仓库为准。</p><a class="text-link" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer">github.com/changluya/openreach ↗</a></div>
+        </article>
+        <article class="community-card qr-card">
+          <button class="qr-preview-button" type="button" data-qr-preview="/assets/wechat-group.png" aria-label="点击放大 OpenReach 微信交流群二维码">
+            <img src="/assets/wechat-group.png" alt="OpenReach 微信交流群二维码" loading="lazy" />
+            <span>点击放大</span>
+          </button>
+          <div><h3>项目交流群</h3><p>扫码交流接口接入、部署和 Provider 扩展。点击二维码可放大查看。</p></div>
+        </article>
+      </div>
+    </section>
+
+  </main>
+</div>
+<script src="/assets/site.js"></script>
+</body>
+</html>
