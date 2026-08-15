@@ -1,0 +1,132 @@
+{
+  "version": "1.0",
+  "source": "manual",
+  "plugin": {
+    "name": "OpenReach Web 搜索与网页读取插件",
+    "logoUrl": "",
+    "baseUrl": "http://localhost:8080",
+    "staticHeaders": "{\"Content-Type\":\"application/json\",\"Accept\":\"application/json\"}",
+    "maskConfig": "[{\"sourceType\":2,\"key\":\"baseUrl\",\"exportValue\":\"{{BASE_URL}}\"}]",
+    "description": "OpenReach 为 Agent 提供网页搜索、文搜图和网页正文读取能力。内置国内优先的多搜索渠道自动降级，并支持指定 Provider。",
+    "installConfig": "{\"installDesc\":\"导入后请确认 BASE_URL 指向已启动的 OpenReach 服务。默认本地地址为 http://localhost:8080；部署到服务器或容器环境时请替换为实际可访问地址。无需 API Key。\",\"installVersion\":\"v0.1.0\"}",
+    "methods": [
+      {
+        "methodName": "searchWeb",
+        "methodDescription": "搜索互联网网页并返回标题、URL、摘要、排名和实际使用的搜索渠道。默认 provider=auto，会按配置的多搜索源顺序自动降级。",
+        "httpMethodType": 2,
+        "uri": "/api/web/search",
+        "status": 1,
+        "parameters": [
+          {
+            "methodParamName": "query",
+            "methodParamDescription": "搜索关键词或自然语言搜索问题，例如：Spring Boot AI Agent",
+            "mappedName": "query",
+            "useTypeValue": 2,
+            "dataTypeValue": 1,
+            "defaultValue": "",
+            "required": 1
+          },
+          {
+            "methodParamName": "limit",
+            "methodParamDescription": "最多返回的搜索结果数量，范围 1-20；未传时服务默认取 10",
+            "mappedName": "limit",
+            "useTypeValue": 2,
+            "dataTypeValue": 2,
+            "defaultValue": "10",
+            "required": 0
+          },
+          {
+            "methodParamName": "region",
+            "methodParamDescription": "搜索区域，默认 CN。不同 Provider 对区域参数的支持程度不同",
+            "mappedName": "region",
+            "useTypeValue": 2,
+            "dataTypeValue": 1,
+            "defaultValue": "CN",
+            "required": 0
+          },
+          {
+            "methodParamName": "provider",
+            "methodParamDescription": "搜索渠道。推荐 auto；当前可选 auto、bing、baidu、sogou、so360、duckduckgo",
+            "mappedName": "provider",
+            "useTypeValue": 2,
+            "dataTypeValue": 1,
+            "defaultValue": "auto",
+            "required": 0
+          }
+        ]
+      },
+      {
+        "methodName": "searchImages",
+        "methodDescription": "根据文本关键词搜索互联网图片，返回原图、缩略图、来源页面、来源站点、尺寸/格式及版权字段（渠道可提供时）。默认使用国内优先的多 Provider 自动降级。",
+        "httpMethodType": 2,
+        "uri": "/api/web/image-search",
+        "status": 1,
+        "parameters": [
+          {
+            "methodParamName": "query",
+            "methodParamDescription": "文搜图关键词或自然语言描述，例如：杭州西湖夜景",
+            "mappedName": "query",
+            "useTypeValue": 2,
+            "dataTypeValue": 1,
+            "defaultValue": "",
+            "required": 1
+          },
+          {
+            "methodParamName": "limit",
+            "methodParamDescription": "最多返回的图片数量，范围 1-30；未传时服务默认取 10",
+            "mappedName": "limit",
+            "useTypeValue": 2,
+            "dataTypeValue": 2,
+            "defaultValue": "10",
+            "required": 0
+          },
+          {
+            "methodParamName": "region",
+            "methodParamDescription": "图片搜索区域，默认 CN。不同 Provider 对区域参数的支持程度不同",
+            "mappedName": "region",
+            "useTypeValue": 2,
+            "dataTypeValue": 1,
+            "defaultValue": "CN",
+            "required": 0
+          },
+          {
+            "methodParamName": "provider",
+            "methodParamDescription": "图片搜索渠道。推荐 auto；当前可选 auto、bing、baidu、sogou、openverse",
+            "mappedName": "provider",
+            "useTypeValue": 2,
+            "dataTypeValue": 1,
+            "defaultValue": "auto",
+            "required": 0
+          }
+        ]
+      },
+      {
+        "methodName": "readWebPage",
+        "methodDescription": "读取指定公网 HTTP/HTTPS 网页并提取适合 Agent 消费的主要正文、标题、元数据和链接。内置 SSRF 防护、重定向校验、正文清洗和长度限制。",
+        "httpMethodType": 2,
+        "uri": "/api/web/read",
+        "status": 1,
+        "parameters": [
+          {
+            "methodParamName": "url",
+            "methodParamDescription": "需要读取的公网 HTTP/HTTPS 网页地址",
+            "mappedName": "url",
+            "useTypeValue": 2,
+            "dataTypeValue": 1,
+            "defaultValue": "",
+            "required": 1
+          },
+          {
+            "methodParamName": "maxChars",
+            "methodParamDescription": "最多返回的正文字数，范围 1000-200000；未传时使用服务端默认值",
+            "mappedName": "maxChars",
+            "useTypeValue": 2,
+            "dataTypeValue": 2,
+            "defaultValue": "50000",
+            "required": 0
+          }
+        ]
+      }
+    ]
+  }
+}

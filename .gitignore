@@ -1,0 +1,108 @@
+# =========================================================
+# OpenReach .gitignore
+# Keep the repository focused on source code, docs and
+# deployment assets; exclude local IDE/build/runtime noise.
+# =========================================================
+
+# ---------- Maven / Java build output ----------
+target/
+out/
+build/
+*.class
+
+# Maven release / helper generated files
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# JVM crash / diagnostic files
+hs_err_pid*
+replay_pid*
+*.hprof
+
+# ---------- IntelliJ IDEA ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ---------- Eclipse / STS ----------
+.classpath
+.project
+.settings/
+.factorypath
+.springBeans
+.sts4-cache/
+
+# ---------- VS Code ----------
+.vscode/
+*.code-workspace
+
+# ---------- OS generated files ----------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+$RECYCLE.BIN/
+
+# ---------- Logs / runtime files ----------
+logs/
+log/
+*.log
+*.log.*
+*.pid
+*.pid.lock
+
+# ---------- Temporary / cache files ----------
+.tmp/
+tmp/
+temp/
+.cache/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.rej
+
+# ---------- Local environment / secrets ----------
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Local Spring Boot overrides should stay on developer machines.
+**/application-local.yml
+**/application-local.yaml
+**/application-secret.yml
+**/application-secret.yaml
+
+# Local credential / certificate files.
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+
+# ---------- Test / coverage artifacts outside target ----------
+*.exec
+coverage/
+.nyc_output/
+
+# ---------- Misc tooling ----------
+*.retry

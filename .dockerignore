@@ -1,0 +1,14 @@
+.git
+.gitignore
+.github
+.idea
+.vscode
+.DS_Store
+*.iml
+*.zip
+/mnt
+
+# Docker only needs the executable JAR from target/. Keep the rest of Maven
+# output out of the build context.
+target/*
+!target/openreach-*.jar

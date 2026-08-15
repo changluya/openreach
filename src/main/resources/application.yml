@@ -1,0 +1,48 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: openreach
+
+openreach:
+  web:
+    search:
+      # auto 会按 provider-order 依次降级；也可在请求中传 provider 显式指定。
+      provider: auto
+      provider-order:
+        - bing
+        - baidu
+        - sogou
+        - so360
+        - duckduckgo
+      timeout-ms: 6000
+      max-results: 20
+      user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+      bing-url: https://cn.bing.com/search
+      baidu-url: https://www.baidu.com/s
+      sogou-url: https://www.sogou.com/web
+      so360-url: https://www.so.com/s
+      duckduckgo-url: https://html.duckduckgo.com/html/
+    image-search:
+      # V1 文搜图：国内优先的多 Provider best-effort 路由。
+      provider: auto
+      provider-order:
+        - bing
+        - baidu
+        - sogou
+        - openverse
+      timeout-ms: 8000
+      max-results: 30
+      user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+      bing-url: https://cn.bing.com/images/async
+      baidu-base-url: https://image.baidu.com/
+      baidu-url: https://image.baidu.com/search/acjson
+      sogou-url: https://pic.sogou.com/pics
+      openverse-url: https://api.openverse.org/v1/images/
+    read:
+      timeout-ms: 10000
+      max-bytes: 5242880
+      max-chars: 50000
+      max-redirects: 5
+      user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36

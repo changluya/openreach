@@ -1,0 +1,15 @@
+# Optional compose override for environments where RUN instructions need a proxy.
+#
+# OpenReach's default Dockerfile is runtime-only: Maven runs on the host before
+# Docker build, so this file is usually unnecessary. Registry/base-image access
+# is controlled by Docker Desktop/Engine or the bin/quick Buildx scripts.
+services:
+  openreach:
+    build:
+      args:
+        HTTP_PROXY: "${OPENREACH_CONTAINER_PROXY:-}"
+        HTTPS_PROXY: "${OPENREACH_CONTAINER_PROXY:-}"
+        http_proxy: "${OPENREACH_CONTAINER_PROXY:-}"
+        https_proxy: "${OPENREACH_CONTAINER_PROXY:-}"
+        NO_PROXY: "${OPENREACH_NO_PROXY:-localhost,127.0.0.1,::1}"
+        no_proxy: "${OPENREACH_NO_PROXY:-localhost,127.0.0.1,::1}"

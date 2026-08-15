@@ -1,0 +1,20 @@
+services:
+  openreach:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "${OPENREACH_LOCAL_IMAGE:-openreach:local}"
+    container_name: openreach
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      JAVA_OPTS: "${JAVA_OPTS:--Xms128m -Xmx512m}"
+      SERVER_PORT: "8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
