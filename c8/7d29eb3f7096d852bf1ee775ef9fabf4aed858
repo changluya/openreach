@@ -1,0 +1,36 @@
+CHANGELOG.md
+  h_415c008e101ba5 145-151,160,183,185,204,207,211,213,215-217,226
+docs/agenthub/接口文档/OpenReach接口文档.md
+  h_415c008e101ba5 21,31-32,59,61,63,73,141,143-144,152,185-186,237,292,301,309,311,316,327-336,339-348,396,406-413,418-419,462
+src/main/java/io/github/changlu/openreach/security/AttackSurfaceFilter.java
+  h_415c008e101ba5 40
+src/main/java/io/github/changlu/openreach/web/WebsiteController.java
+  h_415c008e101ba5 23-27
+src/main/resources/static/assets/site.css
+  h_415c008e101ba5 109-113,221-257,279-280,297-301,306,440-465
+src/main/resources/static/changelog.html
+  h_415c008e101ba5 1-125
+src/main/resources/static/docs/api.html
+  h_415c008e101ba5 11,22,29,42,44-46,52,60,62-63,70-71,79,90,93,100-120
+src/main/resources/static/docs/index.html
+  h_415c008e101ba5 11,22,29,33-73,114-115
+src/main/resources/static/index.html
+  h_415c008e101ba5 21,41
+src/test/java/io/github/changlu/openreach/StaticWebsiteResourceTest.java
+  h_415c008e101ba5 20,58,62,66,71-86
+src/test/java/io/github/changlu/openreach/WebsiteControllerTest.java
+  h_415c008e101ba5 17-22
+src/test/java/io/github/changlu/openreach/security/AttackSurfaceFilterTest.java
+  h_415c008e101ba5 93-109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "c87d29eb3f7096d852bf1ee775ef9fabf4aed858",
+  "prompts": {},
+  "humans": {
+    "h_415c008e101ba5": {
+      "author": "changlu <939974883@qq.com>"
+    }
+  }
+}
