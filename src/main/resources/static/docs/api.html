@@ -8,7 +8,7 @@
   <script src="/assets/theme-init.js"></script>
 </head>
 <body class="docs-body">
-<header class="nav-wrap"><div class="container nav"><a class="brand" href="/"><img src="/assets/logo-mark.png" alt="OpenReach" /><span>OpenReach</span></a><nav class="nav-links"><a href="/">首页</a><a class="docs-only active" href="/docs/">文档</a><a class="nav-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer" aria-label="OpenReach GitHub">
+<header class="nav-wrap"><div class="container nav"><a class="brand" href="/"><img src="/assets/logo-mark.png" alt="OpenReach" /><span>OpenReach</span></a><nav class="nav-links"><a href="/">首页</a><a class="docs-only active" href="/docs/">文档</a><a class="nav-changelog" href="/changelog">更新日志</a><a class="nav-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer" aria-label="OpenReach GitHub">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.3 11.3 0 0 0-3.57 22c.57.1.77-.25.77-.55v-2.16c-3.16.69-3.83-1.34-3.83-1.34-.51-1.31-1.26-1.66-1.26-1.66-1.03-.7.08-.69.08-.69 1.14.08 1.74 1.17 1.74 1.17 1.01 1.74 2.66 1.24 3.31.95.1-.74.4-1.24.72-1.52-2.52-.29-5.18-1.26-5.18-5.6 0-1.24.44-2.25 1.17-3.04-.12-.29-.51-1.44.11-3 0 0 .95-.3 3.11 1.16A10.8 10.8 0 0 1 12 6.05c.96 0 1.92.13 2.83.38 2.16-1.47 3.11-1.16 3.11-1.16.62 1.56.23 2.71.11 3 .73.79 1.17 1.8 1.17 3.04 0 4.35-2.66 5.31-5.19 5.6.41.35.77 1.04.77 2.1v3.14c0 .3.21.66.78.55A11.3 11.3 0 0 0 12 .7Z"/></svg>
         <span>GitHub</span>
       </a><button class="theme-toggle" type="button" data-theme-toggle role="switch" aria-checked="false" aria-label="切换深色主题" title="切换主题">
@@ -19,14 +19,14 @@
         </span>
       </button><a class="nav-primary nav-download" href="/downloads/openreach-skill.zip" download>下载 Skill</a></nav></div></header>
 <div class="docs-layout">
-  <aside class="docs-sidebar"><div class="label">文档</div><a href="/docs/">1. 快速启动</a><a class="active" href="/docs/api.html">2. 官方接口文档</a><div class="sidebar-project">
+  <aside class="docs-sidebar"><div class="label">文档</div><a href="/docs/">1. 快速启动</a><a class="active" href="/docs/api.html">2. 官方接口文档</a><a href="/changelog">3. 更新日志</a><div class="sidebar-project">
       <div class="label">项目</div>
       <a class="sidebar-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer">GitHub 仓库 ↗</a>
       <a href="/community">交流群</a>
     </div>
   </aside>
   <main class="docs-main">
-    <div class="mobile-docs"><select data-doc-select aria-label="切换文档"><option value="/docs/">1. 快速启动</option><option value="/docs/api.html" selected>2. 官方接口文档</option></select></div>
+    <div class="mobile-docs"><select data-doc-select aria-label="切换文档"><option value="/docs/">1. 快速启动</option><option value="/docs/api.html" selected>2. 官方接口文档</option><option value="/changelog">3. 更新日志</option></select></div>
     <div class="doc-eyebrow">API Reference · v1.0.2</div><h1>官方接口文档</h1>
     <p class="lead">OpenReach v1.0.2 只对外提供三个核心 HTTP POST 能力；官网、文档和 Skill ZIP 作为只读静态资源提供。以下参数以当前 Java DTO、Service 与安全过滤器为准。</p>
     <div class="note">Base URL：<code>http://localhost:8080</code>。所有接口路径统一位于 <code>/api/web</code>。</div>
@@ -39,17 +39,17 @@
       <p>搜索网页并返回候选信息源。<code>provider=auto</code> 时先按 <code>region</code> 选择 CN / GLOBAL Route，再执行对应免费 Provider Chain。</p>
       <h3>请求参数</h3>
       <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-        <tr><td><code>query</code></td><td>string</td><td>是</td><td>非空搜索关键词</td></tr>
+        <tr><td><code>query</code></td><td>string</td><td>是</td><td>非空搜索关键词，最长 500 字符</td></tr>
         <tr><td><code>limit</code></td><td>integer</td><td>否</td><td>1–20，默认 10，并受服务端 max-results 限制</td></tr>
-        <tr><td><code>region</code></td><td>string</td><td>否</td><td>默认 auto（默认 CN）；CN aliases 走 CN，其他显式地区走 GLOBAL；之后作为 Provider locale Hint</td></tr>
-        <tr><td><code>provider</code></td><td>string</td><td>否</td><td>默认 auto；可选 bing / baidu / sogou / so360 / duckduckgo / brave</td></tr>
-        <tr><td><code>timeRange</code></td><td>string</td><td>否</td><td>时间范围：any / day / week / month / year，默认 any；兼容 d/w/m/y、pd/pw/pm/py、qdr:d/qdr:w/qdr:m/qdr:y。指定时间范围后，auto 只调用真正支持该能力的 Provider。</td></tr>
+        <tr><td><code>region</code></td><td>string</td><td>否</td><td>最长 32 字符；默认 auto（默认 CN）；CN aliases 走 CN，其他显式地区走 GLOBAL；之后作为 Provider locale Hint</td></tr>
+        <tr><td><code>provider</code></td><td>string</td><td>否</td><td>最长 32 字符；默认 auto；可选 bing / baidu / sogou / so360 / duckduckgo / brave</td></tr>
+        <tr><td><code>timeRange</code></td><td>string</td><td>否</td><td>最长 32 字符；any / day / week / month / year，默认 any；另兼容 all/none/off/0、d/w/m/y、1d/1w/1m/1y、past_*、pd/pw/pm/py、qdr:*。指定时间范围后，auto 只调用真正支持该能力的 Provider。</td></tr>
       </tbody></table></div>
       <h3>示例</h3>
       <div class="codebox"><button class="copy-btn" data-copy="#api-search">复制</button><pre id="api-search">curl -X POST 'http://localhost:8080/api/web/search' \
   -H 'Content-Type: application/json' \
   -d '{"query":"OpenReach AI Agent","limit":5,"region":"US","provider":"auto","timeRange":"month"}'</pre></div>
-      <p>响应字段：<code>provider</code>、<code>query</code>、<code>region</code>、<code>timeRange</code>、<code>count</code>、<code>latencyMs</code>、<code>items[]</code>。每个 item 包含 <code>rank</code>、<code>title</code>、<code>url</code>、<code>snippet</code>、<code>source</code>。</p>
+      <p>响应字段：<code>provider</code>、<code>query</code>、<code>region</code>、<code>timeRange</code>、<code>count</code>、<code>latencyMs</code>、<code>items[]</code>。<code>provider=auto</code> 时响应仍为 <code>auto</code>，每个 item 的 <code>source</code> 表示具体结果渠道。</p>
     </section>
 
     <section class="endpoint-block">
@@ -57,17 +57,18 @@
       <p>根据文本搜索图片与来源页面。v1.0.2 会对原始 <code>imageUrl</code> 做公网 URL/重定向校验和真实图片字节探测，只把当前可直接下载的被动图片格式返回给调用方。</p>
       <h3>请求参数</h3>
       <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-        <tr><td><code>query</code></td><td>string</td><td>是</td><td>非空图片搜索关键词</td></tr>
+        <tr><td><code>query</code></td><td>string</td><td>是</td><td>非空图片搜索关键词，最长 500 字符</td></tr>
         <tr><td><code>limit</code></td><td>integer</td><td>否</td><td>1–30，默认 10，并受服务端 max-results 限制</td></tr>
-        <tr><td><code>region</code></td><td>string</td><td>否</td><td>默认 auto（默认 CN）；与 Web Search 共用 CN / GLOBAL Route</td></tr>
-        <tr><td><code>provider</code></td><td>string</td><td>否</td><td>默认 auto；可选 bing / baidu / sogou / openverse / wikimedia</td></tr>
+        <tr><td><code>region</code></td><td>string</td><td>否</td><td>最长 32 字符；默认 auto（默认 CN）；与 Web Search 共用 CN / GLOBAL Route</td></tr>
+        <tr><td><code>provider</code></td><td>string</td><td>否</td><td>最长 32 字符；默认 auto；可选 bing / baidu / sogou / openverse / wikimedia</td></tr>
       </tbody></table></div>
       <h3>示例</h3>
       <div class="codebox"><button class="copy-btn" data-copy="#api-image">复制</button><pre id="api-image">curl -X POST 'http://localhost:8080/api/web/image-search' \
   -H 'Content-Type: application/json' \
   -d '{"query":"杭州西湖夜景","limit":8,"region":"auto","provider":"auto"}'</pre></div>
       <p><strong>下载保证：</strong>返回的 <code>imageUrl</code> 已通过服务端即时下载探测；失效链接、403/404、HTML 防盗链页、伪图片以及 SVG 主动内容会被过滤。网络状态仍可能在响应之后变化，因此它表示“响应生成时可直接下载”。</p>
-      <p>响应 items 可包含：<code>rank</code>、<code>title</code>、<code>imageUrl</code>、<code>thumbnailUrl</code>、<code>sourcePageUrl</code>、<code>provider</code>、<code>source</code>、<code>domain</code>、<code>width</code>、<code>height</code>、<code>imageFormat</code>、<code>license</code>、<code>licenseUrl</code>。</p>
+      <p><strong>验证边界：</strong>默认候选放大为 <code>limit × 3</code>，最多验证 60 个；单图验证超时 4 秒、最多 3 次跳转、读取最多 64 KiB，并发 6。支持 JPEG / PNG / GIF / WebP / BMP / TIFF / ICO / AVIF / HEIC 等被动图片签名。</p>
+      <p>响应 items 可包含：<code>rank</code>、<code>title</code>、<code>imageUrl</code>、<code>thumbnailUrl</code>、<code>sourcePageUrl</code>、<code>provider</code>、<code>source</code>、<code>domain</code>、<code>width</code>、<code>height</code>、<code>imageFormat</code>、<code>license</code>、<code>licenseUrl</code>。顶层 <code>provider=auto</code> 时仍返回 <code>auto</code>，具体图片渠道看 item 的 <code>provider/source</code>。</p>
     </section>
 
     <section class="endpoint-block">
@@ -75,7 +76,7 @@
       <p>获取公开网页并提取标题、正文、元数据和页面链接。读取链路包含 SSRF 防护和跳转限制。</p>
       <h3>请求参数</h3>
       <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-        <tr><td><code>url</code></td><td>string</td><td>是</td><td>需要读取的非空 HTTP(S) URL</td></tr>
+        <tr><td><code>url</code></td><td>string</td><td>是</td><td>需要读取的非空 HTTP(S) URL，最长 2048 字符</td></tr>
         <tr><td><code>maxChars</code></td><td>integer</td><td>否</td><td>1000–200000；服务端默认最大正文字符数为 50000</td></tr>
       </tbody></table></div>
       <h3>示例</h3>
@@ -86,17 +87,37 @@
     </section>
 
     <h2>安全边界</h2>
-    <ul><li>公网 API 仅允许上述三个精确 POST 路径，并强制 <code>application/json</code>；不提供上传、写文件、Actuator 或调试接口。</li><li><code>multipart/form-data</code>、危险 HTTP Method、未知 API 路径、路径穿越和超大请求体会在统一安全 Filter 中提前拒绝。</li><li>Read 与图片下载探测只允许公网 HTTP/HTTPS 80/443，并对重定向目标重新执行 SSRF 校验。</li><li>官网静态资源固定来自 classpath，并使用 CSP、nosniff、DENY frame 等响应头限制浏览器攻击面。</li></ul>
+    <ul><li>公网 API 仅允许上述三个精确 POST 路径；只接受 <code>application/json</code> / <code>application/*+json</code>，不提供上传、写文件、Actuator 或调试接口。</li><li>三个 JSON API 请求体默认统一限制为 <strong>64 KiB</strong>；即使是 chunked / 未声明 Content-Length 的请求，也会在真实读取时执行同一上限。</li><li><code>multipart/*</code>、危险 HTTP Method、未知 API 路径、路径穿越会在统一安全 Filter 中提前拒绝。</li><li>Read 与图片下载探测只允许公网 HTTP/HTTPS 80/443，并对重定向目标重新执行 SSRF 校验；图片还必须通过真实图片 Magic Bytes 验证。</li><li>官网静态资源固定来自 classpath，并使用 CSP、nosniff、DENY frame 等响应头限制浏览器攻击面。</li></ul>
 
     <h2>错误响应</h2>
-    <p>错误统一返回时间戳、HTTP 状态码、错误码和信息。</p>
+    <p>Controller / Service 层错误包含时间戳、HTTP 状态码、错误码和信息；安全 Filter 在进入 Spring MVC 前拒绝的 404 / 405 / 413 / 415 使用精简的 <code>status/code/message</code> 结构。</p>
     <div class="codebox"><pre>{
   "timestamp": "2026-08-15T03:00:00Z",
   "status": 400,
   "code": "VALIDATION_ERROR",
   "message": "query: must not be blank"
 }</pre></div>
-    <p>常见错误码：<code>BAD_REQUEST</code>、<code>VALIDATION_ERROR</code>、<code>UPSTREAM_ERROR</code>、<code>INTERNAL_ERROR</code>。</p>
+    <div class="table-wrap param-table"><table><thead><tr><th>HTTP</th><th>code</th><th>场景</th></tr></thead><tbody>
+      <tr><td>400</td><td><code>BAD_REQUEST</code></td><td>业务参数、URL、SSRF、Provider 或内容类型等非法</td></tr>
+      <tr><td>400</td><td><code>VALIDATION_ERROR</code></td><td>Bean Validation 失败，例如 query 超 500、limit 越界</td></tr>
+      <tr><td>400</td><td><code>INVALID_JSON</code></td><td>JSON 语法错误或字段类型无法反序列化</td></tr>
+      <tr><td>404</td><td><code>NOT_FOUND</code></td><td>不在公网 Allowlist 中的路径</td></tr>
+      <tr><td>405</td><td><code>METHOD_NOT_ALLOWED</code></td><td>API 非 POST 或静态资源非 GET/HEAD</td></tr>
+      <tr><td>413</td><td><code>PAYLOAD_TOO_LARGE</code></td><td>JSON 请求体超过默认 64 KiB 上限</td></tr>
+      <tr><td>415</td><td><code>UPLOAD_DISABLED</code> / <code>UNSUPPORTED_MEDIA_TYPE</code></td><td>Multipart 上传或非 JSON Content-Type</td></tr>
+      <tr><td>502</td><td><code>UPSTREAM_ERROR</code></td><td>Provider 全部失败、无可下载图片或 Read 上游失败</td></tr>
+      <tr><td>500</td><td><code>INTERNAL_ERROR</code></td><td>未预期服务端异常，内部异常不会直接回显</td></tr>
+    </tbody></table></div>
+
+<h2>关键配置默认值</h2>
+    <div class="table-wrap param-table"><table><thead><tr><th>配置</th><th>默认值</th><th>说明</th></tr></thead><tbody>
+      <tr><td><code>search.max-response-bytes</code></td><td>2 MiB</td><td>单个 Web Search Provider 上游 Body 硬上限</td></tr>
+      <tr><td><code>image-search.max-response-bytes</code></td><td>4 MiB</td><td>单个 Image Provider 上游 Body 硬上限</td></tr>
+      <tr><td><code>image-search.download-max-candidates</code></td><td>60</td><td>单请求最多验证的图片候选数</td></tr>
+      <tr><td><code>image-search.download-validation-concurrency</code></td><td>6</td><td>图片可下载验证并发</td></tr>
+      <tr><td><code>read.allowed-ports</code></td><td>80, 443</td><td>Read 公网访问允许端口</td></tr>
+      <tr><td><code>security.max-api-body-bytes</code></td><td>65536</td><td>三个 JSON API 请求体统一硬上限</td></tr>
+    </tbody></table></div>
 
     <h2>Provider 默认顺序</h2>
     <ul><li>Web CN：Bing → 百度 → 搜狗 → 360 → DuckDuckGo</li><li>Web GLOBAL：Brave → DuckDuckGo → Bing Global</li><li>Image CN：Bing → 百度图片 → 搜狗图片 → Openverse</li><li>Image GLOBAL：Bing Global → Openverse → Wikimedia</li></ul>

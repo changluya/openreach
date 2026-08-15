@@ -14,6 +14,12 @@ class WebsiteControllerTest {
         assertEquals("forward:/docs/index.html", controller.docs());
     }
 
+
+    @Test
+    void changelogDirectoryRouteForwardsToStaticPage() {
+        assertEquals("forward:/changelog.html", controller.changelog());
+    }
+
     @Test
     void communityRouteRedirectsToDocsCommunitySection() {
         assertEquals("redirect:/docs/#community", controller.community());

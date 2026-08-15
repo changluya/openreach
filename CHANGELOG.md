@@ -142,6 +142,13 @@ POST /api/web/read
 
 只读官网/Docs/Assets/Skill ZIP 之外全部默认拒绝；移除公开 `/api/web/health`，Skill `doctor` 改用只读 `GET /`。同时禁用 Multipart、文件上传、未知端点、危险 Method、Path Traversal 与超大 API Body，并增加 CSP / nosniff / frame deny 等 Header。
 
+#### 8. 官网 Release Notes
+
+- 官网右上角新增“更新日志”入口，并新增独立 `/changelog` 页面；
+- 页面直接按本文件的 v1.0.2 / v1.0.1 事实源展示能力变化、兼容边界和安全说明；
+- 文档侧边栏与移动端文档切换同步增加“更新日志”；
+- v1.0.1 中历史存在的 `/api/web/health` 在页面中明确标注为已于 v1.0.2 移除，避免用户按旧版本调用。
+
 ### Changed
 
 - Maven Artifact 版本升级为 `1.0.2`；
@@ -150,6 +157,7 @@ POST /api/web/read
 - Provider Order 会 trim / lowercase，并跳过空名称，提升配置容错；
 - `ImageSearchHttpClient` 的地区 Header 改为覆盖默认值，避免重复 `Accept-Language`；
 - README、API、Curl、核心设计、当前能力、部署文档、OpenReach Skill 与 AgentHub Plugin 同步 `timeRange`、图片可下载语义和安全边界；
+- `docs/agenthub/接口文档/OpenReach接口文档.md` 已按当前 DTO / Service / `application.yml` / AttackSurfaceFilter 重新对齐参数长度、64 KiB API Body、完整错误码、Provider 上游 Body 限制及图片下载验证配置；
 - 官网 inline theme script 移为 `/assets/theme-init.js`，配合 `script-src 'self'` CSP；
 - `check-project.sh` / `package.sh` 将 Skill Python Test 纳入正式门禁；新增 `build-skill-zip.sh`，打包前自动刷新官网 Skill ZIP，避免 Skill 源码与下载包不一致；
 - `docs/v1.0.2设计落地方案.md` 已迁移到 `docs/设计方案/v1.0.2设计落地方案.md`。
@@ -172,9 +180,9 @@ POST /api/web/read
 当前源码静态统计：
 
 ```text
-Java @Test              100
+Java @Test              103
 OpenReach Skill Python   12
-合计                    112
+合计                    115
 ```
 
 v1.0.2 新增/扩展覆盖重点：
@@ -193,22 +201,20 @@ v1.0.2 新增/扩展覆盖重点：
 - `BoundedBodyReader`：Search/Image Provider 上游 Body 正常读取与超限拒绝；
 - SSRF：非 80/443、CGNAT、TEST-NET、控制字符、图片 Probe localhost/metadata 拒绝；
 - Wikimedia：imageinfo、source、thumbnail、尺寸、格式、License 与缺失字段容错；
+- 官网 Release Notes：`/changelog` 静态资源打包、Controller Forward、AttackSurface Allowlist、只读 Method 与主导航入口回归；
 - v1.0.1 Read / SSRF / Spring / Static Resources 等测试继续保留回归。
 
-本轮环境已实际执行：
+本次官网 / 文档维护实际执行：
 
 ```text
 python3 -m unittest discover -s skills/openreach/tests -p 'test_*.py' -v
-# Ran 6 tests ... OK
+# Ran 12 tests ... OK
 
-JDK 17 isolated core compile
-# Search timeRange + Web/Image Route/Service + Image download verifier + bounded body core classes ... javac --release 17 OK
-
-JDK HttpServer image verifier harness
-# 2xx image + redirect accepted; HTML rejected ... OK
-
-bash -n / XML / YAML / JSON / HTML / Markdown link / git diff checks
+HTML / 本地链接 / CSS 括号 / changelog Route + Allowlist 静态校验
 # PASS
+
+源码静态计数
+# Java @Test = 103, Skill Python Test = 12
 ```
 
 Java 正式门禁仍是：
@@ -217,7 +223,7 @@ Java 正式门禁仍是：
 mvn clean test
 ```
 
-当前交付容器未预装 Maven；已尝试系统包管理和 Apache 官方 Maven 发行包，但容器 DNS/下载策略阻止落盘/依赖获取，因此本轮无法诚实宣称 Maven `BUILD SUCCESS`；交付前已继续执行 Java 源码结构/语法静态校验、配置解析、文档链接与 ZIP 完整性检查。标准 JDK 17 + Maven 环境仍应把 `mvn clean test` 作为最终 Release Gate。
+当前交付容器未预装 Maven，因此本次官网 / 文档维护无法诚实宣称 Java `mvn clean test` 的 `BUILD SUCCESS`；已执行 Skill 全量 Python Test 与官网静态资源/路由/Allowlist 校验。标准 JDK 17 + Maven 环境仍应把 `mvn clean test` 作为最终 Release Gate。
 
 ### Known Limitations
 

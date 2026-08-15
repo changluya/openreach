@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="OpenReach 更新日志：查看 v1.0.2、v1.0.1 的新增能力、修复、安全加固与测试变化。" />
+  <title>更新日志 · OpenReach</title>
+  <link rel="icon" href="/assets/logo-mark.png" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="/assets/theme-init.js"></script>
+</head>
+<body class="docs-body changelog-body">
+<header class="nav-wrap"><div class="container nav"><a class="brand" href="/"><img src="/assets/logo-mark.png" alt="OpenReach" /><span>OpenReach</span></a><nav class="nav-links" aria-label="主导航"><a href="/">首页</a><a class="docs-only" href="/docs/">文档</a><a class="nav-changelog active" href="/changelog">更新日志</a><a class="nav-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer" aria-label="OpenReach GitHub">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.3 11.3 0 0 0-3.57 22c.57.1.77-.25.77-.55v-2.16c-3.16.69-3.83-1.34-3.83-1.34-.51-1.31-1.26-1.66-1.26-1.66-1.03-.7.08-.69.08-.69 1.14.08 1.74 1.17 1.74 1.17 1.01 1.74 2.66 1.24 3.31.95.1-.74.4-1.24.72-1.52-2.52-.29-5.18-1.26-5.18-5.6 0-1.24.44-2.25 1.17-3.04-.12-.29-.51-1.44.11-3 0 0 .95-.3 3.11 1.16A10.8 10.8 0 0 1 12 6.05c.96 0 1.92.13 2.83.38 2.16-1.47 3.11-1.16 3.11-1.16.62 1.56.23 2.71.11 3 .73.79 1.17 1.8 1.17 3.04 0 4.35-2.66 5.31-5.19 5.6.41.35.77 1.04.77 2.1v3.14c0 .3.21.66.78.55A11.3 11.3 0 0 0 12 .7Z"/></svg><span>GitHub</span>
+</a><button class="theme-toggle" type="button" data-theme-toggle role="switch" aria-checked="false" aria-label="切换深色主题" title="切换主题"><span class="theme-track" aria-hidden="true"><svg class="theme-sun" viewBox="0 0 24 24"><path d="M12 4V2m0 20v-2M4 12H2m20 0h-2M6.34 6.34 4.93 4.93m14.14 14.14-1.41-1.41M17.66 6.34l1.41-1.41M4.93 19.07l1.41-1.41"/><circle cx="12" cy="12" r="4"/></svg><span class="theme-thumb"></span><svg class="theme-moon" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg></span></button><a class="nav-primary nav-download" href="/downloads/openreach-skill.zip" download>下载 Skill</a></nav></div></header>
+
+<div class="docs-layout">
+  <aside class="docs-sidebar">
+    <div class="label">文档</div>
+    <a href="/docs/">1. 快速启动</a>
+    <a href="/docs/api.html">2. 官方接口文档</a>
+    <a class="active" href="/changelog">3. 更新日志</a>
+    <div class="sidebar-project">
+      <div class="label">版本</div>
+      <a href="#v1-0-2">v1.0.2 · 最新</a>
+      <a href="#v1-0-1">v1.0.1 · 基线</a>
+      <a class="sidebar-github" href="https://github.com/changluya/openreach/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md ↗</a>
+    </div>
+  </aside>
+
+  <main class="docs-main changelog-main">
+    <div class="mobile-docs"><select data-doc-select aria-label="切换文档"><option value="/docs/">1. 快速启动</option><option value="/docs/api.html">2. 官方接口文档</option><option value="/changelog" selected>3. 更新日志</option></select></div>
+    <div class="doc-eyebrow">Release Notes</div>
+    <h1>更新日志</h1>
+    <p class="lead">OpenReach 从 <strong>v1.0.1</strong> 开始正式维护版本记录。这里按当前工程 <code>CHANGELOG.md</code> 展示用户真正需要关注的能力变化、安全边界和兼容信息。</p>
+
+    <section class="release-hero" id="v1-0-2">
+      <div class="release-hero-top"><div><span class="release-version">v1.0.2</span><span class="release-latest">Latest</span></div><time datetime="2026-08-15">2026-08-15</time></div>
+      <h2>从国内优先链升级为 CN / GLOBAL Web Access Router</h2>
+      <p>在 v1.0.1 免费国内链基础上，v1.0.2 增加地区路由、真实时间范围过滤、图片原图可下载门禁，并进一步收敛公网攻击面。默认 Provider Chain 继续坚持零 API Key、零账号依赖、零商业 Search 调用费。</p>
+      <div class="release-metrics"><div><b>3</b><span>核心 HTTP API</span></div><div><b>2</b><span>CN / GLOBAL Route</span></div><div><b>115</b><span>源码测试用例统计</span></div><div><b>0</b><span>默认 Search API Key</span></div></div>
+    </section>
+
+    <div class="release-highlights">
+      <article><span>Routing</span><h3>CN / GLOBAL 双路由</h3><p><code>region</code> 不再只是透传 Hint。显式非 CN 地区进入 GLOBAL 链；<code>auto</code> 默认保持 CN 兼容。</p></article>
+      <article><span>Search</span><h3>新增 timeRange</h3><p>支持 <code>any/day/week/month/year</code> 及常见别名；Auto 会跳过不支持真实时间过滤的 Provider。</p></article>
+      <article><span>Image</span><h3>只返回可下载原图</h3><p>对候选图片执行 SSRF、Redirect、2xx、Content 与 Magic Bytes 验证，过滤热链失效页和伪图片。</p></article>
+      <article><span>Security</span><h3>公网攻击面 Allowlist</h3><p>业务面严格保留 Search / Image Search / Read 三个 POST API，上传、Actuator、未知端点和危险 Method 默认拒绝。</p></article>
+    </div>
+
+    <section class="release-section">
+      <h2>Added</h2>
+      <ul>
+        <li><strong>统一路由层：</strong>新增 <code>SearchRouteResolver</code>、<code>ProviderChainResolver</code> 与地区 Locale 支持，Service 不再硬编码国内/海外链。</li>
+        <li><strong>GLOBAL Web Search：</strong>默认 <code>brave → duckduckgo → bing</code>；Brave 作为海外第一路，DuckDuckGo 强化 no-JS HTML 模式。</li>
+        <li><strong>GLOBAL Image Search：</strong>默认 <code>bing → openverse → wikimedia</code>；Wikimedia 可输出原图、尺寸、格式与 License 信息。</li>
+        <li><strong>Search timeRange：</strong>新增 <code>timeRange</code> 参数；Brave / DuckDuckGo 当前实现真实上游时间过滤。</li>
+        <li><strong>图片下载质量门禁：</strong>候选结果必须通过公网 URL 与真实图片字节验证才能进入最终响应。</li>
+        <li><strong>Attack Surface Filter：</strong>静态官网之外，仅开放三个精确 JSON POST API，并统一限制请求体、Content-Type 与浏览器安全 Header。</li>
+      </ul>
+    </section>
+
+    <section class="release-section">
+      <h2>Changed</h2>
+      <ul>
+        <li>Skill 初始化检查收敛为只读 <code>check</code>：配置不存在时 0 次网络请求；配置存在时最多 1 次无副作用 API 探测。</li>
+        <li>Skill / README / 官网统一使用 <code>&lt;OPENREACH_BASE_URL&gt;</code> 占位符，不再提供容易被误判为默认值的示例私网 IP。</li>
+        <li>Search / Image Search 改为 Route-aware Provider Chain，同时保留 v1.0.1 <code>provider-order</code> 的 CN 兼容策略。</li>
+        <li>Bing Web / Images 可以按 Route 自动切换中国与全球 Host。</li>
+        <li>官网 Theme 初始化脚本改为外部静态文件，以配合更严格 CSP。</li>
+      </ul>
+    </section>
+
+    <section class="release-section release-security">
+      <h2>Security</h2>
+      <ul>
+        <li>移除公开 <code>/api/web/health</code>，Skill 人工诊断改用只读 <code>GET /</code>。</li>
+        <li>禁用 Multipart / 文件上传，未知 Controller、Actuator、Debug、危险 Method 和路径穿越均在统一 Filter 提前拒绝。</li>
+        <li>API Body 默认限制为 64 KiB；Search / Image Provider 上游 Body 也增加独立硬上限。</li>
+        <li>Read 与图片探测只允许公网 HTTP/HTTPS 80/443，Redirect 每跳重新进行安全校验。</li>
+        <li>服务端未知异常不再直接泄露原始内部异常消息。</li>
+      </ul>
+    </section>
+
+    <section class="release-section">
+      <h2>Fixed</h2>
+      <ul>
+        <li>修复海外请求传入 <code>region</code> 后 Auto Chain 仍优先国内 Provider 的架构问题。</li>
+        <li>修复 DuckDuckGo 简单 GET 模式脆弱、Bing 固定中国 Host、图片 Locale Header 重复等问题。</li>
+        <li>修复图片结果可能返回失效热链、HTML 防盗链页面或伪图片 URL 的质量问题。</li>
+        <li>统一处理 Provider null/空结果，让 Auto Chain 可以继续 fallback。</li>
+      </ul>
+    </section>
+
+    <section class="release-section">
+      <h2>Compatibility & Limitations</h2>
+      <div class="note"><strong>兼容：</strong>旧部署如果只配置 <code>provider-order</code>，v1.0.2 的 CN Route 仍会继承旧顺序；GLOBAL 使用独立配置，不会污染原国内链。</div>
+      <ul>
+        <li>Brave / DuckDuckGo / Bing 免费 Web SERP 仍属于 best-effort，可能受 DOM 改版、403/429、CAPTCHA 与网络出口影响。</li>
+        <li>当前不提供 Search Pagination、商业级 Geo、账号池、代理池或 CAPTCHA 绕过。</li>
+        <li>Read 主链仍保持本地 SafeHttpFetcher + Jsoup，不引入远端 Key / 账号依赖。</li>
+      </ul>
+    </section>
+
+    <section class="release-entry" id="v1-0-1">
+      <div class="release-entry-head"><div><span class="release-version secondary">v1.0.1</span><span class="release-baseline">Maintenance Baseline</span></div><time datetime="2026-08-15">2026-08-15</time></div>
+      <h2>首个正式维护基线</h2>
+      <p>确立 Search、Image Search、Read 三个 Agent Web 原语，引入免费 Provider 自动降级、Provider SPI、Read SSRF 防护、内置官网、Agent Skill、AgentHub HTTP Plugin 与 Docker 一键部署。</p>
+      <div class="note"><strong>历史说明：</strong>v1.0.1 曾提供 <code>GET /api/web/health</code>；该接口已在 v1.0.2 的公网攻击面收敛中移除，当前部署不要再依赖它。</div>
+      <div class="release-columns">
+        <div><h3>Web Search</h3><p>Bing → 百度 → 搜狗 → 360 → DuckDuckGo，支持 Auto fallback、URL 去重和显式 Provider 诊断。</p></div>
+        <div><h3>Image Search</h3><p>Bing Images → 百度图片 → 搜狗图片 → Openverse，统一图片与 License 元数据模型。</p></div>
+        <div><h3>Web Read</h3><p>Jsoup Reader + SafeHttpFetcher + UrlSafetyGuard，支持正文、元数据、Links、跳转和大小限制。</p></div>
+      </div>
+    </section>
+
+    <div class="release-source">
+      <div><strong>需要完整逐项记录？</strong><span>仓库根目录 <code>CHANGELOG.md</code> 仍是版本事实源，本页面用于官网可读展示。</span></div>
+      <a class="btn" href="https://github.com/changluya/openreach/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">查看完整 CHANGELOG ↗</a>
+    </div>
+  </main>
+</div>
+<script src="/assets/site.js"></script>
+</body>
+</html>

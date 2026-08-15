@@ -8,7 +8,7 @@
   <script src="/assets/theme-init.js"></script>
 </head>
 <body class="docs-body">
-<header class="nav-wrap"><div class="container nav"><a class="brand" href="/"><img src="/assets/logo-mark.png" alt="OpenReach" /><span>OpenReach</span></a><nav class="nav-links"><a href="/">首页</a><a class="docs-only active" href="/docs/">文档</a><a class="nav-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer" aria-label="OpenReach GitHub">
+<header class="nav-wrap"><div class="container nav"><a class="brand" href="/"><img src="/assets/logo-mark.png" alt="OpenReach" /><span>OpenReach</span></a><nav class="nav-links"><a href="/">首页</a><a class="docs-only active" href="/docs/">文档</a><a class="nav-changelog" href="/changelog">更新日志</a><a class="nav-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer" aria-label="OpenReach GitHub">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.3 11.3 0 0 0-3.57 22c.57.1.77-.25.77-.55v-2.16c-3.16.69-3.83-1.34-3.83-1.34-.51-1.31-1.26-1.66-1.26-1.66-1.03-.7.08-.69.08-.69 1.14.08 1.74 1.17 1.74 1.17 1.01 1.74 2.66 1.24 3.31.95.1-.74.4-1.24.72-1.52-2.52-.29-5.18-1.26-5.18-5.6 0-1.24.44-2.25 1.17-3.04-.12-.29-.51-1.44.11-3 0 0 .95-.3 3.11 1.16A10.8 10.8 0 0 1 12 6.05c.96 0 1.92.13 2.83.38 2.16-1.47 3.11-1.16 3.11-1.16.62 1.56.23 2.71.11 3 .73.79 1.17 1.8 1.17 3.04 0 4.35-2.66 5.31-5.19 5.6.41.35.77 1.04.77 2.1v3.14c0 .3.21.66.78.55A11.3 11.3 0 0 0 12 .7Z"/></svg>
         <span>GitHub</span>
       </a><button class="theme-toggle" type="button" data-theme-toggle role="switch" aria-checked="false" aria-label="切换深色主题" title="切换主题">
@@ -19,16 +19,57 @@
         </span>
       </button><a class="nav-primary nav-download" href="/downloads/openreach-skill.zip" download>下载 Skill</a></nav></div></header>
 <div class="docs-layout">
-  <aside class="docs-sidebar"><div class="label">文档</div><a class="active" href="/docs/">1. 快速启动</a><a href="/docs/api.html">2. 官方接口文档</a><div class="sidebar-project">
+  <aside class="docs-sidebar"><div class="label">文档</div><a class="active" href="/docs/">1. 快速启动</a><a href="/docs/api.html">2. 官方接口文档</a><a href="/changelog">3. 更新日志</a><div class="sidebar-project">
       <div class="label">项目</div>
       <a class="sidebar-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer">GitHub 仓库 ↗</a>
       <a href="/community">交流群</a>
     </div>
   </aside>
   <main class="docs-main">
-    <div class="mobile-docs"><select data-doc-select aria-label="切换文档"><option value="/docs/" selected>1. 快速启动</option><option value="/docs/api.html">2. 官方接口文档</option></select></div>
+    <div class="mobile-docs"><select data-doc-select aria-label="切换文档"><option value="/docs/" selected>1. 快速启动</option><option value="/docs/api.html">2. 官方接口文档</option><option value="/changelog">3. 更新日志</option></select></div>
     <div class="doc-eyebrow">Getting Started</div><h1>快速启动</h1>
     <p class="lead">从启动 OpenReach 到完成第一次 Search / Image Search / Read 调用。服务启动后，根地址就是内置官网，无需额外部署前端。</p>
+
+    <section class="docs-concept" id="design">
+      <div class="doc-eyebrow">Core Design</div>
+      <h2>核心设计思路</h2>
+      <p>OpenReach 不做“单一搜索引擎代理”，而是把 Agent 联网能力收敛成 <strong>Search / Image Search / Read</strong> 三个稳定原语。上层 Agent 只依赖统一接口，底层 Provider 可以按地区、可用性和能力持续替换或扩展。</p>
+      <div class="design-flow" aria-label="OpenReach 核心调用流程">
+        <div><b>Agent / Skill</b><span>统一调用三大原语</span></div>
+        <i>→</i>
+        <div><b>OpenReach API</b><span>参数校验 · 安全边界</span></div>
+        <i>→</i>
+        <div><b>Route & Provider Chain</b><span>CN / GLOBAL · 自动降级</span></div>
+        <i>→</i>
+        <div><b>Public Web</b><span>搜索页 · 图片源 · HTML</span></div>
+      </div>
+      <div class="design-principles">
+        <article><b>统一原语</b><span>Agent 不感知各搜索渠道差异，降低接入和迁移成本。</span></article>
+        <article><b>双路由 + Fallback</b><span><code>region</code> 先解析为 CN / GLOBAL，再执行对应 Provider Chain；单路失败自动切换。</span></article>
+        <article><b>免费优先</b><span>默认链无需 Search API Key，不绑定商业搜索服务，适合自托管和 Agent 基础设施。</span></article>
+        <article><b>安全默认拒绝</b><span>仅开放三个核心 POST API；Read 与图片下载统一执行 SSRF、重定向和响应体安全校验。</span></article>
+      </div>
+    </section>
+
+    <section class="docs-channels" id="providers">
+      <div class="doc-eyebrow">Provider Channels</div>
+      <h2>已对接渠道</h2>
+      <p>当前 Provider 按能力和地区组合成多路免费链。<code>provider=auto</code> 时由 OpenReach 自动选择并降级；显式指定 Provider 时不会偷偷切换到其他渠道。</p>
+      <div class="table-wrap docs-provider-table">
+        <table>
+          <thead><tr><th>能力</th><th>CN 路由</th><th>GLOBAL 路由</th><th>默认策略</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Web Search</strong></td><td><code>Bing CN</code> → <code>Baidu</code> → <code>Sogou</code> → <code>360</code> → <code>DuckDuckGo</code></td><td><code>Brave</code> → <code>DuckDuckGo</code> → <code>Bing Global</code></td><td>逐路 fallback，结果 URL 去重并统一重排</td></tr>
+            <tr><td><strong>Image Search</strong></td><td><code>Bing Images</code> → <code>Baidu Images</code> → <code>Sogou Images</code> → <code>Openverse</code></td><td><code>Bing Images</code> → <code>Openverse</code> → <code>Wikimedia Commons</code></td><td>候选图片必须通过即时下载与真实图片字节校验</td></tr>
+            <tr><td><strong>Web Read</strong></td><td colspan="2"><code>JsoupPageReader</code> + <code>SafeHttpFetcher</code> 本地读取链</td><td>读取公开 HTML / SSR 页面，不依赖第三方 Reader Key</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><strong>路由说明：</strong><code>CN / zh-CN / china</code> 等进入国内链；<code>US / SG / JP / GLOBAL</code> 等显式非 CN 地区进入 GLOBAL 链；<code>auto</code> 当前默认走 CN。Bing 会根据 Route 自动切换中国站与全球站。</div>
+      <div class="provider-badges" aria-label="当前已接入 Provider">
+        <span>Bing</span><span>Baidu</span><span>Sogou</span><span>360 Search</span><span>DuckDuckGo</span><span>Brave</span><span>Openverse</span><span>Wikimedia Commons</span>
+      </div>
+    </section>
 
     <h2>1. Docker 一键启动（推荐）</h2>
     <p>最快的体验方式。不需要 Clone 项目，也不依赖 Compose 文件；只要本机已安装 Docker，复制下面一条命令即可启动：</p>
@@ -70,7 +111,8 @@ mvn spring-boot:run</pre></div>
     "query": "Spring Boot AI Agent",
     "limit": 5,
     "region": "auto",
-    "provider": "auto"
+    "provider": "auto",
+    "timeRange": "any"
   }'</pre></div>
     <h3>文搜图</h3>
     <div class="codebox"><button class="copy-btn" data-copy="#image-curl">复制</button><pre id="image-curl">curl -X POST 'http://localhost:8080/api/web/image-search' \

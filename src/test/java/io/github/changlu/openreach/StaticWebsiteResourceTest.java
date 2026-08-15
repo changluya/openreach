@@ -17,6 +17,7 @@ class StaticWebsiteResourceTest {
         assertNotNull(loader.getResource("static/index.html"));
         assertNotNull(loader.getResource("static/docs/index.html"));
         assertNotNull(loader.getResource("static/docs/api.html"));
+        assertNotNull(loader.getResource("static/changelog.html"));
         assertNotNull(loader.getResource("static/assets/site.css"));
         assertNotNull(loader.getResource("static/assets/logo.png"));
         assertNotNull(loader.getResource("static/assets/logo-mark.png"));
@@ -54,14 +55,33 @@ class StaticWebsiteResourceTest {
         String home = read("static/index.html");
         String quickStart = read("static/docs/index.html");
         String api = read("static/docs/api.html");
+        String changelog = read("static/changelog.html");
         assertTrue(home.contains("/assets/theme-init.js"));
         assertTrue(quickStart.contains("/assets/theme-init.js"));
         assertTrue(api.contains("/assets/theme-init.js"));
+        assertTrue(changelog.contains("/assets/theme-init.js"));
         org.junit.jupiter.api.Assertions.assertFalse(home.contains("<script>"));
         org.junit.jupiter.api.Assertions.assertFalse(quickStart.contains("<script>"));
         org.junit.jupiter.api.Assertions.assertFalse(api.contains("<script>"));
+        org.junit.jupiter.api.Assertions.assertFalse(changelog.contains("<script>"));
         org.junit.jupiter.api.Assertions.assertFalse(quickStart.contains("/api/web/health"));
         org.junit.jupiter.api.Assertions.assertFalse(api.contains("/api/web/health"));
+    }
+
+
+    @Test
+    void websiteExposesLatestChangelogNavigation() throws IOException {
+        String home = read("static/index.html");
+        String docs = read("static/docs/index.html");
+        String api = read("static/docs/api.html");
+        String changelog = read("static/changelog.html");
+        assertTrue(home.contains("href=\"/changelog\">更新日志</a>"));
+        assertTrue(docs.contains("href=\"/changelog\">更新日志</a>"));
+        assertTrue(api.contains("href=\"/changelog\">更新日志</a>"));
+        assertTrue(changelog.contains("v1.0.2"));
+        assertTrue(changelog.contains("timeRange"));
+        assertTrue(changelog.contains("只返回可下载原图"));
+        assertTrue(changelog.contains("公网攻击面 Allowlist"));
     }
 
     private String read(String resource) throws IOException {

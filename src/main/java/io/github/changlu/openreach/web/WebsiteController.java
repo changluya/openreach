@@ -20,6 +20,11 @@ public class WebsiteController {
         return "forward:/docs/index.html";
     }
 
+    @GetMapping({"/changelog", "/changelog/"})
+    public String changelog() {
+        return "forward:/changelog.html";
+    }
+
     @GetMapping({"/community", "/community/"})
     public String community() {
         return "redirect:/docs/#community";

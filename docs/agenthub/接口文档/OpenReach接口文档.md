@@ -18,7 +18,7 @@ Skill 判断是否已初始化时使用本地 `check`：先检查 Skill `config.
 
 Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabilityController.java`。
 
-三个能力完全解耦，均为无需 Search API Key 的公开 HTTP 接口。安全 Filter 只允许这三个精确 POST 路径且强制 `application/json`；Multipart/文件上传、未知 API、危险 Method 均拒绝。
+三个能力完全解耦，均为无需 Search API Key 的公开 HTTP 接口。安全 Filter 只允许这三个精确 POST 路径，Content-Type 仅接受 `application/json` / `application/*+json`；Multipart/文件上传、未知 API、危险 Method 均拒绝。
 
 ---
 
@@ -28,6 +28,8 @@ Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabi
 
 - `Content-Type: application/json`
 - 请求体为 JSON 对象；仅 `query` / `url` 必填（见各接口说明）
+- 三个业务 API 的请求体统一受 `openreach.web.security.max-api-body-bytes` 限制，默认 **65536 bytes（64 KiB）**；包括无法提前获得 Content-Length 的请求也会在真实读取时限流
+- 只接受 `application/json` 或 `application/*+json`；`multipart/*` 明确拒绝
 - 未识别的字段会被忽略；可空字段不传即使用默认值
 
 ### 2.2 响应
@@ -54,11 +56,11 @@ Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabi
 
 | 字段 | 类型 | 必填 | 默认值 | 校验约束 | 说明 |
 |---|---|---|---|---|---|
-| `query` | string | 是 | - | `@NotBlank` | 搜索关键词或自然语言问题 |
+| `query` | string | 是 | - | `@NotBlank` `@Size(max=500)` | 搜索关键词或自然语言问题，最长 500 字符 |
 | `limit` | int | 否 | `10` | `@Min(1)` `@Max(20)` | 最多返回条数，服务端还会受配置 `max-results`（默认 20）钳制 |
-| `region` | string | 否 | `auto` | - | 核心路由 + Provider Locale Hint；CN aliases 走 CN，其他显式地区走 GLOBAL |
+| `region` | string | 否 | `auto` | `@Size(max=32)` | 核心路由 + Provider Locale Hint；CN aliases 走 CN，其他显式地区走 GLOBAL |
 | `provider` | string | 否 | `auto` | `@Size(max=32)` | 渠道，见 [第 7 章 Provider 矩阵](#71-web-search) |
-| `timeRange` | string | 否 | `any` | `@Size(max=32)` | `any/day/week/month/year`；兼容 d/w/m/y、pd/pw/pm/py、qdr:* |
+| `timeRange` | string | 否 | `any` | `@Size(max=32)` | `any/day/week/month/year`；兼容 `all/none/off/0`、`d/w/m/y`、`1d/1w/1m/1y`、`past_*`、`pd/pw/pm/py`、`qdr:*` |
 
 校验失败返回 `400 VALIDATION_ERROR`（如 `query` 为空）。
 
@@ -68,7 +70,7 @@ Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabi
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `provider` | string | 实际使用的渠道（`auto` 时为 `auto`，不会替换为具体渠道名） |
+| `provider` | string | 请求最终采用的 provider 模式；`provider=auto` 时仍返回 `auto`，具体结果渠道看每条 item 的 `source` |
 | `query` | string | 回显原始查询词 |
 | `region` | string | 生效区域（未传时为 `auto`） |
 | `timeRange` | string | 规范化后的时间范围 |
@@ -136,10 +138,10 @@ curl -sS -X POST 'http://localhost:8080/api/web/search' \
 
 | 字段 | 类型 | 必填 | 默认值 | 校验约束 | 说明 |
 |---|---|---|---|---|---|
-| `query` | string | 是 | - | `@NotBlank` | 文搜图关键词或自然语言描述 |
+| `query` | string | 是 | - | `@NotBlank` `@Size(max=500)` | 文搜图关键词或自然语言描述，最长 500 字符 |
 | `limit` | int | 否 | `10` | `@Min(1)` `@Max(30)` | 最多返回条数，服务端还会受配置 `max-results`（默认 30）钳制 |
-| `region` | string | 否 | `auto` | - | 与 Web Search 共用 CN / GLOBAL 路由规则，并作为图片 Provider Locale Hint |
-| `provider` | string | 否 | `auto` | - | 渠道，见 [第 7 章 Provider 矩阵](#72-image-search) |
+| `region` | string | 否 | `auto` | `@Size(max=32)` | 与 Web Search 共用 CN / GLOBAL 路由规则，并作为图片 Provider Locale Hint |
+| `provider` | string | 否 | `auto` | `@Size(max=32)` | 渠道，见 [第 7 章 Provider 矩阵](#72-image-search) |
 
 ### 4.2 响应字段
 
@@ -147,7 +149,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/search' \
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `provider` | string | 实际使用的渠道（`auto` 时为 `auto`） |
+| `provider` | string | 请求最终采用的 provider 模式；`provider=auto` 时仍返回 `auto`，具体图片渠道看每条 item 的 `provider` / `source` |
 | `query` | string | 回显原始查询词 |
 | `region` | string | 生效区域 |
 | `count` | int | `items` 条数 |
@@ -180,6 +182,8 @@ curl -sS -X POST 'http://localhost:8080/api/web/search' \
   - CN → `bing → baidu → sogou → openverse`；
   - GLOBAL → `bing → openverse → wikimedia`。
 - Provider 会多取候选，Service 对每个候选原图执行 `SecureImageDownloadVerifier`；只有经过公网 SSRF/Redirect、HTTP 2xx 与真实图片字节签名校验的 `imageUrl` 才进入响应。
+- 候选数量默认按 `limit × 3` 放大，最多验证 60 个；下载验证默认超时 4 秒、最多 3 次重定向、读取最多 65536 bytes，并发 6、队列容量 48。以上均可配置。
+- 当前签名白名单覆盖 JPEG / PNG / GIF / WebP / BMP / TIFF / ICO / AVIF / HEIC；HTML/XML/SVG 等主动或非图片内容不会进入响应。
 - 单渠道失败、null/空结果或“有候选但全部不可下载”均不中断 auto；继续下一 Provider。按 `imageUrl` 去重聚合，达到 `limit` 提前结束。
 - `provider=<具体渠道>`：仅请求指定渠道，不做 fallback；渠道不存在返回 `400 BAD_REQUEST`，返回空结果返回 `502 UPSTREAM_ERROR`。
 - Bing Images 根据 Route 自动选择 `cn.bing.com/images/async` 或 `www.bing.com/images/async`。
@@ -230,7 +234,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/image-search' \
 
 | 字段 | 类型 | 必填 | 默认值 | 校验约束 | 说明 |
 |---|---|---|---|---|---|
-| `url` | string | 是 | - | `@NotBlank` | 需要读取的公网 HTTP/HTTPS 网页地址 |
+| `url` | string | 是 | - | `@NotBlank` `@Size(max=2048)` | 需要读取的公网 HTTP/HTTPS 网页地址，最长 2048 字符 |
 | `maxChars` | int | 否 | `50000` | `@Min(1000)` `@Max(200000)` | 最多返回的正文字符数；未传使用服务端配置 `read.max-chars`（默认 50000） |
 
 ### 5.2 响应字段
@@ -285,9 +289,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/read' \
   "truncated": false,
   "latencyMs": 812,
   "metadata": {
-    "description": "Spring Boot makes it easy to create stand-alone, production-grade Spring based Applications that you can just run.",
-    "author": null,
-    "publishedAt": null
+    "description": "Spring Boot makes it easy to create stand-alone, production-grade Spring based Applications that you can just run."
   },
   "links": [
     "https://spring.io/",
@@ -296,7 +298,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/read' \
 }
 ```
 
-> 上例中 `metadata` 中缺失的键实际不会出现在 JSON 中；此处展示仅为示意。
+> `metadata` 仅输出实际提取到的键；未提取到的 `author` / `publishedAt` 等键不会占位输出。
 
 ---
 
@@ -304,14 +306,14 @@ curl -sS -X POST 'http://localhost:8080/api/web/read' \
 
 - 业务接口精确 allowlist：`POST /api/web/search`、`POST /api/web/image-search`、`POST /api/web/read`；
 - Spring Multipart 全局关闭，Filter 明确拒绝 `multipart/*`；
-- API 请求体默认最大 64 KiB；
+- API 请求体默认最大 64 KiB，且 chunked/未知长度请求也会在读取阶段执行同一硬上限；
 - 未知路径、Upload/Actuator/Debug、危险 Method、Path Traversal 提前拒绝；
-- Read/Image remote fetch 仅公网 HTTP/HTTPS 80/443，并对 Redirect 每跳复检；
+- Read/Image remote fetch 仅公网 HTTP/HTTPS 80/443，并对 Redirect 每跳复检；图片结果还必须通过被动图片 Magic Bytes 验证；
 - 官网静态资源仅来自 classpath，并配置 CSP / nosniff / DENY frame 等 Header。
 
 ## 6. 错误码与公共错误响应
 
-所有错误响应统一结构（由 `GlobalExceptionHandler` 生成）：
+Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `timestamp`：
 
 ```json
 {
@@ -322,12 +324,28 @@ curl -sS -X POST 'http://localhost:8080/api/web/read' \
 }
 ```
 
+安全 Filter 在进入 Spring MVC 之前直接拒绝的请求（如 404 / 405 / 413 / 415）使用更精简的结构，不包含 `timestamp`：
+
+```json
+{
+  "status": 415,
+  "code": "UPLOAD_DISABLED",
+  "message": "File upload is disabled"
+}
+```
+
 | HTTP 状态 | `code` | 触发场景 |
 |---|---|---|
-| `400` | `BAD_REQUEST` | 业务参数非法（如 URL 非法 / 不支持渠道 / SSRF 拦截 / 内容类型不支持 / 响应体超限）；`BadRequestException` 或 `IllegalArgumentException` |
-| `400` | `VALIDATION_ERROR` | Bean Validation 校验失败（`query` 空、`limit` 越界、`maxChars` 越界等），`message` 形如 `query: must not be blank` |
-| `502` | `UPSTREAM_ERROR` | 上游全部渠道失败 / 指定渠道无结果 / 读取网页失败 / 重定向过多 / 上游非 2xx |
-| `500` | `INTERNAL_ERROR` | 未预期的服务端异常 |
+| `400` | `BAD_REQUEST` | 业务参数非法（如 URL 非法 / 不支持渠道 / SSRF 拦截 / 内容类型不支持 / 响应体超限） |
+| `400` | `VALIDATION_ERROR` | Bean Validation 校验失败（`query` 空或超 500、`limit` 越界、`url` 超 2048、`maxChars` 越界等） |
+| `400` | `INVALID_JSON` | JSON 语法错误、类型不匹配或请求体无法反序列化 |
+| `404` | `NOT_FOUND` | 未在公网 Allowlist 中的路径、未知静态/框架端点 |
+| `405` | `METHOD_NOT_ALLOWED` | API 使用非 POST，或静态资源使用非 GET/HEAD |
+| `413` | `PAYLOAD_TOO_LARGE` | JSON 请求体超过 `max-api-body-bytes`，默认 64 KiB |
+| `415` | `UPLOAD_DISABLED` | 请求使用 `multipart/*`，文件上传被明确关闭 |
+| `415` | `UNSUPPORTED_MEDIA_TYPE` | 三个 API 未使用 `application/json` / `application/*+json` |
+| `502` | `UPSTREAM_ERROR` | 上游全部渠道失败 / 指定渠道无结果 / 无可下载图片 / 读取网页失败 / 重定向过多 / 上游非 2xx |
+| `500` | `INTERNAL_ERROR` | 未预期的服务端异常；客户端只收到固定安全消息，不回显内部堆栈 |
 
 ---
 
@@ -375,6 +393,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/read' \
 | `openreach.web.search.duckduckgo-url` | `https://html.duckduckgo.com/html/` | DDG no-JS HTML |
 | `openreach.web.search.timeout-ms` | `6000` | 单渠道搜索超时 |
 | `openreach.web.search.max-results` | `20` | Web Search 最大结果数 |
+| `openreach.web.search.max-response-bytes` | `2097152` | 单个 Web Search Provider 上游响应硬上限（2 MiB） |
 | `openreach.web.image-search.provider` | `auto` | 默认 Image Search 模式 |
 | `openreach.web.image-search.provider-order` | `bing,baidu,sogou,openverse` | v1.0.1 兼容字段 |
 | `openreach.web.image-search.cn-provider-order` | `[]` | 可选 CN Image Chain；为空时继承 `provider-order` |
@@ -384,10 +403,20 @@ curl -sS -X POST 'http://localhost:8080/api/web/read' \
 | `openreach.web.image-search.wikimedia-user-agent` | `OpenReach/1.0.2 (...)` | Wikimedia 可识别 UA |
 | `openreach.web.image-search.timeout-ms` | `8000` | 单渠道图片搜索超时 |
 | `openreach.web.image-search.max-results` | `30` | Image Search 最大结果数 |
+| `openreach.web.image-search.max-response-bytes` | `4194304` | 单个图片 Provider 上游响应硬上限（4 MiB） |
+| `openreach.web.image-search.download-candidate-multiplier` | `3` | 为保证最终可下载结果，Provider 候选放大倍数 |
+| `openreach.web.image-search.download-max-candidates` | `60` | 单请求最多进入下载验证的图片候选数 |
+| `openreach.web.image-search.download-validation-timeout-ms` | `4000` | 单个图片下载验证超时 |
+| `openreach.web.image-search.download-validation-max-redirects` | `3` | 图片验证最大重定向次数 |
+| `openreach.web.image-search.download-validation-max-bytes` | `65536` | 图片验证最多读取字节数 |
+| `openreach.web.image-search.download-validation-concurrency` | `6` | 图片验证线程并发数 |
+| `openreach.web.image-search.download-validation-queue-capacity` | `48` | 图片验证有界队列容量 |
 | `openreach.web.read.timeout-ms` | `10000` | Read 请求超时 |
 | `openreach.web.read.max-bytes` | `5242880` | Read 响应体上限（5 MiB） |
 | `openreach.web.read.max-chars` | `50000` | 正文字数上限 |
 | `openreach.web.read.max-redirects` | `5` | 最大重定向次数 |
+| `openreach.web.read.allowed-ports` | `[80,443]` | Read 允许访问的公网端口 |
+| `openreach.web.security.max-api-body-bytes` | `65536` | 三个 JSON API 请求体统一硬上限（64 KiB） |
 
 ### 8.1 兼容策略
 
@@ -430,6 +459,7 @@ mvn clean test   # 离线单测门禁
 mvn spring-boot:run
 ```
 
+- 官网更新日志：`/changelog`（源码事实源：根目录 `CHANGELOG.md`）
 - Curl 示例与 Smoke Test：`docs/接口测试与Curl示例.md`
 - HTTP 插件 JSON（Agent 平台直接导入）：`docs/agenthub/skills/openreach-http-plugin.json`
 - 部署：`docs/部署篇/`

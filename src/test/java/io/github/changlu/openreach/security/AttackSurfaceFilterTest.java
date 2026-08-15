@@ -91,6 +91,23 @@ class AttackSurfaceFilterTest {
         }
     }
 
+
+    @Test
+    void allowsChangelogAsReadOnlyStaticResource() throws Exception {
+        for (String path : new String[]{"/changelog", "/changelog/", "/changelog.html"}) {
+            MockHttpServletRequest req = new MockHttpServletRequest("GET", path);
+            MockHttpServletResponse res = new MockHttpServletResponse();
+            AtomicBoolean reached = new AtomicBoolean(false);
+            filter.doFilter(req, res, (request, response) -> reached.set(true));
+            assertTrue(reached.get(), path);
+        }
+
+        MockHttpServletRequest post = new MockHttpServletRequest("POST", "/changelog");
+        MockHttpServletResponse postRes = new MockHttpServletResponse();
+        filter.doFilter(post, postRes, (request, response) -> {});
+        assertEquals(405, postRes.getStatus());
+    }
+
     @Test
     void staticWebsiteReceivesDefensiveBrowserHeaders() throws Exception {
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/");

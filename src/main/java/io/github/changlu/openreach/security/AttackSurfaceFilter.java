@@ -37,6 +37,7 @@ public class AttackSurfaceFilter extends OncePerRequestFilter {
     private static final Set<String> STATIC_EXACT_PATHS = Set.of(
             "/", "/index.html",
             "/docs", "/docs/", "/docs/index.html", "/docs/api.html",
+            "/changelog", "/changelog/", "/changelog.html",
             "/community", "/community/",
             "/downloads/openreach-skill.zip"
     );
