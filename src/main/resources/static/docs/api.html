@@ -5,17 +5,7 @@
   <meta name="description" content="OpenReach 官方 API 文档" />
   <title>官方接口文档 · OpenReach Docs</title>
   <link rel="icon" href="/assets/logo-mark.png" /><link rel="stylesheet" href="/assets/site.css" />
-  <script>
-    (function () {
-      try {
-        var saved = localStorage.getItem('openreach-theme');
-        var theme = saved === 'dark' || saved === 'light' ? saved : 'light';
-        document.documentElement.dataset.theme = theme;
-      } catch (e) {
-        document.documentElement.dataset.theme = 'light';
-      }
-    })();
-  </script>
+  <script src="/assets/theme-init.js"></script>
 </head>
 <body class="docs-body">
 <header class="nav-wrap"><div class="container nav"><a class="brand" href="/"><img src="/assets/logo-mark.png" alt="OpenReach" /><span>OpenReach</span></a><nav class="nav-links"><a href="/">首页</a><a class="docs-only active" href="/docs/">文档</a><a class="nav-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer" aria-label="OpenReach GitHub">
@@ -37,49 +27,46 @@
   </aside>
   <main class="docs-main">
     <div class="mobile-docs"><select data-doc-select aria-label="切换文档"><option value="/docs/">1. 快速启动</option><option value="/docs/api.html" selected>2. 官方接口文档</option></select></div>
-    <div class="doc-eyebrow">API Reference · v0.1.1</div><h1>官方接口文档</h1>
-    <p class="lead">OpenReach 当前提供三个核心 HTTP POST 能力，并额外提供一个无外部依赖的 Health 接口用于部署与 Skill 初始化检查。以下参数以当前 Java DTO 和 Controller 为准。</p>
+    <div class="doc-eyebrow">API Reference · v1.0.2</div><h1>官方接口文档</h1>
+    <p class="lead">OpenReach v1.0.2 只对外提供三个核心 HTTP POST 能力；官网、文档和 Skill ZIP 作为只读静态资源提供。以下参数以当前 Java DTO、Service 与安全过滤器为准。</p>
     <div class="note">Base URL：<code>http://localhost:8080</code>。所有接口路径统一位于 <code>/api/web</code>。</div>
 
 
-    <section class="endpoint-block">
-      <h2 style="margin-top:0"><span class="method get">GET</span>/api/web/health</h2>
-      <p>服务连通性检查。该接口不调用外部搜索 Provider，官网 Skill 的 <code>init</code> 与 <code>doctor</code> 会把它作为使用 Search / Image Search / Read 前的环境前置条件。</p>
-      <div class="codebox"><button class="copy-btn" data-copy="#api-health">复制</button><pre id="api-health">curl 'http://localhost:8080/api/web/health'</pre></div>
-      <p>成功响应：<code>{"status":"UP","service":"openreach"}</code></p>
-    </section>
+
 
     <section class="endpoint-block">
       <h2 style="margin-top:0"><span class="method">POST</span>/api/web/search</h2>
-      <p>搜索网页并返回候选信息源。<code>provider=auto</code> 时按配置顺序自动降级。</p>
+      <p>搜索网页并返回候选信息源。<code>provider=auto</code> 时先按 <code>region</code> 选择 CN / GLOBAL Route，再执行对应免费 Provider Chain。</p>
       <h3>请求参数</h3>
       <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
         <tr><td><code>query</code></td><td>string</td><td>是</td><td>非空搜索关键词</td></tr>
         <tr><td><code>limit</code></td><td>integer</td><td>否</td><td>1–20，默认 10，并受服务端 max-results 限制</td></tr>
-        <tr><td><code>region</code></td><td>string</td><td>否</td><td>默认 auto；未传等价于 auto；不同 Provider best-effort 映射</td></tr>
-        <tr><td><code>provider</code></td><td>string</td><td>否</td><td>默认 auto；可选 bing / baidu / sogou / so360 / duckduckgo</td></tr>
+        <tr><td><code>region</code></td><td>string</td><td>否</td><td>默认 auto（默认 CN）；CN aliases 走 CN，其他显式地区走 GLOBAL；之后作为 Provider locale Hint</td></tr>
+        <tr><td><code>provider</code></td><td>string</td><td>否</td><td>默认 auto；可选 bing / baidu / sogou / so360 / duckduckgo / brave</td></tr>
+        <tr><td><code>timeRange</code></td><td>string</td><td>否</td><td>时间范围：any / day / week / month / year，默认 any；兼容 d/w/m/y、pd/pw/pm/py、qdr:d/qdr:w/qdr:m/qdr:y。指定时间范围后，auto 只调用真正支持该能力的 Provider。</td></tr>
       </tbody></table></div>
       <h3>示例</h3>
       <div class="codebox"><button class="copy-btn" data-copy="#api-search">复制</button><pre id="api-search">curl -X POST 'http://localhost:8080/api/web/search' \
   -H 'Content-Type: application/json' \
-  -d '{"query":"OpenReach AI Agent","limit":5,"region":"auto","provider":"auto"}'</pre></div>
-      <p>响应字段：<code>provider</code>、<code>query</code>、<code>region</code>、<code>count</code>、<code>latencyMs</code>、<code>items[]</code>。每个 item 包含 <code>rank</code>、<code>title</code>、<code>url</code>、<code>snippet</code>、<code>source</code>。</p>
+  -d '{"query":"OpenReach AI Agent","limit":5,"region":"US","provider":"auto","timeRange":"month"}'</pre></div>
+      <p>响应字段：<code>provider</code>、<code>query</code>、<code>region</code>、<code>timeRange</code>、<code>count</code>、<code>latencyMs</code>、<code>items[]</code>。每个 item 包含 <code>rank</code>、<code>title</code>、<code>url</code>、<code>snippet</code>、<code>source</code>。</p>
     </section>
 
     <section class="endpoint-block">
       <h2 style="margin-top:0"><span class="method">POST</span>/api/web/image-search</h2>
-      <p>根据文本搜索图片与来源页面。</p>
+      <p>根据文本搜索图片与来源页面。v1.0.2 会对原始 <code>imageUrl</code> 做公网 URL/重定向校验和真实图片字节探测，只把当前可直接下载的被动图片格式返回给调用方。</p>
       <h3>请求参数</h3>
       <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
         <tr><td><code>query</code></td><td>string</td><td>是</td><td>非空图片搜索关键词</td></tr>
         <tr><td><code>limit</code></td><td>integer</td><td>否</td><td>1–30，默认 10，并受服务端 max-results 限制</td></tr>
-        <tr><td><code>region</code></td><td>string</td><td>否</td><td>默认 auto；未传等价于 auto</td></tr>
-        <tr><td><code>provider</code></td><td>string</td><td>否</td><td>默认 auto；可选 bing / baidu / sogou / openverse</td></tr>
+        <tr><td><code>region</code></td><td>string</td><td>否</td><td>默认 auto（默认 CN）；与 Web Search 共用 CN / GLOBAL Route</td></tr>
+        <tr><td><code>provider</code></td><td>string</td><td>否</td><td>默认 auto；可选 bing / baidu / sogou / openverse / wikimedia</td></tr>
       </tbody></table></div>
       <h3>示例</h3>
       <div class="codebox"><button class="copy-btn" data-copy="#api-image">复制</button><pre id="api-image">curl -X POST 'http://localhost:8080/api/web/image-search' \
   -H 'Content-Type: application/json' \
   -d '{"query":"杭州西湖夜景","limit":8,"region":"auto","provider":"auto"}'</pre></div>
+      <p><strong>下载保证：</strong>返回的 <code>imageUrl</code> 已通过服务端即时下载探测；失效链接、403/404、HTML 防盗链页、伪图片以及 SVG 主动内容会被过滤。网络状态仍可能在响应之后变化，因此它表示“响应生成时可直接下载”。</p>
       <p>响应 items 可包含：<code>rank</code>、<code>title</code>、<code>imageUrl</code>、<code>thumbnailUrl</code>、<code>sourcePageUrl</code>、<code>provider</code>、<code>source</code>、<code>domain</code>、<code>width</code>、<code>height</code>、<code>imageFormat</code>、<code>license</code>、<code>licenseUrl</code>。</p>
     </section>
 
@@ -98,6 +85,9 @@
       <p>响应字段：<code>url</code>、<code>finalUrl</code>、<code>title</code>、<code>content</code>、<code>contentType</code>、<code>reader</code>、<code>truncated</code>、<code>latencyMs</code>、<code>metadata</code>、<code>links</code>。</p>
     </section>
 
+    <h2>安全边界</h2>
+    <ul><li>公网 API 仅允许上述三个精确 POST 路径，并强制 <code>application/json</code>；不提供上传、写文件、Actuator 或调试接口。</li><li><code>multipart/form-data</code>、危险 HTTP Method、未知 API 路径、路径穿越和超大请求体会在统一安全 Filter 中提前拒绝。</li><li>Read 与图片下载探测只允许公网 HTTP/HTTPS 80/443，并对重定向目标重新执行 SSRF 校验。</li><li>官网静态资源固定来自 classpath，并使用 CSP、nosniff、DENY frame 等响应头限制浏览器攻击面。</li></ul>
+
     <h2>错误响应</h2>
     <p>错误统一返回时间戳、HTTP 状态码、错误码和信息。</p>
     <div class="codebox"><pre>{
@@ -109,8 +99,8 @@
     <p>常见错误码：<code>BAD_REQUEST</code>、<code>VALIDATION_ERROR</code>、<code>UPSTREAM_ERROR</code>、<code>INTERNAL_ERROR</code>。</p>
 
     <h2>Provider 默认顺序</h2>
-    <ul><li>Web Search：Bing 中国 → 百度 → 搜狗 → 360 → DuckDuckGo</li><li>Image Search：Bing Images → 百度图片 → 搜狗图片 → Openverse</li></ul>
-    <div class="note">免费搜索结果依赖公开页面结构、访问策略和网络环境，因此属于 best-effort。Openverse 使用其公开 API。</div>
+    <ul><li>Web CN：Bing → 百度 → 搜狗 → 360 → DuckDuckGo</li><li>Web GLOBAL：Brave → DuckDuckGo → Bing Global</li><li>Image CN：Bing → 百度图片 → 搜狗图片 → Openverse</li><li>Image GLOBAL：Bing Global → Openverse → Wikimedia</li></ul>
+    <div class="note">免费搜索结果依赖公开页面结构、访问策略和网络环境，因此属于 best-effort。v1.0.2 默认链均无需 API Key；Openverse 与 Wikimedia 使用公开读接口。</div>
 
     <section id="community" class="api-community docs-community">
       <div class="doc-eyebrow">Project & Community</div>

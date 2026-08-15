@@ -1,5 +1,6 @@
 package io.github.changlu.openreach.search.provider;
 
+import io.github.changlu.openreach.common.BoundedBodyReader;
 import io.github.changlu.openreach.common.UpstreamException;
 import io.github.changlu.openreach.config.WebCapabilityProperties;
 import org.jsoup.Jsoup;
@@ -8,13 +9,17 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,27 +40,68 @@ public class SearchHttpClient {
     }
 
     public Document get(String providerName, URI uri) {
-        HttpRequest request = HttpRequest.newBuilder(uri)
+        return get(providerName, uri, Map.of());
+    }
+
+    public Document get(String providerName, URI uri, Map<String, String> extraHeaders) {
+        HttpRequest.Builder builder = baseRequest(uri, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5");
+        extraHeaders.forEach(builder::setHeader);
+        return sendDocument(providerName, builder.GET().build());
+    }
+
+    public Document postForm(String providerName, URI uri, Map<String, String> form, Map<String, String> extraHeaders) {
+        String body = encodeForm(form);
+        HttpRequest.Builder builder = baseRequest(uri, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5")
+                .setHeader("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
+        extraHeaders.forEach(builder::setHeader);
+        return sendDocument(providerName, builder.build());
+    }
+
+    private HttpRequest.Builder baseRequest(URI uri, String accept) {
+        return HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofMillis(properties.getSearch().getTimeoutMs()))
                 .header("User-Agent", properties.getSearch().getUserAgent())
-                .header("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5")
-                .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.6")
-                .GET()
-                .build();
+                .header("Accept", accept)
+                .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.6");
+    }
+
+    private Document sendDocument(String providerName, HttpRequest request) {
         try {
-            HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                response.body().close();
                 throw new UpstreamException(providerName + " returned HTTP " + response.statusCode());
             }
+            int maxBytes = properties.getSearch().getMaxResponseBytes();
+            long contentLength = response.headers().firstValueAsLong("content-length").orElse(-1L);
+            if (contentLength > Math.max(1024, maxBytes)) {
+                response.body().close();
+                throw new UpstreamException(providerName + " response body exceeds configured limit="
+                        + Math.max(1024, maxBytes) + " bytes");
+            }
+            byte[] body = BoundedBodyReader.read(response.body(), maxBytes, providerName);
             String contentType = response.headers().firstValue("content-type").orElse("text/html");
-            Charset charset = detectCharset(contentType, response.body());
-            return Jsoup.parse(new String(response.body(), charset), response.uri().toString());
+            Charset charset = detectCharset(contentType, body);
+            return Jsoup.parse(new String(body, charset), response.uri().toString());
         } catch (IOException ex) {
             throw new UpstreamException(providerName + " request failed: " + ex.getMessage(), ex);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new UpstreamException(providerName + " request interrupted", ex);
         }
+    }
+
+    private String encodeForm(Map<String, String> form) {
+        Map<String, String> stable = new LinkedHashMap<>(form);
+        StringBuilder out = new StringBuilder();
+        for (Map.Entry<String, String> entry : stable.entrySet()) {
+            if (out.length() > 0) out.append('&');
+            out.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8))
+                    .append('=')
+                    .append(URLEncoder.encode(entry.getValue() == null ? "" : entry.getValue(), StandardCharsets.UTF_8));
+        }
+        return out.toString();
     }
 
     private Charset detectCharset(String contentType, byte[] body) {

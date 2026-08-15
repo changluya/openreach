@@ -1,195 +1,244 @@
 # ImageSearch 核心流程设计
 
-> 对应接口：`POST /api/web/image-search`  
-> 当前版本：OpenReach v0.1.1  
-> 核心目标：给 Agent 提供独立的“文本发现图片”能力，并保留图片来源页面和版权元数据。
+> 接口：`POST /api/web/image-search`
+> 当前版本：**OpenReach v1.0.2**
 
 ---
 
-## 1. 为什么 ImageSearch 必须独立
+## 1. 为什么 ImageSearch 独立
 
-图片搜索不是普通 Web Search 加一个 `type=image` 就结束。
-
-图片结果天然拥有不同的数据结构：
-
-```text
-原图 URL
-缩略图 URL
-来源网页
-来源站点
-宽度 / 高度
-格式
-License
-License URL
-```
-
-因此当前设计将它作为第三个独立基础原语：
-
-```text
-search(query)        -> 网页候选
-image-search(query)  -> 图片候选
-read(url)            -> 网页正文
-```
-
-而不是：
-
-```text
-search(query, type=image/news/maps/shopping/...)
-```
-
-这样可以避免一个 Search DTO 被不同垂直 SERP 持续污染。
-
----
-
-## 2. 当前接口
-
-```http
-POST /api/web/image-search
-Content-Type: application/json
-```
-
-请求：
-
-```json
-{
-  "query": "杭州西湖夜景",
-  "limit": 8,
-  "region": "auto",
-  "provider": "auto"
-}
-```
-
-字段：
-
-| 字段 | 必填 | 当前含义 |
-|---|---:|---|
-| `query` | ✅ | 图片搜索文本 |
-| `limit` | ❌ | 1~30，默认 10 |
-| `region` | ❌ | 默认 auto，Provider best-effort |
-| `provider` | ❌ | `auto/bing/baidu/sogou/openverse` |
-
-响应：
-
-```json
-{
-  "provider": "auto",
-  "query": "杭州西湖夜景",
-  "region": "auto",
-  "count": 8,
-  "latencyMs": 560,
-  "items": [
-    {
-      "rank": 1,
-      "title": "杭州西湖夜景",
-      "imageUrl": "https://.../image.jpg",
-      "thumbnailUrl": "https://.../thumb.jpg",
-      "sourcePageUrl": "https://example.com/article",
-      "provider": "bing",
-      "source": "example.com",
-      "domain": "example.com",
-      "width": 1920,
-      "height": 1080,
-      "imageFormat": "jpg",
-      "license": null,
-      "licenseUrl": null
-    }
-  ]
-}
-```
-
----
-
-## 3. 当前 Java 结构
-
-```text
-WebCapabilityController
-        │
-        ▼
- ImageSearchService
-        │
-        ▼
-ImageSearchProvider SPI
-        │
- ┌──────┼──────────┬────────────┐
- ▼      ▼          ▼            ▼
-Bing   Baidu      Sogou      Openverse
-Images Images     Images        API
-```
-
-核心类：
-
-```text
-io.github.changlu.openreach.imagesearch.ImageSearchService
-io.github.changlu.openreach.imagesearch.ImageSearchProvider
-io.github.changlu.openreach.imagesearch.provider.*
-io.github.changlu.openreach.imagesearch.dto.*
-```
-
-SPI：
-
-```java
-public interface ImageSearchProvider {
-    String name();
-    List<ImageSearchItem> search(String query, int limit, String region);
-}
-```
-
----
-
-## 4. 为什么返回 `sourcePageUrl`
-
-这是当前设计最重要的字段之一。
-
-只返回：
+图片结果有独立数据模型：
 
 ```text
 imageUrl
+thumbnailUrl
+sourcePageUrl
+provider/source/domain
+width/height
+imageFormat
+license/licenseUrl
 ```
 
-Agent 只能看到一张图片，无法回答：
+因此保持：
 
 ```text
-图片来自哪里？
-图片对应什么文章？
-这个图片描述是否可信？
-是否可以形成引用？
+search(query)
+image-search(query)
+read(url)
 ```
 
-因此结果必须尽可能保留：
-
-```text
-imageUrl
-      │
-      └── sourcePageUrl
-                │
-                ▼
-              read()
-                │
-                ▼
-       网页上下文 / 来源证据
-```
-
-推荐 Agent 链路：
-
-```text
-image-search("杭州西湖夜景")
-        ↓
-ImageSearchItem
-        ↓
-选择候选图片
-        ↓
-read(sourcePageUrl)
-        ↓
-理解图片所在上下文
-```
-
-这也是未来做图片 Citation、图片来源解释、公众号配图等能力的基础。
+三个独立 Agent 原语。
 
 ---
 
-## 5. Auto Provider 核心流程
+## 2. 请求
 
-当前顺序：
+```json
+{
+  "query":"Golden Gate Bridge",
+  "limit":8,
+  "region":"US",
+  "provider":"auto"
+}
+```
+
+`provider` 当前支持：
+
+```text
+auto
+bing
+baidu
+sogou
+openverse
+wikimedia
+```
+
+---
+
+## 3. v1.0.2 Route-aware Image Search
+
+```text
+region
+  ↓
+SearchRouteResolver
+  ↓
+ProviderChainResolver
+  ├─ CN
+  │   bing -> baidu -> sogou -> openverse
+  │
+  └─ GLOBAL
+      bing -> openverse -> wikimedia
+```
+
+Image Search 与 Web Search 共用同一套 `SearchRouteResolver + ProviderChainResolver`：前者统一地域规则，后者统一 Route → 能力链配置，避免两个 Service 各自维护地区分支。
+
+---
+
+## 4. Auto 核心流程
+
+```mermaid
+flowchart TD
+    A[POST /api/web/image-search] --> B[ImageSearchRequest]
+    B --> C{provider == auto?}
+    C -->|No| D[searchOne]
+    C -->|Yes| E[SearchRouteResolver]
+    E --> F[ProviderChainResolver]
+    F --> G[Route Provider Order]
+    G --> H[ImageSearchProvider]
+    H --> I{有结果?}
+    I -->|No| J[记录异常/继续]
+    J --> H
+    I -->|Yes| K[按 imageUrl 去重]
+    K --> L{达到 limit?}
+    L -->|No| H
+    L -->|Yes| M[统一 rank]
+    D --> M
+    M --> N[ImageSearchResponse]
+```
+
+---
+
+## 5. CN Route
+
+```yaml
+provider-order: [bing, baidu, sogou, openverse] # v1.0.1 字段
+cn-provider-order: [] # 空时继承 provider-order
+```
+
+因此默认有效 CN Image Chain 仍是 `bing → baidu → sogou → openverse`，保持 v1.0.1 国内图片能力。
+
+---
+
+## 6. GLOBAL Route
+
+```yaml
+global-provider-order:
+  - bing
+  - openverse
+  - wikimedia
+```
+
+### Bing Global Images
+
+同一 `BingImageSearchProvider`：
+
+```text
+CN     -> cn.bing.com/images/async
+GLOBAL -> www.bing.com/images/async
+```
+
+复用已有 `a.iusc[m]` Parser。
+
+### Openverse
+
+继续作为稳定的开放许可图片源：
+
+```text
+url
+thumbnail
+foreign_landing_url
+width/height
+license/license_url
+```
+
+无需 API Key 即可使用匿名请求。
+
+### Wikimedia Commons
+
+v1.0.2 新增：
+
+```text
+WikimediaImageSearchProvider
+```
+
+公开 Action API：
+
+```text
+action=query
+format=json
+formatversion=2
+generator=search
+gsrnamespace=6
+prop=imageinfo
+iiprop=url|size|mime|extmetadata
+```
+
+映射：
+
+```text
+imageinfo.url            -> imageUrl
+thumburl                 -> thumbnailUrl
+descriptionurl           -> sourcePageUrl
+width/height             -> width/height
+mime                     -> imageFormat
+LicenseShortName.value   -> license
+LicenseUrl.value         -> licenseUrl
+```
+
+---
+
+## 7. 为什么 v1.0.2 不默认接 Brave Images
+
+Brave Images 虽无需 Key，但当前 Web Interface 的图片数据主要来自内嵌 Svelte/JS 状态，不像 Brave Web 可以直接依赖清晰 HTML Result Block。
+
+对于默认基础设施：
+
+```text
+可维护性 > Provider 数量
+```
+
+当前三路 GLOBAL Image Chain 已覆盖：
+
+```text
+通用图片：Bing
+开放许可：Openverse
+百科/公共领域：Wikimedia
+```
+
+因此 Brave Images 留在后续观察池。
+
+---
+
+## 8. 可下载图片质量门禁
+
+Provider 返回的 `imageUrl` 只是候选，不能直接视为可用图片。v1.0.2 在 Service 聚合层强制增加：
+
+```text
+候选 over-fetch
+  -> SecureImageDownloadVerifier
+  -> UrlSafetyGuard（公网 HTTP/HTTPS + 80/443）
+  -> Redirect 每跳复检
+  -> GET + Range 小前缀探测
+  -> 2xx + 非 HTML/XML/SVG
+  -> JPEG/PNG/GIF/WebP/BMP/TIFF/ICO/AVIF/HEIC 字节签名
+  -> downloadable items
+```
+
+默认候选倍率 3、最多 60、单次探测 4s、最多 3 次重定向、并发 6。某 Provider 有候选但验证后为空时，`auto` 继续下一 Provider；显式 Provider 则返回上游错误。
+
+这保证响应中的 `imageUrl` 在**响应生成时**可被 OpenReach 直接取得真实图片字节。由于公网链接可能随后过期，不能承诺永久可下载。
+
+---
+
+## 9. sourcePageUrl 的意义
+
+图片搜索不仅要返回图片，还要保留来源：
+
+```text
+image-search
+  -> imageUrl
+  -> sourcePageUrl
+  -> read(sourcePageUrl)
+  -> 来源上下文/引用证据
+```
+
+这是 Agent 做图片引用、事实核验、内容配图的重要基础。
+
+---
+
+## 10. 兼容配置
+
+旧配置：
 
 ```yaml
 provider-order:
@@ -199,351 +248,38 @@ provider-order:
   - openverse
 ```
 
-流程：
+仍可作为 CN Route fallback 配置使用。
 
-```mermaid
-flowchart TD
-    A[POST /api/web/image-search] --> B[ImageSearchRequest]
-    B --> C{provider}
-    C -->|显式| D[searchOne]
-    C -->|auto| E[按顺序遍历 Provider]
-    E --> F[调用 ImageSearchProvider]
-    F --> G{有结果?}
-    G -->|否| H[记录错误/继续]
-    H --> E
-    G -->|是| I[按 imageUrl 去重]
-    I --> J{达到 limit?}
-    J -->|否| E
-    J -->|是| K[统一 rank]
-    D --> K
-    K --> L[ImageSearchResponse]
-```
+v1.0.2 默认采用兼容配置：
 
-当前 Auto 的目标不是把四路结果全部抓满，而是：
-
-> **优先拿到足量、可用的图片候选，同时允许上游单路失败。**
-
----
-
-## 6. 当前四路 Provider 的职责
-
-### 6.1 Bing Images
-
-定位：
-
-```text
-通用图片搜索第一路
-```
-
-优点：
-
-- 通用覆盖较广；
-- 国内 Bing 入口；
-- 常能获得原图、缩略图、来源页和宽高。
-
-风险：
-
-- 当前属于结果页 best-effort 解析；
-- 非商业 SLA。
-
-### 6.2 百度图片
-
-定位：
-
-```text
-中文图片核心 fallback
-```
-
-当前流程：
-
-```text
-访问 image.baidu.com warmup
-        ↓
-获取 Cookie
-        ↓
-/search/acjson
-        ↓
-解析 data[]
-```
-
-价值：
-
-- 国内中文图片覆盖重要；
-- 常有图片 URL、来源页、尺寸等字段。
-
-风险：
-
-- Cookie / JSON Schema 可变化；
-- 可能受 anti-spider 影响。
-
-### 6.3 搜狗图片
-
-定位：
-
-```text
-国内补充图片源
-```
-
-当前从图片页面的 `window.__INITIAL_STATE__` 中提取结果。实现上**不使用正则直接截取嵌套 JSON**，而是先定位 State 赋值，再按 `{}` 深度扫描，并识别字符串与转义字符，最后交给 Jackson 3 `JsonMapper` 解析。
-
-```text
-HTML
- ↓
-定位 window.__INITIAL_STATE__
- ↓
-寻找首个 {
- ↓
-括号深度扫描（忽略字符串内的 {}）
- ↓
-完整 State JSON
- ↓
-JsonMapper
- ↓
-searchList.searchList
- ↓
-ImageSearchItem
-```
-
-这样可以避免两类问题：
-
-- Java Regex 中 `{` 转义错误导致 Provider 类初始化失败；
-- `.*?` 面对嵌套对象时提前截断，产生不完整 JSON。
-
-风险：
-
-- 页面内部 State Schema 不是稳定公开 API；
-- State 字段名变化仍需要通过 fixture / Smoke Test 发现并适配。
-
-### 6.4 Openverse
-
-定位与前三者不同：
-
-```text
-开放授权图片补充源
-```
-
-价值：
-
-- 正式公开 API；
-- 匿名请求无需 API Key；
-- 部分结果包含 License / License URL。
-
-因此 Openverse 更适合：
-
-```text
-需要关注授权信息的配图候选
-```
-
-而不是完全替代通用 Web 图片搜索。
-
----
-
-## 7. 图片结果去重
-
-当前使用：
-
-```text
-imageUrl.trim()
-```
-
-作为基本去重 Key。
-
-这样实现简单，但存在局限：
-
-```text
-同一图片的 CDN resize URL 可能被视为不同图片
-不同图片 URL 参数可能指向同一底图
-```
-
-V1 不下载图片，因此无法做：
-
-```text
-pHash
-aHash
-dHash
-CLIP embedding 去重
-```
-
-后续如果增加 Image Cache / Fetcher，可以独立增加：
-
-```text
-ImageDeduplicator
-├── URL normalize
-├── Content hash
-└── Perceptual hash
-```
-
-不要把这些逻辑塞进 Provider Parser。
-
----
-
-## 8. 图片版权边界
-
-当前接口的语义是：
-
-> **发现图片，不代表获得图片使用授权。**
-
-因此：
-
-```text
-license == null
-```
-
-不能被解释为：
-
-```text
-可商用
-无版权
-公共领域
-```
-
-只有上游明确提供 License 时才透传。
-
-尤其通用搜索 Provider 返回的图片，应继续保留：
-
-```text
-sourcePageUrl
-source/domain
-```
-
-由上层 Agent / 用户进一步确认来源和使用权。
-
-Openverse 结果虽然提供 License，也建议保留 attribution / source 信息，而不是只使用图片直链。
-
----
-
-## 9. 当前不属于 ImageSearch 的能力
-
-以下能力应该独立设计，不要塞进当前接口：
-
-```text
-以图搜图 Reverse Image Search
-OCR
-图片理解 / VLM
-图片生成
-图片下载代理
-图片二进制缓存
-图片编辑
-图片版权自动判决
-图片向量检索
-```
-
-未来能力关系可以是：
-
-```text
-image-search     文本发现互联网图片
-image-read       下载/读取图片内容（未来）
-image-understand VLM 理解（模型层）
-image-reverse    以图搜图（独立 Provider）
+```yaml
+provider-order: [bing, baidu, sogou, openverse]
+cn-provider-order: [] # 继承旧字段；需要独立 CN 顺序时再显式填写
+global-provider-order: [bing, openverse, wikimedia]
 ```
 
 ---
 
-## 10. 后续 Serper Images 扩展
-
-未来增加：
-
-```java
-SerperImageSearchProvider implements ImageSearchProvider
-```
-
-只需要把商业 API 字段转换为统一：
+## 11. 测试重点
 
 ```text
-title
-imageUrl
-thumbnailUrl
-sourcePageUrl
-source/domain
-width/height
+CN / GLOBAL Chain 选择
+auto 默认 CN
+legacy provider-order
+单路失败 fallback
+imageUrl 去重
+rank/limit
+Bing iusc metadata
+Openverse JSON
+Wikimedia imageinfo
+Wikimedia license/licenseUrl
+缺失 imageinfo / license 容错
+无效/403/HTML/伪图片过滤
+首 Provider 不可下载时继续 fallback
+显式 Provider 无可下载结果时 fail-fast
+常见图片字节签名识别
+图片探测 SSRF / localhost 拒绝
+candidate over-fetch 上限
 ```
 
-Agent 接口完全不变。
-
-建议未来路由：
-
-```text
-ImageSearchService
-       │
-       ▼
-ImageSearchRouter
-       │
- ┌─────┴─────────┐
- ▼               ▼
-FREE           PREMIUM
-Bing/Baidu/     Serper Images
-Sogou/Openverse
-```
-
-Premium 触发条件可包括：
-
-```text
-免费结果为空
-图片直链有效率低
-来源页缺失过多
-查询需要稳定 Google Images SERP
-用户明确选择 premium
-```
-
----
-
-## 11. 当前安全与资源边界
-
-当前 `image-search`：
-
-```text
-只发现并返回 URL
-不代理图片二进制
-不自动下载所有原图
-```
-
-这是刻意设计。
-
-优点：
-
-- 避免图片下载带宽放大；
-- 避免未知文件直接进入服务；
-- 避免图片 CDN SSRF / 大文件风险扩展到 V1；
-- 接口延迟更低。
-
-如果未来增加图片下载能力，应单独使用 Safe Image Fetcher，并重新设计：
-
-```text
-Content-Type
-Max Bytes
-DNS / Redirect SSRF
-Dimension Limit
-Decode Bomb
-Cache
-```
-
----
-
-## 12. V1 验收关注点
-
-ImageSearch 测试应覆盖：
-
-- Bing Parser fixture；
-- 百度 Parser fixture；
-- 搜狗 Parser fixture；
-- Openverse JSON fixture；
-- Auto fallback；
-- imageUrl 去重；
-- limit；
-- provider 显式选择；
-- 全部失败；
-- 结果关键字段完整性。
-
-正式 Gate：
-
-```text
-mvn clean test
-```
-
-全部测试通过后才允许验收。
-
----
-
-## 13. 一句话总结
-
-> **ImageSearch 是独立的图片 Discovery 原语：V1 重点不是下载图片，而是稳定返回“图片 + 缩略图 + 来源页 + 来源站点 + 可得元数据”，从而让 Agent 可以继续使用 `read(sourcePageUrl)` 建立图片上下文和来源证据。**
+公网真实页面变化由 Smoke Test + Bad Case Fixture 闭环，不把公网请求写进 JUnit。

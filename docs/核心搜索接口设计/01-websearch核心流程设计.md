@@ -1,88 +1,49 @@
 # WebSearch 核心流程设计
 
-> 对应接口：`POST /api/web/search`  
-> 当前版本：OpenReach v0.1.1  
-> 核心目标：给 Agent 提供一个统一、轻量、可容错、可替换 Provider 的网页发现能力。
+> 接口：`POST /api/web/search`
+> 当前版本：**OpenReach v1.0.2**
 
 ---
 
-## 1. 能力定位
+## 1. 接口目标
 
-`websearch` 只解决一个问题：
-
-> **根据查询词发现值得继续读取的网页。**
-
-它不负责：
-
-- 打开网页并读取正文；
-- LLM 总结；
-- Citation 生成；
-- Deep Research 规划；
-- 浏览器交互。
-
-这些能力由 `read` 或 Agent 上层组合完成。
-
-推荐调用链：
+WebSearch 给 Agent 提供统一网页发现能力，上层只依赖：
 
 ```text
-Agent
-  │
-  ├── search(query)
-  │       ↓
-  │   SearchResult[]
-  │       ↓
-  ├── read(url)
-  │       ↓
-  │   Clean Content
-  │
-  └── LLM / Citation / Research
+query + limit + region + provider + timeRange
 ```
 
----
-
-## 2. 当前接口
-
-```http
-POST /api/web/search
-Content-Type: application/json
-```
+不绑定某个搜索厂商。
 
 请求：
 
 ```json
 {
-  "query": "杭州 AI Agent 开源框架",
-  "limit": 5,
-  "region": "auto",
-  "provider": "auto"
+  "query":"latest Java AI Agent frameworks",
+  "limit":5,
+  "region":"US",
+  "provider":"auto",
+  "timeRange":"month"
 }
 ```
-
-字段：
-
-| 字段 | 必填 | 当前含义 |
-|---|---:|---|
-| `query` | ✅ | 搜索关键词 |
-| `limit` | ❌ | 1~20，默认 10 |
-| `region` | ❌ | 默认 `auto`，Provider 尽力映射，不承诺精确 Geo |
-| `provider` | ❌ | `auto/bing/baidu/sogou/so360/duckduckgo` |
 
 响应：
 
 ```json
 {
-  "provider": "auto",
-  "query": "杭州 AI Agent 开源框架",
-  "region": "auto",
-  "count": 5,
-  "latencyMs": 320,
-  "items": [
+  "provider":"auto",
+  "query":"latest Java AI Agent frameworks",
+  "region":"US",
+  "timeRange":"month",
+  "count":5,
+  "latencyMs":320,
+  "items":[
     {
-      "rank": 1,
-      "title": "...",
-      "url": "https://example.com/page",
-      "snippet": "...",
-      "source": "bing"
+      "rank":1,
+      "title":"...",
+      "url":"https://...",
+      "snippet":"...",
+      "source":"brave"
     }
   ]
 }
@@ -90,50 +51,113 @@ Content-Type: application/json
 
 ---
 
-## 3. 当前 Java 结构
+## 2. v1.0.2 核心变化
+
+v1.0.1：
 
 ```text
-WebCapabilityController
-        │
-        ▼
-   SearchService
-        │
-        ▼
- SearchProvider SPI
-        │
- ┌──────┼────────┬────────┬───────────┐
- ▼      ▼        ▼        ▼           ▼
-Bing   Baidu    Sogou    360     DuckDuckGo
+provider=auto
+  -> provider-order
+  -> bing -> baidu -> sogou -> so360 -> duckduckgo
 ```
 
-核心类：
+v1.0.2：
 
 ```text
-io.github.changlu.openreach.web.WebCapabilityController
-io.github.changlu.openreach.search.SearchService
-io.github.changlu.openreach.search.SearchProvider
-io.github.changlu.openreach.search.provider.*
-io.github.changlu.openreach.search.dto.*
+provider=auto
+  -> region
+  -> SearchRouteResolver
+  -> ProviderChainResolver
+     ├─ CN     -> CN Provider Chain
+     └─ GLOBAL -> GLOBAL Provider Chain
 ```
 
-Provider SPI：
-
-```java
-public interface SearchProvider {
-    String name();
-    List<SearchItem> search(String query, int limit, String region);
-}
-```
-
-设计原则：
-
-> Controller / Agent 只依赖统一 Search DTO，不感知上游搜索引擎 HTML、参数和 Parser。
+`region` 不再只是 Provider Hint，而是先决定核心路由。
 
 ---
 
-## 4. Auto Provider 核心流程
+## 3. 参数语义
 
-默认顺序：
+| 字段 | 必填 | 说明 |
+|---|---:|---|
+| `query` | ✅ | 搜索文本 |
+| `limit` | ❌ | 1~20，默认 10 |
+| `region` | ❌ | 默认 `auto`；CN aliases 走国内，其余显式区域走 GLOBAL |
+| `provider` | ❌ | 默认 `auto`；也可显式 `bing/baidu/sogou/so360/duckduckgo/brave` |
+
+### `region=auto`
+
+由：
+
+```yaml
+openreach.web.routing.default-route: cn
+```
+
+决定，默认仍为 CN，兼容 v1.0.1。
+
+### 显式 Provider
+
+显式 Provider 优先于 Route Chain：
+
+```json
+{"query":"OpenAI","region":"CN","provider":"brave"}
+```
+
+直接 Brave，不做 Auto fallback。
+
+---
+
+## 4. 路由流程
+
+```mermaid
+flowchart TD
+    A[POST /api/web/search] --> B[SearchRequest]
+    B --> C{provider == auto?}
+    C -->|No| D[searchOne]
+    C -->|Yes| E[SearchRouteResolver]
+    E --> F[ProviderChainResolver]
+    F --> G{Route}
+    G -->|CN| H[CN Provider Order]
+    G -->|GLOBAL| I[GLOBAL Provider Order]
+    H --> J[searchAuto]
+    I --> J
+    J --> K[Provider 调用]
+    K --> L{成功且有结果?}
+    L -->|No| M[记录错误并下一 Provider]
+    M --> K
+    L -->|Yes| N[URL 规范化/去重]
+    N --> O{达到 limit?}
+    O -->|No| K
+    O -->|Yes| P[统一 rank]
+    D --> P
+    P --> Q[SearchResponse]
+```
+
+---
+
+## 5. CN / GLOBAL 默认链
+
+### CN
+
+默认配置保持兼容式写法：
+
+```yaml
+provider-order: [bing, baidu, sogou, so360, duckduckgo] # v1.0.1 字段
+cn-provider-order: [] # 空时继承 provider-order
+```
+
+因此默认**有效 CN Chain**仍为：`bing → baidu → sogou → so360 → duckduckgo`。如需独立调整 CN 链，再显式填写 `cn-provider-order`。
+
+### GLOBAL
+
+```yaml
+global-provider-order:
+  - brave
+  - duckduckgo
+  - bing
+```
+
+旧字段继续存在：
 
 ```yaml
 provider-order:
@@ -144,323 +168,192 @@ provider-order:
   - duckduckgo
 ```
 
-执行流程：
-
-```mermaid
-flowchart TD
-    A[POST /api/web/search] --> B[SearchRequest 参数校验]
-    B --> C{provider}
-    C -->|显式 Provider| D[searchOne]
-    C -->|auto| E[按 provider-order 遍历]
-    E --> F[调用 SearchProvider]
-    F --> G{调用成功且有结果?}
-    G -->|否| H[记录错误并继续下一 Provider]
-    H --> E
-    G -->|是| I[URL Canonicalize]
-    I --> J[URL 去重]
-    J --> K{达到 limit?}
-    K -->|否| E
-    K -->|是| L[统一重新编号 rank]
-    D --> L
-    L --> M[SearchResponse]
-```
-
-### 当前 Auto 的语义
-
-Auto 不是“随机选择一路”，而是：
-
-```text
-按优先级调用
-+
-失败继续下一路
-+
-结果不足继续补充
-+
-跨 Provider URL 去重
-+
-统一 rank
-```
-
-因此即使第一路出现：
-
-```text
-Timeout
-403 / 429
-DOM 改版
-Parser 为空
-```
-
-也不会立刻让接口整体失败。
+如果旧部署没有配置 `cn-provider-order`，或保持为空，CN Route 仍使用旧 `provider-order`；项目内置默认值也是空列表，确保外部旧配置不会被遮蔽。
 
 ---
 
-## 5. URL 去重策略
+## 6. SearchRouteResolver
 
-`SearchService` 当前对 URL 做基础 canonicalization：
-
-```text
-scheme 小写
-host 小写
-移除 path 尾部 /
-保留 query
-```
-
-然后使用 `LinkedHashMap`：
-
-```text
-首次出现的 URL 保留
-后续重复 URL 丢弃
-Provider 原始顺序尽可能保留
-```
-
-V1 不做激进 URL 归一化，例如暂不统一移除：
-
-```text
-utm_source
-utm_campaign
-spm
-from
-tracking id
-```
-
-原因是过度规则化可能错误合并业务上不同的 URL。
-
-后续可增加独立：
-
-```text
-UrlCanonicalizer
-TrackingParameterPolicy
-```
-
----
-
-## 6. Provider 选择原则
-
-当前免费链路针对国内运行环境优先：
-
-| 顺序 | Provider | 设计定位 |
-|---:|---|---|
-| 1 | Bing 中国 | 第一默认通用搜索源 |
-| 2 | 百度 | 中文搜索核心 fallback |
-| 3 | 搜狗 | 国内补充搜索源 |
-| 4 | 360 | 国内补充搜索源 |
-| 5 | DuckDuckGo | 海外兜底 |
-
-这几路当前属于 **best-effort 免费 Provider**，并不是搜索引擎官方商业 API。
-
-因此系统的稳定性策略不是追求“某一路永久不变”，而是：
-
-> **SPI + 多 Provider 容错 + 单测 Parser Fixture + 后续 Premium Fallback。**
-
----
-
-## 7. 失败模型
-
-### 显式指定 Provider
-
-例如：
-
-```json
-{
-  "query": "Spring Boot",
-  "provider": "baidu"
-}
-```
-
-若 Baidu 没有可解析结果：
-
-```text
-直接返回 UPSTREAM_ERROR
-```
-
-用途：
-
-- Provider 定向测试；
-- 渠道健康诊断；
-- 对比搜索质量。
-
-### Auto 模式
-
-单路失败：
-
-```text
-记录错误
-→ 下一 Provider
-```
-
-全部失败：
-
-```text
-502 UPSTREAM_ERROR
-```
-
-错误信息会汇总各 Provider 的紧凑失败原因，方便本地排查。
-
----
-
-## 8. 当前能力边界
-
-当前支持：
-
-```text
-网页发现
-Title
-URL
-Snippet
-Rank
-Source
-Limit
-基础 Region
-多 Provider fallback
-URL 去重
-```
-
-当前不承诺：
-
-```text
-Google SERP 一致性
-精确 Geo
-Knowledge Graph
-实时 News SLA
-Places / Maps
-Shopping
-Scholar
-Pagination
-统一 Freshness
-高 QPS SLA
-```
-
-这些能力不应该通过不断污染 `SearchRequest` 来堆叠。
-
-未来更建议形成独立能力：
-
-```text
-web-search
-image-search
-news-search
-place-search
-shopping-search
-...
-```
-
----
-
-## 9. 后续接 Serper 的扩展方式
-
-当前接口已经适合直接增加：
+当前内部只定义：
 
 ```java
-@Component
-public class SerperSearchProvider implements SearchProvider {
-    @Override
-    public String name() {
-        return "serper";
-    }
-
-    @Override
-    public List<SearchItem> search(String query, int limit, String region) {
-        // 调 Serper API
-        // organic -> SearchItem
-    }
+public enum SearchRoute {
+    CN,
+    GLOBAL
 }
 ```
 
-理想 V2：
+核心规则：
 
 ```text
-SearchService
-      │
-      ▼
- Search Router
-      │
- ┌────┴─────────┐
- ▼              ▼
-FREE          PREMIUM
-SearXNG/       Serper
-Current Free
-Providers
+CN / zh-CN / zh_CN / cn-zh / zh-Hans-CN / china -> CN
+其他显式 region -> GLOBAL
+auto / blank -> default-route
 ```
 
-进一步可以从“只有失败才 fallback”升级为：
+这样以后扩：
 
 ```text
-Free Search
-   ↓
-Quality Gate
-   ├── Good -> return
-   └── Bad  -> Serper
+JP / EU / CUSTOM
 ```
 
-Quality Gate 可逐步考虑：
+只需要扩 Route Policy，不必给 API 增加 `route` 字段。
+
+
+### ProviderChainResolver
+
+Route 解析完成后统一由 `ProviderChainResolver` 选择 Web Provider Order：
 
 ```text
-结果数量
-独立 Domain 数
-重复率
-Provider 健康度
-TopK 相关度
-查询意图
+CN     -> cn-provider-order；为空时继承 provider-order
+GLOBAL -> global-provider-order
 ```
+
+`SearchService` 不再读取 CN/GLOBAL 配置字段，只负责执行已经解析好的 Chain、fallback、聚合与去重。这样未来新增 JP/EU 等 Route 时，地区分支不会重新散落回 Service。
 
 ---
 
-## 10. 与 Agent 的建议契约
+## 7. Provider 设计
 
-Agent 只需要理解：
+SPI 不变：
 
-```text
-search(query) -> candidates
+```java
+public interface SearchProvider {
+    String name();
+    List<SearchItem> search(String query, int limit, String region);
+}
 ```
 
-不要让 Agent 感知：
+### Bing
 
 ```text
-Bing selector
-百度 pn 参数
-搜狗 DOM
-360 页面结构
-DuckDuckGo HTML
-Serper API key
+CN     -> cn.bing.com
+GLOBAL -> www.bing.com
 ```
 
-上游细节全部属于 Provider 层。
+复用同一个 Parser。
 
-推荐 Agent 使用方式：
+### Brave
+
+v1.0.2 新增：
 
 ```text
-简单事实：
-search -> read Top1~2
-
-普通调研：
-search -> read Top3~5
-
-复杂研究：
-多 Query search -> merge -> read -> rerank -> synthesis
+BraveSearchProvider
 ```
+
+只走无需 Key 的公开 Web Interface：
+
+```text
+https://search.brave.com/search?q=...&source=web
+```
+
+解析 HTML `snippet` 结果块。
+
+### DuckDuckGo
+
+v1.0.2 强化为 HTML no-JS POST Form：
+
+```text
+POST https://html.duckduckgo.com/html/
+q=...
+b=
+kl=...
+```
+
+并补：
+
+```text
+Accept-Language
+Referer
+Sec-Fetch-Mode
+Cookie kl
+bot challenge detection
+```
+
+一旦识别 challenge，Provider fail-fast，Auto Chain 继续下一路，不做验证码绕过。
 
 ---
 
-## 11. V1 验收关注点
+## 8. timeRange 时间范围设计
 
-WebSearch 必须覆盖：
-
-- Provider Parser Fixture 单测；
-- Auto fallback；
-- 显式 Provider；
-- URL 去重；
-- limit；
-- 全 Provider 失败；
-- 参数校验；
-- 本地公网 smoke test。
-
-正式验收 Gate 见：
+对外字段统一为 `timeRange`：`any/day/week/month/year`。兼容常见 `d/w/m/y`、`pd/pw/pm/py`、`qdr:*` alias，进入 Service 后先规范化为 `SearchTimeRange`。
 
 ```text
-docs/核心测试与验收.md
+SearchRequest.timeRange
+  -> SearchTimeRange.parse
+  -> ANY / DAY / WEEK / MONTH / YEAR
+  -> SearchProvider.supportsTimeRange()
+  -> Provider-specific mapping
 ```
+
+当前真实映射：
+
+```text
+Brave:      day=pd week=pw month=pm year=py
+DuckDuckGo: day=d  week=w  month=m  year=y
+```
+
+设计原则：不支持时间过滤的 Provider 绝不能静默忽略。`provider=auto` 时跳过，显式 Provider 时直接返回 `BAD_REQUEST`。原三参数 `SearchProvider.search(...)` 继续保留，第三方 v1.0.1 Provider 无需修改；时间能力通过 default 方法增量扩展。
 
 ---
 
-## 12. 一句话总结
+## 9. 聚合策略
 
-> **WebSearch 是“网页发现层”，核心价值不是绑定某个免费搜索页面，而是通过统一 `SearchProvider` SPI 把 Provider 变化隔离在 Agent 之外，并通过 Auto fallback 为后续 SearXNG / Serper 商业升级保留稳定接口。**
+Auto Chain：
+
+1. 按 Route 的 Provider 顺序调用；
+2. 单路异常只记录，不中断整体；
+3. 按 canonical URL 去重；
+4. 达到 `limit` 提前停止；
+5. 最终统一 rank；
+6. 所有 Provider 都失败才抛 `UPSTREAM_ERROR`。
+
+显式 Provider 不做 fallback，便于诊断单渠道。
+
+---
+
+## 10. 为什么不做 Query 语言自动路由
+
+错误做法：
+
+```text
+中文 query -> CN
+英文 query -> GLOBAL
+```
+
+原因：
+
+```text
+"OpenAI 最新进展" + region=US
+```
+
+用户明确希望海外搜索环境，不能因为中文 Query 改回国内。
+
+因此 Route 只由明确的 `region` / default-route 决定。
+
+---
+
+## 11. 测试重点
+
+必须覆盖：
+
+```text
+CN alias -> CN Chain
+US/JP/SG/GLOBAL/wt-wt -> GLOBAL Chain
+auto -> 默认 CN
+配置 default-route=global
+legacy provider-order 兼容
+显式 provider 不 fallback
+单 Provider 失败继续下一路
+URL 去重
+limit/rank
+Brave DOM Fixture
+DDG Challenge Fixture
+SearchTimeRange alias / invalid value
+timeRange 下跳过 unsupported Provider
+显式 unsupported Provider fail-fast
+Brave / DDG 时间参数映射
+Bing Parser 回归
+```
+
+公网 Smoke 与离线 JUnit 分离。

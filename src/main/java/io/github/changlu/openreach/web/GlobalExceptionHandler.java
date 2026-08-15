@@ -2,8 +2,11 @@ package io.github.changlu.openreach.web;
 
 import io.github.changlu.openreach.common.BadRequestException;
 import io.github.changlu.openreach.common.UpstreamException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -15,10 +18,11 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler({BadRequestException.class, IllegalArgumentException.class})
     public ResponseEntity<Map<String, Object>> badRequest(Exception ex) {
-        return response(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
+        return response(HttpStatus.BAD_REQUEST, "BAD_REQUEST", safeClientMessage(ex.getMessage(), "Invalid request"));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -30,19 +34,31 @@ public class GlobalExceptionHandler {
         return response(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message);
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> unreadable(HttpMessageNotReadableException ex) {
+        return response(HttpStatus.BAD_REQUEST, "INVALID_JSON", "Malformed or unreadable JSON request body");
+    }
+
     @ExceptionHandler(UpstreamException.class)
     public ResponseEntity<Map<String, Object>> upstream(UpstreamException ex) {
-        return response(HttpStatus.BAD_GATEWAY, "UPSTREAM_ERROR", ex.getMessage());
+        return response(HttpStatus.BAD_GATEWAY, "UPSTREAM_ERROR", safeClientMessage(ex.getMessage(), "Upstream request failed"));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> notFound(NoResourceFoundException ex) {
-        return response(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage());
+        return response(HttpStatus.NOT_FOUND, "NOT_FOUND", "Resource not found");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> unknown(Exception ex) {
-        return response(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", ex.getMessage());
+        log.error("Unhandled OpenReach request failure", ex);
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Internal server error");
+    }
+
+    private String safeClientMessage(String message, String fallback) {
+        if (message == null || message.isBlank()) return fallback;
+        String oneLine = message.replaceAll("[\\r\\n\\t]+", " ").trim();
+        return oneLine.length() <= 500 ? oneLine : oneLine.substring(0, 500);
     }
 
     private ResponseEntity<Map<String, Object>> response(HttpStatus status, String code, String message) {

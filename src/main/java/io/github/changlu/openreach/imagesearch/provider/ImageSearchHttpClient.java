@@ -1,5 +1,6 @@
 package io.github.changlu.openreach.imagesearch.provider;
 
+import io.github.changlu.openreach.common.BoundedBodyReader;
 import io.github.changlu.openreach.common.UpstreamException;
 import io.github.changlu.openreach.config.WebCapabilityProperties;
 import org.jsoup.Jsoup;
@@ -12,6 +13,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -52,15 +54,24 @@ public class ImageSearchHttpClient {
                 .header("Accept", "application/json,text/html,application/xhtml+xml;q=0.9,*/*;q=0.5")
                 .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.6")
                 .GET();
-        extraHeaders.forEach(builder::header);
+        extraHeaders.forEach(builder::setHeader);
         try {
-            HttpResponse<byte[]> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofByteArray());
+            HttpResponse<InputStream> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                response.body().close();
                 throw new UpstreamException(providerName + " returned HTTP " + response.statusCode());
             }
+            int maxBytes = properties.getImageSearch().getMaxResponseBytes();
+            long contentLength = response.headers().firstValueAsLong("content-length").orElse(-1L);
+            if (contentLength > Math.max(1024, maxBytes)) {
+                response.body().close();
+                throw new UpstreamException(providerName + " response body exceeds configured limit="
+                        + Math.max(1024, maxBytes) + " bytes");
+            }
+            byte[] body = BoundedBodyReader.read(response.body(), maxBytes, providerName);
             String contentType = response.headers().firstValue("content-type").orElse("text/html; charset=utf-8");
-            Charset charset = detectCharset(contentType, response.body());
-            return new TextResponse(new String(response.body(), charset), response.headers(), response.uri());
+            Charset charset = detectCharset(contentType, body);
+            return new TextResponse(new String(body, charset), response.headers(), response.uri());
         } catch (IOException ex) {
             throw new UpstreamException(providerName + " request failed: " + ex.getMessage(), ex);
         } catch (InterruptedException ex) {

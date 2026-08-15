@@ -33,4 +33,28 @@ class UrlSafetyGuardTest {
     @Test void rejectsUserInfoInUrl() {
         assertThrows(BadRequestException.class, () -> guard.validate("https://user:pass@example.com/"));
     }
+
+    @Test void rejectsUnexpectedPortsToReduceSsrfSurface() {
+        assertThrows(BadRequestException.class, () -> guard.validate("https://example.com:8443/test"));
+        assertThrows(BadRequestException.class, () -> guard.validate("http://example.com:8080/test"));
+    }
+
+    @Test void rejectsCarrierGradeNatAndDocumentationRanges() {
+        assertThrows(BadRequestException.class, () -> guard.validate("http://100.64.0.1/test"));
+        assertThrows(BadRequestException.class, () -> guard.validate("http://192.0.2.1/test"));
+        assertThrows(BadRequestException.class, () -> guard.validate("http://198.51.100.1/test"));
+        assertThrows(BadRequestException.class, () -> guard.validate("http://203.0.113.1/test"));
+    }
+
+    @Test void rejectsIpv6AndAlternativeLoopbackForms() {
+        assertThrows(BadRequestException.class, () -> guard.validate("http://[::1]/test"));
+        assertThrows(BadRequestException.class, () -> guard.validate("http://[fc00::1]/test"));
+        assertThrows(BadRequestException.class, () -> guard.validate("http://[fe80::1]/test"));
+        assertThrows(BadRequestException.class, () -> guard.validate("http://[2001:db8::1]/test"));
+        assertThrows(BadRequestException.class, () -> guard.validate("http://2130706433/test"));
+    }
+
+    @Test void rejectsControlCharacters() {
+        assertThrows(BadRequestException.class, () -> guard.validate("https://example.com/a\nb"));
+    }
 }

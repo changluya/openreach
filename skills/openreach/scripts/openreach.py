@@ -2,8 +2,9 @@
 """OpenReach Python tools + CLI.
 
 Standard-library-only client for OpenReach's Web primitives. A downloaded Skill can
-be initialized once with a server IP; the resulting config.json is then reused by
-all commands automatically.
+be initialized once with a user-provided service address; the resulting config.json is then reused by
+all commands automatically. Agent initialization-state checks are deliberately
+read-only: config existence + exactly one no-upstream API probe.
 """
 from __future__ import annotations
 
@@ -20,7 +21,6 @@ from typing import Any, Mapping
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
 CONFIG_PATH = SKILL_DIR / "config.json"
-DEFAULT_BASE_URL = "http://127.0.0.1:8080"
 DEFAULT_TIMEOUT = 20.0
 
 
@@ -78,7 +78,7 @@ def save_config(base_url: str, path: Path | None = None) -> Path:
 
 
 def resolve_base_url(explicit: str | None = None) -> str:
-    """Resolution priority: CLI/Python explicit > env > skill config.json > localhost."""
+    """Resolution priority: explicit override > environment > skill config.json. Never guess a fallback host."""
     if explicit:
         return _normalize_base_url(explicit)
     env = os.getenv("OPENREACH_BASE_URL")
@@ -87,12 +87,15 @@ def resolve_base_url(explicit: str | None = None) -> str:
     configured = load_config().get("base_url")
     if configured:
         return _normalize_base_url(str(configured))
-    return DEFAULT_BASE_URL
+    raise OpenReachError(
+        "OpenReach is not initialized. Ask the user to provide <OPENREACH_BASE_URL>; "
+        "do not guess localhost/private IPs, scan ports, or run init without the user-provided address."
+    )
 
 
 @dataclass(frozen=True)
 class OpenReachClient:
-    base_url: str = DEFAULT_BASE_URL
+    base_url: str
     timeout: float = DEFAULT_TIMEOUT
 
     def __post_init__(self) -> None:
@@ -126,21 +129,40 @@ class OpenReachClient:
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "User-Agent": "openreach-skill/0.2.0",
+                "User-Agent": "openreach-skill/1.0.2",
             },
         )
         return self._request_json(request)
 
     def health(self) -> dict[str, Any]:
-        request = urllib.request.Request(
-            f"{self.base_url}/api/web/health",
-            method="GET",
-            headers={"Accept": "application/json", "User-Agent": "openreach-skill/0.2.0"},
-        )
-        return self._request_json(request)
+        """Check service reachability through the public static homepage.
 
-    def search(self, query: str, *, limit: int = 10, region: str = "auto", provider: str = "auto") -> dict[str, Any]:
-        return self._post("/api/web/search", {"query": query, "limit": limit, "region": region, "provider": provider})
+        OpenReach v1.0.2 intentionally exposes only three JSON APIs; no separate
+        health/debug API is public. A successful GET / is therefore the zero-upstream
+        connectivity check used by the Skill.
+        """
+        request = urllib.request.Request(
+            f"{self.base_url}/",
+            method="GET",
+            headers={"Accept": "text/html", "User-Agent": "openreach-skill/1.0.2"},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                # Read only a small prefix; the body is not part of the doctor contract.
+                response.read(512)
+                return {"status": "UP", "service": "openreach", "httpStatus": response.status}
+        except urllib.error.HTTPError as exc:
+            raise OpenReachError(f"HTTP {exc.code}: OpenReach homepage check failed") from exc
+        except urllib.error.URLError as exc:
+            raise OpenReachError(f"Cannot reach OpenReach at {self.base_url}: {exc.reason}") from exc
+        except TimeoutError as exc:
+            raise OpenReachError(f"OpenReach request timed out after {self.timeout:g}s") from exc
+
+    def search(self, query: str, *, limit: int = 10, region: str = "auto", provider: str = "auto",
+               time_range: str = "any") -> dict[str, Any]:
+        return self._post("/api/web/search", {
+            "query": query, "limit": limit, "region": region, "provider": provider, "timeRange": time_range
+        })
 
     def image_search(self, query: str, *, limit: int = 10, region: str = "auto", provider: str = "auto") -> dict[str, Any]:
         return self._post("/api/web/image-search", {"query": query, "limit": limit, "region": region, "provider": provider})
@@ -154,8 +176,130 @@ def _client(base_url: str | None = None, timeout: float = DEFAULT_TIMEOUT) -> Op
 
 
 # Agent-friendly Python tool functions.
+
+def check_initialized(config_path: Path | None = None, timeout: float = DEFAULT_TIMEOUT) -> dict[str, Any]:
+    """Check initialization state without changing anything.
+
+    Contract for Agents:
+    1. Check only whether config.json exists. If absent, return immediately with
+       initialized=false and perform zero network requests.
+    2. If present, read only its base_url and perform exactly one side-effect-free
+       API probe: POST /api/web/search with an empty JSON object. OpenReach should
+       reject it locally with HTTP 400 / VALIDATION_ERROR before any upstream
+       provider is invoked.
+    3. Never create, rewrite, delete, repair or initialize configuration here; never
+       retry or scan alternative hosts/ports.
+    """
+    path = config_path or CONFIG_PATH
+    if not path.exists():
+        return {
+            "initialized": False,
+            "config": str(path),
+            "reason": "CONFIG_MISSING",
+            "networkProbes": 0,
+            "userActionRequired": True,
+            "nextAction": "ASK_USER_FOR_SERVICE_ADDRESS",
+            "message": (
+                "OpenReach is not initialized. Ask the user to provide <OPENREACH_BASE_URL>. "
+                "Stop until the user provides it; do not guess an address, scan ports, or run init automatically."
+            ),
+        }
+
+    try:
+        data = load_config(path)
+        configured = data.get("base_url")
+        if not configured:
+            return {
+                "initialized": False,
+                "config": str(path),
+                "reason": "BASE_URL_MISSING",
+                "networkProbes": 0,
+                "userActionRequired": True,
+                "nextAction": "ASK_USER_FOR_SERVICE_ADDRESS",
+                "message": (
+                    "OpenReach config has no service address. Ask the user to provide <OPENREACH_BASE_URL>; "
+                    "do not repair the file or run init automatically."
+                ),
+            }
+        base_url = _normalize_base_url(str(configured))
+    except (OpenReachError, ValueError, OSError) as exc:
+        return {
+            "initialized": False,
+            "config": str(path),
+            "reason": "CONFIG_INVALID",
+            "error": str(exc),
+            "networkProbes": 0,
+            "userActionRequired": True,
+            "nextAction": "ASK_USER_FOR_SERVICE_ADDRESS",
+            "message": (
+                "OpenReach config is invalid. Ask the user to provide the intended <OPENREACH_BASE_URL>. "
+                "Do not overwrite, delete, or repair the config automatically."
+            ),
+        }
+
+    request = urllib.request.Request(
+        f"{base_url}/api/web/search",
+        data=b"{}",
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "openreach-skill/1.0.2",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            # A 2xx response to an empty SearchRequest is not the expected OpenReach
+            # validation contract; still only one probe has been performed.
+            response.read(512)
+            return {
+                "initialized": False,
+                "config": str(path),
+                "base_url": base_url,
+                "reason": "UNEXPECTED_PROBE_RESPONSE",
+                "httpStatus": response.status,
+                "networkProbes": 1,
+            }
+    except urllib.error.HTTPError as exc:
+        raw = exc.read(4096).decode("utf-8", errors="replace")
+        try:
+            detail = json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            detail = {}
+        code = str(detail.get("code", ""))
+        if exc.code == 400 and code == "VALIDATION_ERROR":
+            return {
+                "initialized": True,
+                "config": str(path),
+                "base_url": base_url,
+                "status": "READY",
+                "probe": "POST /api/web/search",
+                "httpStatus": 400,
+                "code": code,
+                "networkProbes": 1,
+            }
+        return {
+            "initialized": False,
+            "config": str(path),
+            "base_url": base_url,
+            "reason": "PROBE_REJECTED",
+            "httpStatus": exc.code,
+            "code": code or None,
+            "networkProbes": 1,
+        }
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        detail = getattr(exc, "reason", exc)
+        return {
+            "initialized": False,
+            "config": str(path),
+            "base_url": base_url,
+            "reason": "PROBE_FAILED",
+            "error": str(detail),
+            "networkProbes": 1,
+        }
+
 def doctor(base_url: str | None = None, timeout: float = DEFAULT_TIMEOUT) -> dict[str, Any]:
-    """Check whether the configured OpenReach service is reachable before other tools are used."""
+    """Manual connectivity diagnostic. Normal Agents should use check_initialized() once instead."""
     result = _client(base_url, timeout).health()
     if str(result.get("status", "")).upper() != "UP":
         raise OpenReachError(f"Unexpected health response: {result}")
@@ -171,14 +315,17 @@ def initialize(host: str, port: int = 8080, https: bool = False, timeout: float 
 
 
 def search(query: str, limit: int = 10, region: str = "auto", provider: str = "auto",
-           base_url: str | None = None, timeout: float = DEFAULT_TIMEOUT) -> dict[str, Any]:
-    """Search public Web sources with OpenReach."""
-    return _client(base_url, timeout).search(query, limit=limit, region=region, provider=provider)
+           time_range: str = "any", base_url: str | None = None,
+           timeout: float = DEFAULT_TIMEOUT) -> dict[str, Any]:
+    """Search public Web sources; time_range supports any/day/week/month/year."""
+    return _client(base_url, timeout).search(
+        query, limit=limit, region=region, provider=provider, time_range=time_range
+    )
 
 
 def image_search(query: str, limit: int = 10, region: str = "auto", provider: str = "auto",
                  base_url: str | None = None, timeout: float = DEFAULT_TIMEOUT) -> dict[str, Any]:
-    """Search images and their source pages with OpenReach."""
+    """Search images; returned imageUrl values have passed direct-download validation."""
     return _client(base_url, timeout).image_search(query, limit=limit, region=region, provider=provider)
 
 
@@ -189,24 +336,28 @@ def read(url: str, max_chars: int = 50000, base_url: str | None = None,
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="openreach", description="OpenReach Skill CLI: init, doctor, search, image-search and read.")
+    parser = argparse.ArgumentParser(prog="openreach", description="OpenReach Skill CLI: check, init, doctor, search, image-search and read.")
     parser.add_argument("--base-url", default=None, help="Temporary OpenReach URL override. Otherwise env/config.json is used.")
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="HTTP timeout in seconds")
     parser.add_argument("--compact", action="store_true", help="Print compact JSON")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_init = sub.add_parser("init", help="Initialize this Skill with an OpenReach server IP/domain")
-    p_init.add_argument("host", help="Server IP/domain, e.g. 10.0.0.8. Full http(s) URL is also accepted.")
+    sub.add_parser("check", help="Read-only initialization check: config.json + exactly one API probe")
+
+    p_init = sub.add_parser("init", help="Initialize this Skill with the OpenReach service address explicitly provided by the user")
+    p_init.add_argument("host", help="User-provided OpenReach host or full http(s) service URL; no default address is assumed")
     p_init.add_argument("--port", type=int, default=8080)
     p_init.add_argument("--https", action="store_true")
 
-    sub.add_parser("doctor", help="Check OpenReach connectivity; run this before using Web tools")
+    sub.add_parser("doctor", help="Manual homepage connectivity diagnostic; not part of normal Agent flow")
 
     p_search = sub.add_parser("search", help="Search Web pages")
     p_search.add_argument("query")
     p_search.add_argument("--limit", type=int, default=10)
     p_search.add_argument("--region", default="auto", help="Search region; default: auto. Examples: CN, US, JP, wt-wt")
     p_search.add_argument("--provider", default="auto")
+    p_search.add_argument("--time-range", default="any", choices=("any", "day", "week", "month", "year"),
+                          help="Upstream-enforced Web time filter")
 
     p_image = sub.add_parser("image-search", aliases=["image_search"], help="Search images")
     p_image.add_argument("query")
@@ -223,14 +374,16 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        if args.command == "init":
+        if args.command == "check":
+            result = check_initialized(timeout=args.timeout)
+        elif args.command == "init":
             result = initialize(args.host, port=args.port, https=args.https, timeout=args.timeout)
         elif args.command == "doctor":
             result = {"base_url": resolve_base_url(args.base_url), **doctor(args.base_url, args.timeout)}
         else:
             client = _client(args.base_url, args.timeout)
             if args.command == "search":
-                result = client.search(args.query, limit=args.limit, region=args.region, provider=args.provider)
+                result = client.search(args.query, limit=args.limit, region=args.region, provider=args.provider, time_range=args.time_range)
             elif args.command in {"image-search", "image_search"}:
                 result = client.image_search(args.query, limit=args.limit, region=args.region, provider=args.provider)
             else:

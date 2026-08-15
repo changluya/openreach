@@ -2,74 +2,107 @@
 
 > 用 OpenReach 为 Agent 提供统一的网页搜索、文搜图与网页读取能力。该 Skill 只依赖 Python 标准库。
 
-## 1. 使用前必须先初始化
+## 1. Agent 首先只做一次初始化状态 `check`
 
-从官网点击 **下载 Skill**，解压后进入 `openreach/` 目录。
-
-只需要提供 OpenReach 服务所在机器的 IP：
+正常 Agent 流程开始时，如果当前任务尚不知道 OpenReach 是否已初始化，只执行：
 
 ```bash
-python3 scripts/openreach.py init 192.168.1.20
+python3 scripts/openreach.py check
 ```
 
-默认会组成：
+**这是初始化状态检查的唯一推荐动作。不要自行组合 `ls`、`doctor`、`init`、端口扫描或多次请求。**
+
+`check` 的行为被严格限定为：
 
 ```text
-http://192.168.1.20:8080
+1. 只检查 skills/openreach/config.json 是否存在
+   ├─ 不存在 -> initialized=false，立即返回，网络请求次数 = 0
+   └─ 存在   -> 只读取其中的 base_url
+
+2. 仅发送 1 次无副作用接口探测
+   POST /api/web/search
+   body = {}
+
+3. 预期 OpenReach 在本地参数校验阶段返回
+   HTTP 400 + code=VALIDATION_ERROR
+   -> initialized=true
 ```
 
-初始化流程会先调用 `doctor` 检查 `/api/web/health`。只有服务可连通时才会写入当前 Skill 目录的：
+这里故意使用空 `SearchRequest` 做探测：请求会在 OpenReach 参数校验层直接结束，**不会执行真实搜索，也不会访问任何上游搜索 Provider**。
 
-```text
-config.json
+### Agent 强约束
+
+- `config.json` 不存在：报告“未初始化”，并**立即向用户索要 OpenReach 服务地址 `<OPENREACH_BASE_URL>`**。在用户明确提供前停止；禁止自动创建配置、猜测 `localhost`/内网地址、扫描 IP/端口或自行执行 `init`。
+- `config.json` 无效：报告配置无效，并提示用户提供/确认正确的 `<OPENREACH_BASE_URL>`；**禁止自动修复、覆盖或删除**。
+- 单次接口探测失败：只报告探测失败，**禁止自动重试、切换地址或连续探测其他接口**。
+- `check` 失败 **不等于获得执行 `init` 的权限**。未初始化时应先向用户索要 `<OPENREACH_BASE_URL>`；只有用户明确提供该地址并要求初始化时，才执行 `init`。
+- `check` 成功一次后，本次任务内直接使用 Search / Image Search / Read，**不要在每次 Tool 调用前重复 check**。
+- `check` 判断的是 Skill 自己的持久化初始化状态，因此只认当前 Skill 的 `config.json`；不会因为环境变量或本机某个地址恰好可用就把“未初始化”误判为“已初始化”。
+
+成功示例：
+
+```json
+{
+  "initialized": true,
+  "base_url": "<OPENREACH_BASE_URL>",
+  "status": "READY",
+  "probe": "POST /api/web/search",
+  "httpStatus": 400,
+  "code": "VALIDATION_ERROR",
+  "networkProbes": 1
+}
 ```
 
-之后所有命令自动读取该配置，不需要重复传 IP。
+未初始化示例：
 
-如果使用其他端口：
+```json
+{
+  "initialized": false,
+  "reason": "CONFIG_MISSING",
+  "networkProbes": 0,
+  "userActionRequired": true,
+  "nextAction": "ASK_USER_FOR_SERVICE_ADDRESS",
+  "message": "Ask the user to provide <OPENREACH_BASE_URL>."
+}
+```
+
+## 2. `init` 只用于用户明确要求的首次初始化
+
+只有用户明确提供 OpenReach 服务地址并要求完成初始化时，才执行：
 
 ```bash
-python3 scripts/openreach.py init 192.168.1.20 --port 18080
+python3 scripts/openreach.py init '<OPENREACH_BASE_URL>'
 ```
 
-HTTPS：
+`init` 会验证目标服务后写入当前 Skill 目录的 `config.json`。初始化完成后，后续任务只需要用上一节的 `check` 判断状态，不要再次执行 `init`。
 
-```bash
-python3 scripts/openreach.py init openreach.example.com --https --port 443
-```
+推荐让用户直接提供完整的 `<OPENREACH_BASE_URL>`（包含协议；非默认端口时也包含端口）。Skill 不提供任何示例 IP、默认主机或“可尝试地址”。
 
-## 2. 前置连通性 Tool：doctor
-
-在执行 Search / Image Search / Read 之前，优先确认 OpenReach 可用：
+## 3. `doctor` 仅用于人工排障，不属于正常 Agent 前置流程
 
 ```bash
 python3 scripts/openreach.py doctor
 ```
 
-预期：
+`doctor` 只做官网根路径 `GET /` 的连通性诊断。它保留给人工排查服务地址、端口、反向代理等问题。
 
-```json
-{
-  "base_url": "http://192.168.1.20:8080",
-  "status": "UP",
-  "service": "openreach"
-}
-```
+**正常 Agent 不应执行 `check -> doctor -> search`。正确流程是 `check` 成功后直接调用业务 Tool。**
 
-如果 doctor 失败，不继续执行后续 Web 工具，先检查服务地址、端口、防火墙、反向代理或 OpenReach 进程。
-
-## 3. 三个核心 Tool
+## 4. 三个核心 Tool
 
 ### search
 
 ```bash
 python3 scripts/openreach.py search "Spring Boot AI Agent" \
-  --region auto \
+  --region US \
   --provider auto \
+  --time-range month \
   --limit 5
 ```
 
-`region` **始终建议显式展示**。默认值为 `auto`；未传时也等价于 `auto`。如任务明确限定国家/地区，可传 `CN`、`US`、`JP` 等。不同 Provider 对 region 的映射能力不同，因此它是 best-effort 参数，不承诺商业级精确 Geo。
+`region` **始终建议显式展示**。默认值为 `auto`；v1.0.2 中 `auto` 默认进入 CN Route。`CN / zh-CN` 等中国 alias 走国内免费链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 免费链；之后 `region` 继续作为 Provider 的 locale/country Hint。它不是商业级精确 Geo，但已是核心 Route 参数。
+
+`time-range` 对应 HTTP `timeRange`，支持 `any/day/week/month/year`，默认 `any`。需要“最近一天/一周/一月/一年”的最新性约束时应显式传入；`provider=auto` 会自动跳过不能真实执行时间过滤的 Provider，不能把该参数仅当作提示词。
 
 ### image-search
 
@@ -80,6 +113,8 @@ python3 scripts/openreach.py image-search "杭州西湖夜景" \
   --limit 8
 ```
 
+返回的 `items[].imageUrl` 在响应生成前已经经过公网 URL/重定向校验与真实图片字节探测。Agent 可以把 `imageUrl` 直接作为下载目标；失效热链、403/404、HTML 防盗链页、伪图片和 SVG 会被过滤。网络状态可能在响应后变化，因此仍建议下载失败时重新执行 image-search，而不是伪造素材。
+
 ### read
 
 ```bash
@@ -88,13 +123,13 @@ python3 scripts/openreach.py read \
   --max-chars 20000
 ```
 
-## 4. Python Tool 调用
+## 5. Python Tool 调用
 
 ```python
-from skills.openreach import doctor, search, image_search, read
+from skills.openreach import check_initialized, search, image_search, read
 
-doctor()
-results = search("OpenReach AI Agent", limit=5, region="auto", provider="auto")
+state = check_initialized()  # 每个任务只需一次；成功后不要重复 check
+results = search("OpenReach AI Agent", limit=5, region="US", provider="auto", time_range="month")
 page = read(results["items"][0]["url"], max_chars=20000)
 images = image_search("OpenReach logo", limit=5, region="auto")
 ```
@@ -108,10 +143,10 @@ OPENREACH_BASE_URL 环境变量
     ↓
 skills/openreach/config.json
     ↓
-http://127.0.0.1:8080
+未配置 -> 明确报错并要求用户提供 <OPENREACH_BASE_URL>；不猜测任何默认地址
 ```
 
-## 5. ChatGPT-like Search SOP
+## 6. ChatGPT-like Search SOP
 
 > 这不是对 ChatGPT 私有服务端实现的复刻。它基于项目现有调研中公开可观察的 Agentic Search 思路，抽象为 OpenReach 三原语可以执行的通用 SOP。
 
@@ -127,6 +162,8 @@ http://127.0.0.1:8080
 核心实体 + 目标事实 + 时间范围 + 地域 + 来源偏好
 ```
 
+如果问题明确要求“最近一天/本周/本月/今年”，优先把它结构化为 `time_range=day/week/month/year`，不要只把时间词留在 query 文本里。
+
 复杂问题拆成 2~4 个互补查询。例如：
 
 ```text
@@ -135,12 +172,12 @@ OpenReach API docs
 OpenReach latest release
 ```
 
-地域不明确时使用 `region=auto`；明确限定中国、日本、美国等场景时再指定区域。
+地域不明确时使用 `region=auto`（默认 CN）；明确限定日本、美国、新加坡等非 CN 地区时应显式传对应 `region`，从而进入 GLOBAL Route。
 
 ### Step 2：Search 只负责“发现候选来源”
 
 ```bash
-python3 scripts/openreach.py search "..." --region auto --provider auto --limit 8
+python3 scripts/openreach.py search "..." --region US --provider auto --time-range month --limit 8
 ```
 
 不要把 Search snippet 直接当最终证据。先观察：标题、URL、摘要、来源域名、结果是否重复、是否来自原始站点。
@@ -204,9 +241,9 @@ Citation
 
 ### 图片任务
 
-需要图片时独立调用 `image-search`，优先保留 `sourcePageUrl`，必要时继续 `read(sourcePageUrl)` 获取图片上下文与来源信息。
+需要图片时独立调用 `image-search`。`imageUrl` 已通过即时可下载校验；同时优先保留 `sourcePageUrl`，必要时继续 `read(sourcePageUrl)` 获取图片上下文、出处与许可信息。
 
-## 6. 公众号 / 官网等典型场景
+## 7. 公众号 / 官网等典型场景
 
 - **官网 / 产品页**：Search 找官网与具体页面，再 Read 原页面。
 - **技术文档 / GitHub**：Search 找官方文档、仓库说明、Release 页面，再 Read。
@@ -214,8 +251,10 @@ Citation
 - **新闻 / 行业调研**：多 Query + 多来源 Search，再 Read 原始报道并交叉验证。
 - **内容配图**：image-search 获取图片、来源页和许可元数据（Provider 可提供时）。
 
-## 7. 错误与安全边界
+## 8. 错误与安全边界
 
 - 免费 Search Provider 属于 best-effort，上游页面改版、限流或网络出口都可能影响结果。
 - `read` 面向公开 HTTP/HTTPS 页面，不用于绕过登录、验证码、访问控制或反爬机制。
+- 服务公网只开放三个 JSON POST API 与官网只读静态资源；Skill 不应尝试文件上传、任意 Method、Actuator/debug 等未暴露能力。
+- Read 与图片原图探测只允许公网 HTTP/HTTPS 80/443，并对跳转目标重新做 SSRF 校验。
 - CLI 错误时退出码为 `2`，Agent 应把它视为 Tool 执行失败并进行降级/重试/换 Query，而不是伪造结果。

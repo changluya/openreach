@@ -114,7 +114,7 @@ printf "CONNECT registry-1.docker.io:443 HTTP/1.1\r\nHost: registry-1.docker.io:
 ### 4.1 现象
 
 ```text
-ERROR: failed to solve: failed to push changlu/openreach:0.1.1:
+ERROR: failed to solve: failed to push changlu/openreach:1.0.2:
 push access denied, repository does not exist or may require authorization:
 server message: insufficient_scope: authorization failed
 ```
@@ -139,7 +139,7 @@ docker login
 
 ```bash
 OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
-./bin/quick/release.sh 0.1.1
+./bin/quick/release.sh 1.0.2
 ```
 
 ## 5. 坑点 4：发布到旧 Namespace
@@ -165,7 +165,7 @@ OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
 如需临时发布到其它 Namespace，脚本支持显式传参：
 
 ```bash
-./bin/quick/docker-publish.sh 0.1.1 <namespace> openreach
+./bin/quick/docker-publish.sh 1.0.2 <namespace> openreach
 ```
 
 ## 6. 最佳实践与预防

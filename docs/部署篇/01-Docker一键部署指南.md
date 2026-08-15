@@ -28,7 +28,7 @@ docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
-  codercl/openreach:0.1.1
+  codercl/openreach:1.0.2
 ```
 
 Docker 会根据客户机器自动选择：
@@ -63,7 +63,7 @@ docker compose up -d
 固定版本：
 
 ```bash
-OPENREACH_IMAGE=codercl/openreach:0.1.1 docker compose up -d
+OPENREACH_IMAGE=codercl/openreach:1.0.2 docker compose up -d
 ```
 
 修改宿主机端口：
@@ -180,13 +180,13 @@ docker login
 然后推荐直接使用项目脚本：
 
 ```bash
-./bin/quick/release.sh 0.1.1
+./bin/quick/release.sh 1.0.2
 ```
 
 脚本会构建并推送：
 
 ```text
-codercl/openreach:0.1.1
+codercl/openreach:1.0.2
 codercl/openreach:latest
 ```
 
@@ -204,7 +204,7 @@ linux/arm64
 
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t codercl/openreach:0.1.1 \
+  -t codercl/openreach:1.0.2 \
   -t codercl/openreach:latest \
   --push \
   .
@@ -223,7 +223,7 @@ docker buildx build \
 发布后：
 
 ```bash
-docker buildx imagetools inspect codercl/openreach:0.1.1
+docker buildx imagetools inspect codercl/openreach:1.0.2
 ```
 
 至少应确认：
@@ -326,17 +326,17 @@ cap_drop: ALL（Compose）
 
 ### 运行阶段
 
-当前 Web Search 默认：
+v1.0.2 根据请求 `region` 自动选择免费 Provider Chain：
 
 ```text
-Bing 中国 -> 百度 -> 搜狗 -> 360 -> DuckDuckGo
+Web / CN     : Bing 中国 -> 百度 -> 搜狗 -> 360 -> DuckDuckGo
+Web / GLOBAL : Brave -> DuckDuckGo -> Bing Global
+
+Image / CN     : Bing Images 中国 -> 百度图片 -> 搜狗图片 -> Openverse
+Image / GLOBAL : Bing Images Global -> Openverse -> Wikimedia Commons
 ```
 
-Image Search 默认：
-
-```text
-Bing Images -> 百度图片 -> 搜狗图片 -> Openverse
-```
+`region=auto` 默认仍走 CN；显式非 CN 地区（如 `US` / `JP` / `SG`）进入 GLOBAL。显式 `provider` 则直接调用指定 Provider，不执行自动链。
 
 因此 OpenReach 容器需要能够主动访问公网。
 
@@ -360,11 +360,11 @@ docker compose logs -f openreach
 # 停止
 docker compose down
 
-# 一键发布 0.1.1 多架构镜像
-./bin/quick/release.sh 0.1.1
+# 一键发布 1.0.2 多架构镜像
+./bin/quick/release.sh 1.0.2
 
 # 检查远程 manifest
-docker buildx imagetools inspect codercl/openreach:0.1.1
+docker buildx imagetools inspect codercl/openreach:1.0.2
 ```
 
 ---
@@ -427,3 +427,31 @@ OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
 
 验收脚本会实际构建镜像、启动容器，并通过一个不依赖公网 Provider 的 HTTP 参数校验请求确认 Spring Boot 正常提供服务。
 
+
+---
+
+## v1.0.2 公网安全补充
+
+OpenReach 当前业务面严格只有三个 JSON POST API：
+
+```text
+POST /api/web/search
+POST /api/web/image-search
+POST /api/web/read
+```
+
+部署验活请使用只读官网根路径 `GET /`，不再额外开放 Health API。应用层 `AttackSurfaceFilter` 会拒绝 Multipart/文件上传、未知端点、危险 HTTP Method、路径穿越和超大请求体；静态资源固定来自 classpath。
+
+Docker 生产部署建议继续保持：
+
+```text
+非 root
+read_only root filesystem
+no-new-privileges
+cap_drop: ALL
+只暴露应用端口
+出口 ACL 禁止 RFC1918 / link-local / cloud metadata
+反向代理限流 / WAF
+```
+
+Read 与 Image 原图探测虽然有应用层 SSRF Guard，但仍建议用网络层 egress ACL 做纵深防御。

@@ -3,12 +3,15 @@ package io.github.changlu.openreach.imagesearch.dto;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+import java.util.Locale;
 
 public record ImageSearchRequest(
-        @NotBlank String query,
+        @NotBlank @Size(max = 500) String query,
         @Min(1) @Max(30) Integer limit,
-        String region,
-        String provider
+        @Size(max = 32) String region,
+        @Size(max = 32) String provider
 ) {
     public int effectiveLimit(int configuredMax) {
         int requested = limit == null ? 10 : limit;
@@ -21,6 +24,6 @@ public record ImageSearchRequest(
 
     public String effectiveProvider(String configuredDefault) {
         String value = provider == null || provider.isBlank() ? configuredDefault : provider;
-        return value == null || value.isBlank() ? "auto" : value.trim().toLowerCase();
+        return value == null || value.isBlank() ? "auto" : value.trim().toLowerCase(Locale.ROOT);
     }
 }

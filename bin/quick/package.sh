@@ -5,6 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
+"$SCRIPT_DIR/build-skill-zip.sh"
+
 HOST_PROXY="${OPENREACH_BUILD_PROXY:-}"
 
 if ! command -v mvn >/dev/null 2>&1; then
@@ -80,6 +82,13 @@ fi
 
 "${MAVEN_CMD[@]}"
 
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "ERROR: python3 command not found; OpenReach Skill tests are part of the release gate." >&2
+  exit 1
+fi
+
+echo "==> OpenReach Skill Python tests"
+python3 -m unittest discover -s skills/openreach/tests -p 'test_*.py' -v
 
 JAR="$(find target -maxdepth 1 -type f -name 'openreach-*.jar' ! -name '*.jar.original' -print | head -n 1)"
 if [[ -z "$JAR" || ! -f "$JAR" ]]; then

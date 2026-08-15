@@ -10,13 +10,11 @@ import io.github.changlu.openreach.search.SearchService;
 import io.github.changlu.openreach.search.dto.SearchRequest;
 import io.github.changlu.openreach.search.dto.SearchResponse;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/web")
@@ -29,11 +27,6 @@ public class WebCapabilityController {
         this.searchService = searchService;
         this.imageSearchService = imageSearchService;
         this.webReadService = webReadService;
-    }
-
-    @GetMapping("/health")
-    public Map<String, String> health() {
-        return Map.of("status", "UP", "service", "openreach");
     }
 
     @PostMapping("/search")

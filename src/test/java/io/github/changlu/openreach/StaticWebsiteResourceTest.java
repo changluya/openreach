@@ -21,6 +21,7 @@ class StaticWebsiteResourceTest {
         assertNotNull(loader.getResource("static/assets/logo.png"));
         assertNotNull(loader.getResource("static/assets/logo-mark.png"));
         assertNotNull(loader.getResource("static/assets/site.js"));
+        assertNotNull(loader.getResource("static/assets/theme-init.js"));
         assertNotNull(loader.getResource("static/assets/wechat-group.png"));
         assertNotNull(loader.getResource("static/downloads/openreach-skill.zip"));
     }
@@ -46,6 +47,21 @@ class StaticWebsiteResourceTest {
         assertTrue(script.contains("openQrPreview"));
         assertTrue(script.contains("closeQrPreview"));
         assertTrue(style.contains(".qr-modal"));
+    }
+
+    @Test
+    void websiteUsesExternalScriptsAndDoesNotDocumentRemovedHealthApi() throws IOException {
+        String home = read("static/index.html");
+        String quickStart = read("static/docs/index.html");
+        String api = read("static/docs/api.html");
+        assertTrue(home.contains("/assets/theme-init.js"));
+        assertTrue(quickStart.contains("/assets/theme-init.js"));
+        assertTrue(api.contains("/assets/theme-init.js"));
+        org.junit.jupiter.api.Assertions.assertFalse(home.contains("<script>"));
+        org.junit.jupiter.api.Assertions.assertFalse(quickStart.contains("<script>"));
+        org.junit.jupiter.api.Assertions.assertFalse(api.contains("<script>"));
+        org.junit.jupiter.api.Assertions.assertFalse(quickStart.contains("/api/web/health"));
+        org.junit.jupiter.api.Assertions.assertFalse(api.contains("/api/web/health"));
     }
 
     private String read(String resource) throws IOException {

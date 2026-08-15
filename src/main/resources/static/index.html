@@ -7,17 +7,7 @@
   <title>OpenReach · Web Access Infrastructure for AI Agents</title>
   <link rel="icon" href="/assets/logo-mark.png" />
   <link rel="stylesheet" href="/assets/site.css" />
-  <script>
-    (function () {
-      try {
-        var saved = localStorage.getItem('openreach-theme');
-        var theme = saved === 'dark' || saved === 'light' ? saved : 'light';
-        document.documentElement.dataset.theme = theme;
-      } catch (e) {
-        document.documentElement.dataset.theme = 'light';
-      }
-    })();
-  </script>
+  <script src="/assets/theme-init.js"></script>
 </head>
 <body>
 <header class="nav-wrap">
@@ -67,7 +57,7 @@
       <div class="section-head"><div class="kicker">Core capabilities</div><h2>只给 Agent 三个稳定原语</h2><p>上层 Agent 依赖能力，不依赖厂商。底层 Provider 可以替换、降级和持续扩展。</p></div>
       <div class="grid-3">
         <article class="card"><div class="icon-box">S</div><h3>Web Search</h3><p>多搜索 Provider 自动 fallback，输出标题、URL、摘要、排名与来源，适合先发现可靠信息源。</p><span class="endpoint">POST /api/web/search</span></article>
-        <article class="card"><div class="icon-box">I</div><h3>Image Search</h3><p>支持国内优先的文搜图路由，返回原图、缩略图、来源页、尺寸以及开放许可信息。</p><span class="endpoint">POST /api/web/image-search</span></article>
+        <article class="card"><div class="icon-box">I</div><h3>Image Search</h3><p>支持 CN / GLOBAL 双路由文搜图，返回原图、缩略图、来源页、尺寸以及开放许可信息。</p><span class="endpoint">POST /api/web/image-search</span></article>
         <article class="card"><div class="icon-box">R</div><h3>Web Read</h3><p>安全获取公开 HTML 页面，提取正文和元数据，并内置 URL 安全校验、跳转限制与响应体限制。</p><span class="endpoint">POST /api/web/read</span></article>
       </div>
     </div>
@@ -116,15 +106,17 @@
       <div class="banner-grid">
         <div>
           <div class="kicker">Agent Skill</div>
-          <h2>下载后只填一次服务器 IP</h2>
-          <p>OpenReach Skill 使用 Python 标准库封装 <strong>doctor / search / image-search / read</strong>。初始化先检查服务连通性，成功后把 Base URL 写入 Skill 自己的 <code>config.json</code>，后续命令自动复用。</p>
+          <h2>先 check，再按需初始化</h2>
+          <p>OpenReach Skill 使用 Python 标准库封装 <strong>check / search / image-search / read</strong>。Agent 的初始化状态检查只看 <code>config.json</code>，存在时仅做 1 次无副作用 API 探测；不存在时必须向用户索要 <code>&lt;OPENREACH_BASE_URL&gt;</code>。禁止重复探测、猜测地址、自动修复或自行 init。</p>
           <div class="hero-actions" style="justify-content:flex-start;margin-top:22px">
             <a class="btn" href="/downloads/openreach-skill.zip" download>下载 openreach-skill.zip</a>
             <a class="btn" href="/docs/#skill">查看 Skill 用法</a>
           </div>
         </div>
-        <div class="codebox"><pre>python3 scripts/openreach.py init 192.168.1.20
-python3 scripts/openreach.py doctor
+        <div class="codebox"><pre>python3 scripts/openreach.py check
+
+# 仅在用户明确要求初始化时
+python3 scripts/openreach.py init '&lt;OPENREACH_BASE_URL&gt;'
 
 python3 scripts/openreach.py search "AI Agent" \
   --region auto \
@@ -136,11 +128,11 @@ python3 scripts/openreach.py search "AI Agent" \
 
   <section id="providers" class="section">
     <div class="container">
-      <div class="section-head"><div class="kicker">Provider routing</div><h2>免费渠道优先，多路自动降级</h2><p>当前版本聚焦国内开发与自托管场景。免费 Provider 属于 best-effort 能力；生产级 SLA 可通过 SPI 接入商业 Provider。</p></div>
+      <div class="section-head"><div class="kicker">Provider routing</div><h2>免费渠道优先，多路自动降级</h2><p>v1.0.2 通过 region 自动选择 CN / GLOBAL 零 Key Provider Chain；免费 Provider 属于 best-effort，默认路径不依赖商业 Search Key。</p></div>
       <h3>Web Search</h3>
-      <div class="provider-row"><span class="pill">Bing 中国</span><span class="pill">百度</span><span class="pill">搜狗</span><span class="pill">360 搜索</span><span class="pill">DuckDuckGo</span></div>
+      <div class="provider-row"><span class="pill">CN: Bing</span><span class="pill">百度</span><span class="pill">搜狗</span><span class="pill">360</span><span class="pill">DDG</span></div><div class="provider-row"><span class="pill">GLOBAL: Brave</span><span class="pill">DuckDuckGo</span><span class="pill">Bing Global</span></div>
       <h3 style="margin-top:26px">Image Search</h3>
-      <div class="provider-row"><span class="pill">Bing Images</span><span class="pill">百度图片</span><span class="pill">搜狗图片</span><span class="pill">Openverse API</span></div>
+      <div class="provider-row"><span class="pill">Image CN: Bing</span><span class="pill">百度图片</span><span class="pill">搜狗图片</span><span class="pill">Openverse</span></div><div class="provider-row"><span class="pill">Image GLOBAL: Bing</span><span class="pill">Openverse</span><span class="pill">Wikimedia</span></div>
     </div>
   </section>
 

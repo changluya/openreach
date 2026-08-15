@@ -2,17 +2,17 @@
   "version": "1.0",
   "source": "manual",
   "plugin": {
-    "name": "OpenReach Web 搜索与网页读取插件",
+    "name": "OpenReach Web 搜索 / 图片搜索 / 网页读取插件",
     "logoUrl": "",
     "baseUrl": "http://localhost:8080",
     "staticHeaders": "{\"Content-Type\":\"application/json\",\"Accept\":\"application/json\"}",
     "maskConfig": "[{\"sourceType\":2,\"key\":\"baseUrl\",\"exportValue\":\"{{BASE_URL}}\"}]",
-    "description": "OpenReach 为 Agent 提供网页搜索、文搜图和网页正文读取能力。内置国内优先的多搜索渠道自动降级，并支持指定 Provider。",
-    "installConfig": "{\"installDesc\":\"导入后请确认 BASE_URL 指向已启动的 OpenReach 服务。默认本地地址为 http://localhost:8080；部署到服务器或容器环境时请替换为实际可访问地址。无需 API Key。\",\"installVersion\":\"v0.1.1\"}",
+    "description": "OpenReach v1.0.2 为 Agent 提供 Web Search、可下载图片搜索与网页读取。region 驱动 CN/GLOBAL 免费 Provider Chain；Search 支持 timeRange；默认无需 API Key。",
+    "installConfig": "{\"installDesc\":\"导入后请确认 BASE_URL 指向已启动的 OpenReach 服务。默认本地地址为 http://localhost:8080；部署到服务器或容器环境时请替换为实际可访问地址。无需 API Key。\",\"installVersion\":\"v1.0.2\"}",
     "methods": [
       {
         "methodName": "searchWeb",
-        "methodDescription": "搜索互联网网页并返回标题、URL、摘要、排名和实际使用的搜索渠道。默认 provider=auto，会按配置的多搜索源顺序自动降级。",
+        "methodDescription": "搜索互联网网页并返回标题、URL、摘要、排名和来源。支持 timeRange=any/day/week/month/year；provider=auto 时只选择真正支持该时间过滤的零 Key Provider，避免静默忽略。",
         "httpMethodType": 2,
         "uri": "/api/web/search",
         "status": 1,
@@ -37,7 +37,7 @@
           },
           {
             "methodParamName": "region",
-            "methodParamDescription": "搜索区域，默认 auto；未传等价于 auto。不同 Provider 对区域参数的支持程度不同",
+            "methodParamDescription": "搜索区域/核心路由。默认 auto（默认 CN）；CN/zh-CN 等走国内链，US/JP/SG/GLOBAL 等其他显式地区走海外链。",
             "mappedName": "region",
             "useTypeValue": 2,
             "dataTypeValue": 1,
@@ -46,18 +46,27 @@
           },
           {
             "methodParamName": "provider",
-            "methodParamDescription": "搜索渠道。推荐 auto；当前可选 auto、bing、baidu、sogou、so360、duckduckgo",
+            "methodParamDescription": "搜索渠道。推荐 auto；当前可选 auto、bing、baidu、sogou、so360、duckduckgo、brave。显式指定时不做 fallback。",
             "mappedName": "provider",
             "useTypeValue": 2,
             "dataTypeValue": 1,
             "defaultValue": "auto",
+            "required": 0
+          },
+          {
+            "methodParamName": "timeRange",
+            "methodParamDescription": "时间范围过滤。可选 any、day、week、month、year；默认 any。指定后由上游搜索引擎真实过滤，不支持该能力的 Provider 会被跳过。",
+            "mappedName": "timeRange",
+            "useTypeValue": 2,
+            "dataTypeValue": 1,
+            "defaultValue": "any",
             "required": 0
           }
         ]
       },
       {
         "methodName": "searchImages",
-        "methodDescription": "根据文本关键词搜索互联网图片，返回原图、缩略图、来源页面、来源站点、尺寸/格式及版权字段（渠道可提供时）。默认使用国内优先的多 Provider 自动降级。",
+        "methodDescription": "根据文本搜索互联网图片。返回前会对原图 imageUrl 做 SSRF 安全校验、重定向校验和真实图片字节探测，只返回当前可直接下载的图片；无效热链/HTML/403/404/伪图片会被过滤。",
         "httpMethodType": 2,
         "uri": "/api/web/image-search",
         "status": 1,
@@ -82,7 +91,7 @@
           },
           {
             "methodParamName": "region",
-            "methodParamDescription": "图片搜索区域，默认 auto；未传等价于 auto。不同 Provider 对区域参数的支持程度不同",
+            "methodParamDescription": "图片搜索区域/核心路由。默认 auto（默认 CN）；非 CN 显式地区进入 GLOBAL 图片链。",
             "mappedName": "region",
             "useTypeValue": 2,
             "dataTypeValue": 1,
@@ -91,7 +100,7 @@
           },
           {
             "methodParamName": "provider",
-            "methodParamDescription": "图片搜索渠道。推荐 auto；当前可选 auto、bing、baidu、sogou、openverse",
+            "methodParamDescription": "图片搜索渠道。推荐 auto；当前可选 auto、bing、baidu、sogou、openverse、wikimedia。显式指定时不做 fallback。",
             "mappedName": "provider",
             "useTypeValue": 2,
             "dataTypeValue": 1,
@@ -102,7 +111,7 @@
       },
       {
         "methodName": "readWebPage",
-        "methodDescription": "读取指定公网 HTTP/HTTPS 网页并提取适合 Agent 消费的主要正文、标题、元数据和链接。内置 SSRF 防护、重定向校验、正文清洗和长度限制。",
+        "methodDescription": "读取指定公网 HTTP/HTTPS 网页并提取主要正文。仅允许公网 80/443，内置 SSRF、每跳重定向复检、响应体与正文长度限制。",
         "httpMethodType": 2,
         "uri": "/api/web/read",
         "status": 1,

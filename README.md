@@ -14,7 +14,7 @@
   <img alt="Spring Boot 4.1" src="https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white" />
   <img alt="Maven 3.9+" src="https://img.shields.io/badge/Maven-3.9%2B-C71A36?logo=apachemaven&logoColor=white" />
   <img alt="Docker Ready" src="https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white" />
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.1-blue" />
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.2-blue" />
 </p>
 
 <p align="center">
@@ -44,9 +44,9 @@ read(url)            -> 读取网页 / 提取正文与元数据
 
 > **Agent 依赖稳定的能力接口，不依赖具体搜索厂商。**
 
-当前版本优先解决国内开发与自托管场景：无需 Serper / Tavily API Key 即可启动，通过多 Provider 自动降级提升可用性，同时保留 SPI 扩展能力，后续可以继续接入 SearXNG、Serper、Exa、Firecrawl、Playwright 等实现。
+当前 v1.0.2 同时覆盖国内与海外零 Key 场景：`provider=auto` 时复用现有 `region` 参数，通过 `SearchRouteResolver + ProviderChainResolver` 选择 **CN / GLOBAL** Provider Chain；默认 `region=auto` 仍走 CN，保持 v1.0.1 兼容。工程不要求 Serper、Tavily、Brave API 等商业 Search Key 即可启动。
 
-> 当前 Bing、百度、搜狗、360、DuckDuckGo 等免费 Provider 主要基于公开搜索结果页做 best-effort 解析，不属于对应厂商商业 Search API，因此不承诺商业 SLA。Openverse 使用其公开 API。
+> Web Search 的 Bing / 百度 / 搜狗 / 360 / Brave / DuckDuckGo 主要基于公开搜索页面做 best-effort 解析，不属于对应厂商商业 Search API，因此不承诺商业 SLA。Openverse 与 Wikimedia Commons 使用公开读接口。
 
 ---
 
@@ -54,20 +54,20 @@ read(url)            -> 读取网页 / 提取正文与元数据
 
 | 能力 | HTTP 接口 | 状态 | 当前实现 | 主要输出 |
 |---|---|---:|---|---|
-| **Web Search** | `POST /api/web/search` | ✅ | 多 Provider 自动降级 | 标题、URL、摘要、排名、来源 |
-| **Image Search** | `POST /api/web/image-search` | ✅ | 多图片 Provider 自动降级 | 原图、缩略图、来源页、站点、尺寸、License |
+| **Web Search** | `POST /api/web/search` | ✅ | CN/GLOBAL 多 Provider 自动降级 + `timeRange` | 标题、URL、摘要、排名、来源、时间范围 |
+| **Image Search** | `POST /api/web/image-search` | ✅ | 多图片 Provider 自动降级 + 原图可下载校验 | 已验证可下载原图、缩略图、来源页、尺寸、License |
 | **Web Read** | `POST /api/web/read` | ✅ | Safe HTTP Fetch + Jsoup | 标题、正文、最终 URL、元数据、Links |
-| **Health Check** | `GET /api/web/health` | ✅ | 无外部 Provider 依赖 | 部署、Skill init / doctor 连通性检查 |
 | **Provider Auto Fallback** | 内部能力 | ✅ | Provider SPI + Router | 上游失败后自动切换下一渠道 |
 | **URL 去重** | 内部能力 | ✅ | Search / ImageSearch 聚合层 | 去除重复结果 |
-| **SSRF Protection** | Read 内部能力 | ✅ | DNS / IP / Redirect 校验 | 拦截危险 URL |
+| **SSRF Protection** | Read / 图片探测内部能力 | ✅ | DNS / IP / Port / Redirect 校验 | 拦截内网、元数据地址和危险跳转 |
 | **响应体限制** | Read 内部能力 | ✅ | max-bytes / max-chars | 避免异常大页面 |
 | **Agent HTTP Plugin** | `docs/agenthub/skills/` | ✅ | 标准 HTTP Plugin JSON | Search / Image Search / Read |
 | **Docker 部署** | Docker / Compose | ✅ | Runtime-only Image | amd64 / arm64 运行模型 |
 | **内置官网 / Docs** | `/` · `/docs/` | ✅ | Spring Boot Static Resources | 服务启动即访问，无需独立前端 |
 | **OpenReach Skill** | `skills/openreach/` | ✅ | Python Tool + CLI | Init / Doctor / Search / Image Search / Read |
 | **Dynamic Browser Read** | - | ⏳ | 预留 Playwright Reader | JS 渲染页面 |
-| **Commercial SERP** | - | ⏳ | 预留 Premium Provider | 稳定 SERP / Geo / 垂直搜索 |
+| **CN / GLOBAL Region Router** | 内部能力 | ✅ | `SearchRouteResolver + ProviderChainResolver` | `region` 驱动国内/海外免费链路 |
+| **Public Attack Surface Guard** | HTTP Filter | ✅ | 三 API 精确 Allowlist + JSON-only + 静态资源 Allowlist | 禁上传/危险 Method/未知端点/路径穿越/超大请求体 |
 
 ### 当前能力边界
 
@@ -77,9 +77,9 @@ read(url)            -> 读取网页 / 提取正文与元数据
 | 文搜图 | ✅ | 返回图片及来源页面信息 |
 | HTML / SSR 网页读取 | ✅ | 当前 Read 核心场景 |
 | Provider 自动降级 | ✅ | 超时、解析失败、空结果时继续下一 Provider |
-| Region 参数 | ⚠️ | 已统一参数，但不同 Provider 的支持程度不同 |
-| Pagination | ❌ | v0.1.1 聚焦首屏 / Top-N |
-| Freshness 统一过滤 | ❌ | 尚未形成跨 Provider 统一协议 |
+| Region 参数 | ✅ | `CN` aliases 走 CN；其他显式地区走 GLOBAL；`auto` 默认 CN |
+| Pagination | ❌ | v1.0.2 仍聚焦首屏 / Top-N |
+| Search 时间范围 | ✅ | `timeRange=any/day/week/month/year`；auto 只调用真正支持该过滤的 Provider |
 | 精确 Geo | ❌ | 不承诺商业级地理定位 |
 | Knowledge Graph / Shopping / Places | ❌ | 后续以垂直 Provider 扩展 |
 | JavaScript 动态渲染 | ❌ | 后续接 Playwright |
@@ -124,7 +124,7 @@ Agent 总结、问答、对比、引用或继续深度检索
 
 > **微信公众号说明：** OpenReach 可以对公开可访问的微信文章 URL 尝试执行 `read`；也可以通过 Web Search 尝试发现已经被搜索引擎收录的微信公众号文章。实际可发现性取决于搜索引擎收录情况，页面能否读取则取决于微信页面当时的访问策略、反爬限制和网络环境，因此属于 best-effort 能力，不承诺所有公众号文章都能稳定搜索或读取。
 
-> 对于需要登录、验证码、强 JavaScript 渲染或严格反爬的页面，当前 v0.1.1 的静态 HTTP Reader 可能无法完整读取，后续计划通过 Playwright / Browser Reader 扩展动态页面能力。
+> 对于需要登录、验证码、强 JavaScript 渲染或严格反爬的页面，当前 v1.0.2 的静态 HTTP Reader 可能无法完整读取，后续计划通过 Playwright / Browser Reader 扩展动态页面能力。
 
 ---
 
@@ -265,8 +265,9 @@ curl -X POST 'http://localhost:8080/api/web/search' \
   -d '{
     "query": "Spring Boot AI Agent",
     "limit": 5,
-    "region": "auto",
-    "provider": "auto"
+    "region": "US",
+    "provider": "auto",
+    "timeRange": "month"
   }'
 ```
 
@@ -329,25 +330,32 @@ skills/openreach/
     └── test_openreach.py
 ```
 
-Skill **无需第三方 Python 依赖**。下载解压后，只需要提供一次 OpenReach 服务器 IP：
+Skill **无需第三方 Python 依赖**。Agent 判断是否已初始化时，只执行一次：
 
 ```bash
-python3 scripts/openreach.py init 192.168.1.20
+python3 scripts/openreach.py check
 ```
 
-默认组成 `http://192.168.1.20:8080`。`init` 会先调用 `GET /api/web/health` 执行前置连通性检查，成功后才将地址写入当前 Skill 的 `config.json`：
+`check` 只检查当前 Skill 的 `config.json` 是否存在；不存在立即返回，网络请求为 0，并要求 Agent 向用户索要 `<OPENREACH_BASE_URL>`，在用户提供前停止。存在时只读取 `base_url`，再执行且只执行一次 `POST /api/web/search` 空 JSON 探测，预期由本地参数校验返回 `400 / VALIDATION_ERROR`，不会触发真实搜索或上游 Provider。`check` 不创建/修改配置、不重试、不扫描地址，也不会自动调用 `init`。
+
+首次初始化只有在用户明确提供服务地址并要求初始化时执行：
+
+```bash
+python3 scripts/openreach.py init '<OPENREACH_BASE_URL>'
+```
+
+初始化成功后将地址写入当前 Skill 的 `config.json`：
 
 ```json
 {
-  "base_url": "http://192.168.1.20:8080"
+  "base_url": "<OPENREACH_BASE_URL>"
 }
 ```
 
-之后所有 Tool 自动读取配置：
+`check` 成功一次后，本次任务直接调用业务 Tool，不需要再执行 `doctor` 或重复 check：
 
 ```bash
-python3 scripts/openreach.py doctor
-python3 scripts/openreach.py search "AI Agent" --region auto --provider auto --limit 5
+python3 scripts/openreach.py search "AI Agent" --region US --provider auto --time-range month --limit 5
 python3 scripts/openreach.py image-search "杭州西湖" --region auto --provider auto --limit 8
 python3 scripts/openreach.py read "https://spring.io/projects/spring-boot/" --max-chars 20000
 ```
@@ -355,13 +363,17 @@ python3 scripts/openreach.py read "https://spring.io/projects/spring-boot/" --ma
 Python Tool 也可以直接调用：
 
 ```python
-from skills.openreach import doctor, search, image_search, read
+from skills.openreach import check_initialized, search, image_search, read
 
-doctor()
-results = search("OpenReach AI Agent", region="auto", provider="auto", limit=5)
+state = check_initialized()  # 每个任务只需一次，成功后直接调用业务 Tool
+results = search("OpenReach AI Agent", region="US", provider="auto", time_range="month", limit=5)
 ```
 
-`search` / `image-search` 的 `region` 默认均为 **`auto`**，省略时等价于 `auto`；为了让 Agent 调用链和日志更清楚，README、官网与 Skill 示例均显式展示该参数。明确地域时可以传 `CN`、`JP`、`US` 等，由 Provider best-effort 映射。
+`search` / `image-search` 的 `region` 默认均为 **`auto`**，省略时等价于 `auto`。v1.0.2 中它先参与核心路由：`CN / zh-CN / zh_CN / cn-zh / zh-Hans-CN / china` 进入 CN 链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 链；之后原始 `region` 再作为 Provider 的 country / locale Hint。`auto` 默认仍为 CN，可通过 `openreach.web.routing.default-route` 调整。
+
+Web Search 新增 **`timeRange`**：`any/day/week/month/year`，并兼容常见 `d/w/m/y`、`pd/pw/pm/py`、`qdr:*` 写法。指定时间范围后，`provider=auto` 会跳过不支持真实上游时间过滤的 Provider，避免参数被静默忽略。当前内置 Brave / DuckDuckGo 支持该能力。
+
+Image Search 现在对候选 `imageUrl` 做 **SSRF 安全 + 重定向 + HTTP 状态 + 图片字节签名**即时探测；只有响应生成时可直接下载的被动图片格式才会进入最终 `items`。失效热链、403/404、HTML/伪图片与 SVG 会被过滤，并继续尝试后续 Provider 补足结果。
 
 Skill 内还提供基于项目 ChatGPT Search 调研抽象出的 Agentic Search SOP：**Query Planning → Search → Source Selection → Read → Evidence Check → 再搜索/再读取 → Cross-source Verification → Citation**。
 
@@ -371,34 +383,38 @@ Skill 内还提供基于项目 ChatGPT Search 调研抽象出的 Agentic Search 
 
 ### Web Search
 
-默认 `provider=auto` 路由：
+`provider=auto` 会先按 `region` 选路由：
 
 ```text
-Bing 中国 → 百度 → 搜狗 → 360 搜索 → DuckDuckGo
+CN     -> Bing 中国 -> 百度 -> 搜狗 -> 360 -> DuckDuckGo
+GLOBAL -> Brave Web -> DuckDuckGo HTML -> Bing Global
 ```
 
-| 渠道 | Provider Key | 接入形式 | API Key | 当前定位 |
+| 渠道 | Provider Key | 接入形式 | API Key | Route / 定位 |
 |---|---|---|---:|---|
-| **Bing 中国** | `bing` | HTML SERP | ❌ | 默认第一路 |
-| **百度** | `baidu` | HTML SERP | ❌ | 中文核心 fallback |
-| **搜狗** | `sogou` | HTML SERP | ❌ | 国内 fallback |
-| **360 搜索** | `so360` | HTML SERP | ❌ | 国内 fallback |
-| **DuckDuckGo** | `duckduckgo` | HTML Search | ❌ | 最后兜底 |
+| **Bing** | `bing` | HTML SERP | ❌ | CN 用 `cn.bing.com`；GLOBAL 用 `www.bing.com` |
+| **百度** | `baidu` | HTML SERP | ❌ | CN 核心 fallback |
+| **搜狗** | `sogou` | HTML SERP | ❌ | CN fallback |
+| **360 搜索** | `so360` | HTML SERP | ❌ | CN fallback |
+| **Brave Web** | `brave` | 公开 Web SERP | ❌ | GLOBAL 第一优先级 |
+| **DuckDuckGo** | `duckduckgo` | HTML no-JS POST | ❌ | CN 末路 / GLOBAL 第二路；Challenge fail-fast |
 
 ### Image Search
 
-默认 `provider=auto` 路由：
+`provider=auto` 同样复用 CN / GLOBAL Route：
 
 ```text
-Bing Images → 百度图片 → 搜狗图片 → Openverse
+CN     -> Bing Images -> 百度图片 -> 搜狗图片 -> Openverse
+GLOBAL -> Bing Global Images -> Openverse -> Wikimedia Commons
 ```
 
-| 渠道 | Provider Key | 接入形式 | 正式 API | 当前定位 |
+| 渠道 | Provider Key | 接入形式 | API Key | Route / 定位 |
 |---|---|---|---:|---|
-| **Bing Images** | `bing` | 图片搜索结果解析 | ❌ | 默认第一路 |
-| **百度图片** | `baidu` | `acjson` + warmup | ❌ | 中文图片核心 fallback |
-| **搜狗图片** | `sogou` | 页面 State 解析 | ❌ | 国内图片补充 |
-| **Openverse** | `openverse` | 官方公开 API | ✅ | 开放许可图片与 License 元数据 |
+| **Bing Images** | `bing` | 图片搜索结果解析 | ❌ | CN / GLOBAL Host 自动选择 |
+| **百度图片** | `baidu` | `acjson` + warmup | ❌ | CN 核心 fallback |
+| **搜狗图片** | `sogou` | 页面 State 解析 | ❌ | CN 图片补充 |
+| **Openverse** | `openverse` | 公开 API | ❌ | CN / GLOBAL 开放许可补充源 |
+| **Wikimedia Commons** | `wikimedia` | MediaWiki Action API | ❌ | GLOBAL 开放许可 / 百科图片补充源 |
 
 ---
 
@@ -415,7 +431,16 @@ Bing Images → 百度图片 → 搜狗图片 → Openverse
                     ▼              ▼              ▼
              SearchService  ImageSearchService WebReadService
                     │              │              │
-                    ▼              ▼              ▼
+                    └───────┬──────┘              │
+                            ▼                     │
+                   SearchRouteResolver            │
+                            │                     │
+                            ▼                     │
+                  ProviderChainResolver           │
+                    CN / GLOBAL                   │
+                            │                     │
+                    ┌───────┴───────┐             │
+                    ▼               ▼             ▼
             SearchProvider  ImageSearchProvider PageReader
                   SPI              SPI              │
                     │              │                ▼
@@ -453,6 +478,7 @@ openreach/
 │       ├── search/                 # Web Search
 │       ├── imagesearch/            # Image Search
 │       ├── read/                   # Web Read
+│       ├── routing/                # CN / GLOBAL Route + Locale
 │       ├── security/               # URL / SSRF 安全
 │       ├── config/                 # 配置
 │       └── web/                    # HTTP Controller
@@ -464,6 +490,7 @@ openreach/
 ├── docs/
 │   ├── 核心市场调研分析/
 │   ├── 核心搜索接口设计/
+│   ├── 设计方案/
 │   ├── 部署篇/
 │   ├── agenthub/
 │   └── 设计文档/产物/logo.png      # README 使用的 Logo
@@ -480,7 +507,7 @@ openreach/
 
 | 场景 | 命令 |
 |---|---|
-| 全量单测 | `./bin/quick/check-project.sh` |
+| 全量单测（Java + Skill Python） | `./bin/quick/check-project.sh` |
 | Maven 打包 | `./bin/quick/package.sh` |
 | 本地 Docker 构建 | `./bin/quick/docker-build.sh` |
 | 本地镜像启动验收 | `./bin/quick/docker-verify.sh` |
@@ -506,11 +533,13 @@ openreach/
 
 - [ChatGPT 搜索实现与 WebSearch 能力分析](docs/核心市场调研分析/01-ChatGPT搜索实现与WebSearch能力分析.md)
 - [Serper.dev 能力深度分析拆解](docs/核心市场调研分析/02-Serper.dev能力深度分析拆解.md)
+- [海外免费渠道深度调研与 v1.0.2 接入结论](docs/核心市场调研分析/03-海外免费渠道深度调研与v1.0.2接入建议.md)
 - [早期第一版调研方案](docs/核心市场调研分析/早期第一版调研方案.md)
 
 ### 工程、测试与能力说明
 
 - [初版本设计方案](docs/初版本设计方案.md)
+- [v1.0.2 设计落地方案](docs/设计方案/v1.0.2设计落地方案.md)
 - [当前工程能力与渠道支持](docs/当前工程能力与渠道支持.md)
 - [核心测试与验收](docs/核心测试与验收.md)
 - [接口测试与 Curl 示例](docs/接口测试与Curl示例.md)
@@ -549,25 +578,31 @@ read
 ## Roadmap
 
 ```text
-v0.1.1
-├── Web Search                     ✅
-├── Image Search                   ✅
-├── Web Read                       ✅
-├── Multi-Provider Fallback        ✅
-├── URL Deduplication              ✅
-├── SSRF Protection                ✅
-├── Agent HTTP Plugin              ✅
-└── Docker Deployment              ✅
+v1.0.1
+├── Web / Image / Read 基础原语       ✅
+├── 国内免费 Multi-Provider Fallback  ✅
+├── SSRF / Docker / Skill / Plugin    ✅
+└── 测试基线                          ✅
+
+v1.0.2
+├── CN / GLOBAL Region Router        ✅
+├── Brave Web                        ✅
+├── DuckDuckGo no-JS POST 强化       ✅
+├── Bing Web / Image 全球化          ✅
+├── Wikimedia Commons Image          ✅
+├── Route-aware Provider Chain       ✅
+├── Search timeRange                 ✅
+├── Image 可下载强校验                ✅
+├── 三 API + 官网静态资源安全白名单     ✅
+└── 路由 / Provider / 安全 / 回归测试扩增 ✅
 
 Next
+├── Provider Health / Circuit Breaker
+├── Search Quality Gate / Metrics
 ├── Playwright Dynamic Read
-├── SearXNG Provider
-├── Serper Premium Provider
-├── Search Quality Gate
-├── News Search
-├── Places / Maps Search
-├── Rerank / Source Quality
-└── Citation / Research Pipeline
+├── 自托管 SearXNG（可选）
+├── News / Places 等垂直能力
+└── Rerank / Citation / Research Pipeline
 ```
 
 ---
@@ -578,7 +613,7 @@ OpenReach 的目标不是自研 Google SERP 反爬平台。
 
 当前免费 Provider 通过多渠道容错降低单一上游 DOM 改版、限流、网络出口变化带来的影响，但仍属于 **best-effort** 能力。
 
-如果后续生产业务需要稳定 Google SERP、精确 Geo、Places / Maps / Shopping、高 QPS 或商业 SLA，建议通过 `SearchProvider` SPI 接入商业 Provider，而不是在 OpenReach 中建设账号池、Cookie 池、住宅代理池或 CAPTCHA 绕过体系。
+v1.0.2 默认链严格坚持 **零 API Key / 零账号依赖**。未来如果某个部署方自行需要商业 SLA，可以通过 `SearchProvider` SPI 以可选扩展接入，但不会改变 OpenReach 默认免费开箱路径；项目也不会建设账号池、Cookie 池、住宅代理池或 CAPTCHA 绕过体系。
 
 ---
 

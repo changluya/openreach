@@ -2,40 +2,70 @@ package io.github.changlu.openreach.search.provider;
 
 import io.github.changlu.openreach.common.UpstreamException;
 import io.github.changlu.openreach.config.WebCapabilityProperties;
+import io.github.changlu.openreach.routing.RegionLocaleSupport;
+import io.github.changlu.openreach.routing.SearchRoute;
+import io.github.changlu.openreach.routing.SearchRouteResolver;
 import io.github.changlu.openreach.search.SearchProvider;
+import io.github.changlu.openreach.search.SearchTimeRange;
 import io.github.changlu.openreach.search.dto.SearchItem;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Component
 public class DuckDuckGoSearchProvider implements SearchProvider {
     private final SearchHttpClient http;
     private final WebCapabilityProperties properties;
+    private final SearchRouteResolver routeResolver;
 
-    public DuckDuckGoSearchProvider(SearchHttpClient http, WebCapabilityProperties properties) {
+    public DuckDuckGoSearchProvider(SearchHttpClient http, WebCapabilityProperties properties, SearchRouteResolver routeResolver) {
         this.http = http;
         this.properties = properties;
+        this.routeResolver = routeResolver;
     }
 
     @Override public String name() { return "duckduckgo"; }
 
     @Override
+    public boolean supportsTimeRange() { return true; }
+
+    @Override
     public List<SearchItem> search(String query, int limit, String region) {
-        String kl = region == null || region.isBlank() || "auto".equalsIgnoreCase(region)
-                ? "wt-wt"
-                : ("CN".equalsIgnoreCase(region) ? "cn-zh" : region);
-        URI uri = URI.create(properties.getSearch().getDuckduckgoUrl()
-                + "?q=" + encode(query) + "&kl=" + encode(kl));
-        Document doc = http.get(name(), uri);
+        return search(query, limit, region, SearchTimeRange.ANY);
+    }
+
+    @Override
+    public List<SearchItem> search(String query, int limit, String region, SearchTimeRange timeRange) {
+        if (query != null && query.length() > 499) {
+            throw new UpstreamException("duckduckgo query exceeds 499 characters");
+        }
+        SearchRoute route = routeResolver.resolve(region);
+        String kl = RegionLocaleSupport.duckDuckGoRegion(region, route);
+        URI uri = URI.create(properties.getSearch().getDuckduckgoUrl());
+        java.util.LinkedHashMap<String, String> form = new java.util.LinkedHashMap<>();
+        form.put("q", query);
+        form.put("b", "");
+        form.put("kl", kl);
+        String timeFilter = duckDuckGoTimeFilter(timeRange);
+        if (!timeFilter.isBlank()) form.put("df", timeFilter);
+
+        String cookie = "kl=" + kl + (timeFilter.isBlank() ? "" : "; df=" + timeFilter);
+        Document doc = http.postForm(name(), uri,
+                form,
+                Map.of(
+                        "Accept-Language", RegionLocaleSupport.acceptLanguage(region, route),
+                        "Referer", "https://html.duckduckgo.com/",
+                        "Sec-Fetch-Mode", "navigate",
+                        "Cookie", cookie
+                ));
+        if (isCaptcha(doc)) throw new UpstreamException("duckduckgo bot challenge detected");
         List<SearchItem> items = parseResults(doc, limit);
         if (items.isEmpty()) throw new UpstreamException("duckduckgo returned no parsable results");
         return items;
@@ -63,6 +93,22 @@ public class DuckDuckGoSearchProvider implements SearchProvider {
         return fallback;
     }
 
+    boolean isCaptcha(Document doc) {
+        String text = doc.text().toLowerCase();
+        return text.contains("not a robot") || text.contains("anomaly-modal") || doc.selectFirst("form#challenge-form") != null;
+    }
+
+    String duckDuckGoTimeFilter(SearchTimeRange timeRange) {
+        if (timeRange == null) return "";
+        return switch (timeRange) {
+            case DAY -> "d";
+            case WEEK -> "w";
+            case MONTH -> "m";
+            case YEAR -> "y";
+            case ANY -> "";
+        };
+    }
+
     private String normalizeResultUrl(String raw) {
         if (raw == null || raw.isBlank()) return "";
         String value = raw.startsWith("//") ? "https:" + raw : raw;
@@ -81,6 +127,4 @@ public class DuckDuckGoSearchProvider implements SearchProvider {
             return false;
         }
     }
-
-    private String encode(String value) { return URLEncoder.encode(value, StandardCharsets.UTF_8); }
 }

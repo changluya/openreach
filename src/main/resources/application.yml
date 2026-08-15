@@ -1,48 +1,103 @@
 server:
   port: 8080
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+  tomcat:
+    max-http-form-post-size: 64KB
 
 spring:
   application:
     name: openreach
+  servlet:
+    multipart:
+      enabled: false
+  web:
+    resources:
+      static-locations: classpath:/static/
 
 openreach:
   web:
+    routing:
+      # region=auto 时保持 v1.0.1 的国内优先行为；显式非 CN region 会进入 GLOBAL 路由。
+      default-route: cn
     search:
-      # auto 会按 provider-order 依次降级；也可在请求中传 provider 显式指定。
+      # provider=auto 时由 region -> SearchRouteResolver -> 对应 Provider Chain。
       provider: auto
+      # v1.0.1 兼容配置：旧部署只配置 provider-order 时，仍作为 CN route 顺序使用。
       provider-order:
         - bing
         - baidu
         - sogou
         - so360
         - duckduckgo
+      # 默认留空，确保外部 v1.0.1 只覆盖 provider-order 时仍能直接生效。
+      # 新部署如需独立 CN 链，可显式配置本字段。
+      cn-provider-order: []
+      global-provider-order:
+        - brave
+        - duckduckgo
+        - bing
       timeout-ms: 6000
       max-results: 20
+      # Provider HTML/JSON 上游响应硬上限，防止异常上游造成无界内存占用。
+      max-response-bytes: 2097152
       user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
       bing-url: https://cn.bing.com/search
+      bing-global-url: https://www.bing.com/search
+      brave-url: https://search.brave.com/search
       baidu-url: https://www.baidu.com/s
       sogou-url: https://www.sogou.com/web
       so360-url: https://www.so.com/s
       duckduckgo-url: https://html.duckduckgo.com/html/
     image-search:
-      # V1 文搜图：国内优先的多 Provider best-effort 路由。
       provider: auto
+      # v1.0.1 兼容配置：cn-provider-order 为空时仍回退到 provider-order。
       provider-order:
         - bing
         - baidu
         - sogou
         - openverse
+      # 默认留空并继承 provider-order，保持 v1.0.1 外部配置兼容。
+      cn-provider-order: []
+      # v1.0.2 海外图片 P0 只使用结构更稳定的无 Key 渠道。
+      global-provider-order:
+        - bing
+        - openverse
+        - wikimedia
       timeout-ms: 8000
       max-results: 30
+      # 图片搜索 Provider 页面/JSON 的上游响应硬上限。
+      max-response-bytes: 4194304
       user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
       bing-url: https://cn.bing.com/images/async
+      bing-global-url: https://www.bing.com/images/async
       baidu-base-url: https://image.baidu.com/
       baidu-url: https://image.baidu.com/search/acjson
       sogou-url: https://pic.sogou.com/pics
       openverse-url: https://api.openverse.org/v1/images/
+      wikimedia-url: https://commons.wikimedia.org/w/api.php
+      # Wikimedia 请求要求可识别 User-Agent；可按实际部署地址覆盖。
+      wikimedia-user-agent: OpenReach/1.0.2 (+https://github.com/changluya/openreach)
+      # 强制可下载校验：Provider 结果只有通过公网 SSRF + 图片字节签名探测后才返回。
+      download-candidate-multiplier: 3
+      download-max-candidates: 60
+      download-validation-timeout-ms: 4000
+      download-validation-max-redirects: 3
+      download-validation-max-bytes: 65536
+      download-validation-concurrency: 6
+      # 有界验证队列；满载时 CallerRuns 在请求线程回压，避免无界任务堆积。
+      download-validation-queue-capacity: 48
     read:
       timeout-ms: 10000
       max-bytes: 5242880
       max-chars: 50000
       max-redirects: 5
+      allowed-ports: [80, 443]
       user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+
+    security:
+      # 三个 JSON API 的请求体都很小；过滤器也会对 chunked 请求做真实读取上限。
+      max-api-body-bytes: 65536

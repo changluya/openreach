@@ -1,6 +1,6 @@
 # OpenReach 快捷命令
 
-`bin/quick/` 维护 OpenReach 的打包、测试、Docker 本地构建、镜像验收和 Docker Hub 发布命令。
+`bin/quick/` 维护 OpenReach 的打包、测试、Docker 本地构建、镜像验收和 Docker Hub 发布命令。v1.0.2 起 `check-project.sh` / `package.sh` 会同时执行 Java JUnit 与 OpenReach Skill Python Test。
 
 ## 推荐链路
 
@@ -48,14 +48,14 @@ docker login
 显式指定版本：
 
 ```bash
-./bin/quick/release.sh 0.1.1
+./bin/quick/release.sh 1.0.2
 ```
 
 国内网络需要本地代理时（推荐）：
 
 ```bash
 OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
-./bin/quick/release.sh 0.1.1
+./bin/quick/release.sh 1.0.2
 ```
 
 这一条命令内部完成：
@@ -74,7 +74,7 @@ mvn clean package + 全量单测
 确认远程镜像两个架构都在：
 
 ```bash
-docker buildx imagetools inspect codercl/openreach:0.1.1
+docker buildx imagetools inspect codercl/openreach:1.0.2
 ```
 
 普通用户部署（无需 Maven/JDK/源码）：
@@ -201,20 +201,20 @@ BASE_URL=http://127.0.0.1:8080 ./bin/quick/smoke-test.sh
 正常情况下直接使用 `release.sh` 即可。如果需要自定义 Docker Namespace / Repository：
 
 ```bash
-./bin/quick/docker-publish.sh 0.1.1 codercl openreach
+./bin/quick/docker-publish.sh 1.0.2 codercl openreach
 ```
 
 代理环境：
 
 ```bash
 OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
-./bin/quick/docker-publish.sh 0.1.1 codercl openreach
+./bin/quick/docker-publish.sh 1.0.2 codercl openreach
 ```
 
 发布后验证：
 
 ```bash
-docker buildx imagetools inspect codercl/openreach:0.1.1
+docker buildx imagetools inspect codercl/openreach:1.0.2
 ```
 
 应同时看到：
@@ -253,4 +253,4 @@ Docker 会根据宿主机 CPU 自动选择 `linux/amd64` 或 `linux/arm64`。
 | 本地镜像构建 | `./bin/quick/docker-build.sh` |
 | 本地镜像启动验收 | `./bin/quick/docker-verify.sh` |
 | 公网接口 Smoke Test | `./bin/quick/smoke-test.sh` |
-| 查看远程架构 | `docker buildx imagetools inspect codercl/openreach:0.1.1` |
+| 查看远程架构 | `docker buildx imagetools inspect codercl/openreach:1.0.2` |

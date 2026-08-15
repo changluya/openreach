@@ -4,11 +4,14 @@ import io.github.changlu.openreach.common.UpstreamException;
 import io.github.changlu.openreach.config.WebCapabilityProperties;
 import io.github.changlu.openreach.imagesearch.ImageSearchProvider;
 import io.github.changlu.openreach.imagesearch.dto.ImageSearchItem;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
+import io.github.changlu.openreach.routing.RegionLocaleSupport;
+import io.github.changlu.openreach.routing.SearchRoute;
+import io.github.changlu.openreach.routing.SearchRouteResolver;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -16,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Component
@@ -23,27 +27,47 @@ public class BingImageSearchProvider implements ImageSearchProvider {
     private final ImageSearchHttpClient http;
     private final WebCapabilityProperties properties;
     private final JsonMapper objectMapper;
+    private final SearchRouteResolver routeResolver;
 
-    public BingImageSearchProvider(ImageSearchHttpClient http, WebCapabilityProperties properties, JsonMapper objectMapper) {
+    public BingImageSearchProvider(ImageSearchHttpClient http, WebCapabilityProperties properties,
+                                   JsonMapper objectMapper, SearchRouteResolver routeResolver) {
         this.http = http;
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.routeResolver = routeResolver;
     }
 
     @Override public String name() { return "bing"; }
 
     @Override
     public List<ImageSearchItem> search(String query, int limit, String region) {
-        String cc = region == null || region.isBlank() || "auto".equalsIgnoreCase(region)
-                || "wt-wt".equalsIgnoreCase(region) ? "CN" : region;
-        URI uri = URI.create(properties.getImageSearch().getBingUrl()
-                + "?q=" + encode(query)
-                + "&async=1&first=1&count=" + Math.max(35, limit)
-                + "&setlang=zh-Hans&cc=" + encode(cc));
-        Document doc = http.getDocument(name(), uri);
+        SearchRoute route = routeResolver.resolve(region);
+        String baseUrl = baseUrl(route);
+        URI uri = buildUri(query, limit, region);
+        String body = http.getText(name(), uri, Map.of(
+                "Accept-Language", RegionLocaleSupport.acceptLanguage(region, route)
+        )).body();
+        Document doc = org.jsoup.Jsoup.parse(body, origin(baseUrl));
         List<ImageSearchItem> items = parseResults(doc, limit);
         if (items.isEmpty()) throw new UpstreamException("bing image search returned no parsable results");
         return items;
+    }
+
+    URI buildUri(String query, int limit, String region) {
+        SearchRoute route = routeResolver.resolve(region);
+        String cc = RegionLocaleSupport.countryCode(region, route);
+        String locale = RegionLocaleSupport.localeTag(region, route);
+        return URI.create(baseUrl(route)
+                + "?q=" + encode(query)
+                + "&async=1&first=1&count=" + Math.max(35, limit)
+                + "&setlang=" + encode(locale)
+                + "&cc=" + encode(cc));
+    }
+
+    private String baseUrl(SearchRoute route) {
+        return route == SearchRoute.CN
+                ? properties.getImageSearch().getBingUrl()
+                : properties.getImageSearch().getBingGlobalUrl();
     }
 
     List<ImageSearchItem> parseResults(Document doc, int limit) {
@@ -81,6 +105,11 @@ public class BingImageSearchProvider implements ImageSearchProvider {
             }
         }
         return result;
+    }
+
+    private String origin(String url) {
+        URI uri = URI.create(url);
+        return uri.getScheme() + "://" + uri.getAuthority();
     }
 
     private String text(JsonNode node, String field) {

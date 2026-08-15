@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class RegionDefaultTest {
     @Test
     void searchRegionDefaultsToAuto() {
-        assertEquals("auto", new SearchRequest("test", 5, null, "auto").effectiveRegion());
-        assertEquals("auto", new SearchRequest("test", 5, "", "auto").effectiveRegion());
+        assertEquals("auto", new SearchRequest("test", 5, null, "auto", null).effectiveRegion());
+        assertEquals("auto", new SearchRequest("test", 5, "", "auto", null).effectiveRegion());
     }
 
     @Test
