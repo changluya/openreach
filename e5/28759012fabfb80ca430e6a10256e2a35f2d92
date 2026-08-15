@@ -1,0 +1,104 @@
+.gitignore
+  h_415c008e101ba5 109-121
+README.md
+  h_415c008e101ba5 17,26-32,60,67-68,81,127,133,135,138-142,145,148-150,153,156-157,159-160,162-163,166-172,175,179-181,186,215-222,225,268,281,308,311-369,460-463,489-490,528,552,617,620,623,626-627
+bin/quick/README.md
+  h_415c008e101ba5 51,58,77,204,211,217,256
+bin/quick/release.sh
+  h_415c008e101ba5 26
+docs/agenthub/skills/openreach-http-plugin.json
+  h_415c008e101ba5 11,40,44,85,89
+docs/agenthub/接口文档/OpenReach接口文档.md
+  h_415c008e101ba5 3,13,18-19,60,73,100,107,134,182,189
+docs/初版本设计方案.md
+  h_415c008e101ba5 1,3,126,157,178,465,487
+docs/当前工程能力与渠道支持.md
+  h_415c008e101ba5 3,5,148,177,271,279,299,310,356,493
+docs/接口测试与Curl示例.md
+  h_415c008e101ba5 50,69,82,99
+docs/核心市场调研分析/01-ChatGPT搜索实现与WebSearch能力分析.md
+  h_415c008e101ba5 501,597
+docs/核心市场调研分析/02-Serper.dev能力深度分析拆解.md
+  h_415c008e101ba5 299,511,645
+docs/核心搜索接口设计/01-websearch核心流程设计.md
+  h_415c008e101ba5 4,56,67,76
+docs/核心搜索接口设计/02-imagesearch核心流程设计.md
+  h_415c008e101ba5 4,57,68,77
+docs/核心搜索接口设计/03-read核心流程设计.md
+  h_415c008e101ba5 4
+docs/核心测试与验收.md
+  h_415c008e101ba5 257,282
+docs/部署篇/01-Docker一键部署指南.md
+  h_415c008e101ba5 31,66,183,189,207,226,363-364,367
+docs/部署篇/02-Docker多架构镜像与一键部署核心知识点.md
+  h_415c008e101ba5 59,99,105,140,301,530,589,620,628,642,664,670,696,711,994,1000,1148
+docs/部署篇/03-DockerHub镜像发布操作指南.md
+  h_415c008e101ba5 8,124,140,154,165,224,246,271,292
+docs/部署篇/04-Docker构建代理配置.md
+  h_415c008e101ba5 43,145,152,158,228
+docs/部署篇/05-Docker网络与发布坑点排障.md
+  h_415c008e101ba5 117,142,168
+pom.xml
+  h_415c008e101ba5 16
+skills/__init__.py
+  h_415c008e101ba5 1
+skills/openreach/README.md
+  h_415c008e101ba5 1-27
+skills/openreach/SKILL.md
+  h_415c008e101ba5 1-221
+skills/openreach/__init__.py
+  h_415c008e101ba5 1-4
+skills/openreach/config.example.json
+  h_415c008e101ba5 1-3
+skills/openreach/scripts/__init__.py
+  h_415c008e101ba5 1
+skills/openreach/scripts/openreach.py
+  h_415c008e101ba5 1-250
+skills/openreach/tests/test_openreach.py
+  h_415c008e101ba5 1-103
+src/main/java/io/github/changlu/openreach/imagesearch/dto/ImageSearchRequest.java
+  h_415c008e101ba5 19
+src/main/java/io/github/changlu/openreach/imagesearch/provider/BingImageSearchProvider.java
+  h_415c008e101ba5 37-38
+src/main/java/io/github/changlu/openreach/search/dto/SearchRequest.java
+  h_415c008e101ba5 19
+src/main/java/io/github/changlu/openreach/search/provider/BingSearchProvider.java
+  h_415c008e101ba5 29-30
+src/main/java/io/github/changlu/openreach/search/provider/DuckDuckGoSearchProvider.java
+  h_415c008e101ba5 33-35
+src/main/java/io/github/changlu/openreach/web/GlobalExceptionHandler.java
+  h_415c008e101ba5 10,38-42
+src/main/java/io/github/changlu/openreach/web/WebCapabilityController.java
+  h_415c008e101ba5 13,19-20,34-38
+src/main/java/io/github/changlu/openreach/web/WebsiteController.java
+  h_415c008e101ba5 1-27
+src/main/resources/static/assets/site.css
+  h_415c008e101ba5 1-390
+src/main/resources/static/assets/site.js
+  h_415c008e101ba5 1-102
+src/main/resources/static/docs/api.html
+  h_415c008e101ba5 1-136
+src/main/resources/static/docs/index.html
+  h_415c008e101ba5 1-159
+src/main/resources/static/index.html
+  h_415c008e101ba5 1-191
+src/test/java/io/github/changlu/openreach/RegionDefaultTest.java
+  h_415c008e101ba5 1-20
+src/test/java/io/github/changlu/openreach/StaticWebsiteResourceTest.java
+  h_415c008e101ba5 1-57
+src/test/java/io/github/changlu/openreach/WebCapabilityControllerHealthTest.java
+  h_415c008e101ba5 1-16
+src/test/java/io/github/changlu/openreach/WebsiteControllerTest.java
+  h_415c008e101ba5 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e528759012fabfb80ca430e6a10256e2a35f2d92",
+  "prompts": {},
+  "humans": {
+    "h_415c008e101ba5": {
+      "author": "changlu <939974883@qq.com>"
+    }
+  }
+}
