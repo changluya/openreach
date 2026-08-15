@@ -254,3 +254,32 @@ Docker 会根据宿主机 CPU 自动选择 `linux/amd64` 或 `linux/arm64`。
 | 本地镜像启动验收 | `./bin/quick/docker-verify.sh` |
 | 公网接口 Smoke Test | `./bin/quick/smoke-test.sh` |
 | 查看远程架构 | `docker buildx imagetools inspect codercl/openreach:1.0.2` |
+
+---
+
+## 快速打 Tag + 推送远程仓库
+
+以发布 `v1.0.2` 为例，在确认当前分支代码已经提交后执行：
+
+```bash
+# 1. 确认工作区与当前分支
+git status
+git branch --show-current
+
+# 2. 创建带说明的 Release Tag
+git tag -a v1.0.2 -m "OpenReach v1.0.2"
+
+# 3. 推送当前分支到 origin
+git push origin HEAD
+
+# 4. 推送 Tag 到远程仓库
+git push origin v1.0.2
+```
+
+也可以在 Tag 已创建后一次推送当前分支及其关联 Tag：
+
+```bash
+git push origin HEAD --follow-tags
+```
+
+> 发布新版本时只需把 `v1.0.2` 替换成目标版本号。若 Tag 已存在，先确认远端是否已经发布，不建议直接强制覆盖 Release Tag。

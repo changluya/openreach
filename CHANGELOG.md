@@ -4,7 +4,7 @@ OpenReach 的版本更新记录。
 
 本文件从 **v1.0.1** 开始作为正式维护基线，后续版本按 `Added / Changed / Fixed / Security / Known Limitations / Roadmap` 持续记录，避免能力演进只散落在 README、设计文档或提交记录中。
 
-> 版本说明：正式维护口径从 **v1.0.1** 起记录；v1.0.2 已同步 Maven Artifact、README、运行文档与部署示例。`docs/初版本设计方案.md`、早期市场调研等历史文档继续保留其原始 v0.1.1 语境。
+> 版本说明：正式维护口径从 **v1.0.1** 起记录；v1.0.2 已同步 Maven Artifact、README、运行文档与部署示例。`docs/设计方案/v1.0.1设计访问文档.md` 统一收敛首个正式基线设计、渠道与验收口径；早期市场调研继续保留历史语境。
 
 ---
 
@@ -160,7 +160,7 @@ POST /api/web/read
 - `docs/agenthub/接口文档/OpenReach接口文档.md` 已按当前 DTO / Service / `application.yml` / AttackSurfaceFilter 重新对齐参数长度、64 KiB API Body、完整错误码、Provider 上游 Body 限制及图片下载验证配置；
 - 官网 inline theme script 移为 `/assets/theme-init.js`，配合 `script-src 'self'` CSP；
 - `check-project.sh` / `package.sh` 将 Skill Python Test 纳入正式门禁；新增 `build-skill-zip.sh`，打包前自动刷新官网 Skill ZIP，避免 Skill 源码与下载包不一致；
-- `docs/v1.0.2设计落地方案.md` 已迁移到 `docs/设计方案/v1.0.2设计落地方案.md`。
+- 设计文档进一步按版本收敛：v1.0.1 统一为 `docs/设计方案/v1.0.1设计访问文档.md`，v1.0.2 的海外与安全设计统一为 `docs/设计方案/v1.0.2优化（安全+海外）文档.md`。
 
 ### Fixed
 
@@ -236,11 +236,9 @@ mvn clean test
 
 ### Docs
 
-- [`docs/设计方案/v1.0.2设计落地方案.md`](docs/设计方案/v1.0.2设计落地方案.md)
-- [`docs/设计方案/v1.0.2安全加固设计.md`](docs/设计方案/v1.0.2安全加固设计.md)
+- [`docs/设计方案/v1.0.2优化（安全+海外）文档.md`](docs/设计方案/v1.0.2优化（安全+海外）文档.md)
+- [`docs/设计方案/v1.0.1设计访问文档.md`](docs/设计方案/v1.0.1设计访问文档.md)
 - [`docs/核心市场调研分析/03-海外免费渠道深度调研与v1.0.2接入建议.md`](docs/核心市场调研分析/03-海外免费渠道深度调研与v1.0.2接入建议.md)
-- [`docs/当前工程能力与渠道支持.md`](docs/当前工程能力与渠道支持.md)
-- [`docs/核心测试与验收.md`](docs/核心测试与验收.md)
 
 ---
 
@@ -539,7 +537,7 @@ BUILD SUCCESS
 详细文档见：
 
 - [`docs/核心市场调研分析/03-海外免费渠道深度调研与v1.0.2接入建议.md`](docs/核心市场调研分析/03-海外免费渠道深度调研与v1.0.2接入建议.md)
-- [`docs/设计方案/v1.0.2设计落地方案.md`](docs/设计方案/v1.0.2设计落地方案.md)
+- [`docs/设计方案/v1.0.2优化（安全+海外）文档.md`](docs/设计方案/v1.0.2优化（安全+海外）文档.md)
 
 ---
 
