@@ -489,6 +489,16 @@ OpenReach 的目标不是自研 Google SERP 反爬平台。
 
 ---
 
+## 交流群
+
+扫码加入 OpenReach 交流群，一起交流 Agent 联网能力、多 Provider 路由与开源共建：
+
+<div align="center">
+  <img src="docs/设计文档/渠道/wechat.png" alt="OpenReach 交流群" width="260" />
+</div>
+
+---
+
 ## License
 
 当前工程尚未附加正式 `LICENSE`。
