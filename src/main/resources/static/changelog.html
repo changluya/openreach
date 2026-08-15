@@ -38,7 +38,7 @@
       <div class="release-hero-top"><div><span class="release-version">v1.0.2</span><span class="release-latest">Latest</span></div><time datetime="2026-08-15">2026-08-15</time></div>
       <h2>从国内优先链升级为 CN / GLOBAL Web Access Router</h2>
       <p>在 v1.0.1 免费国内链基础上，v1.0.2 增加地区路由、真实时间范围过滤、图片原图可下载门禁，并进一步收敛公网攻击面。默认 Provider Chain 继续坚持零 API Key、零账号依赖、零商业 Search 调用费。</p>
-      <div class="release-metrics"><div><b>3</b><span>核心 HTTP API</span></div><div><b>2</b><span>CN / GLOBAL Route</span></div><div><b>115</b><span>源码测试用例统计</span></div><div><b>0</b><span>默认 Search API Key</span></div></div>
+      <div class="release-metrics"><div><b>3</b><span>核心 HTTP API</span></div><div><b>2</b><span>CN / GLOBAL Route</span></div><div><b>117</b><span>源码测试用例统计</span></div><div><b>0</b><span>默认 Search API Key</span></div></div>
     </section>
 
     <div class="release-highlights">
@@ -89,6 +89,7 @@
         <li>修复 DuckDuckGo 简单 GET 模式脆弱、Bing 固定中国 Host、图片 Locale Header 重复等问题。</li>
         <li>修复图片结果可能返回失效热链、HTML 防盗链页面或伪图片 URL 的质量问题。</li>
         <li>统一处理 Provider null/空结果，让 Auto Chain 可以继续 fallback。</li>
+        <li>修复官网复制按钮在 HTTP / 非安全上下文下失效的问题，增加 Clipboard API → legacy copy 自动降级与明确的成功/失败反馈。</li>
       </ul>
     </section>
 

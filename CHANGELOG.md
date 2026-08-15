@@ -174,15 +174,16 @@ POST /api/web/read
 - 修复 Image Search 可能返回失效热链、HTML 防盗链页或伪图片 URL 的质量问题；
 - 修复公网攻击面过宽：Health/未知 Controller 路径、Multipart 等现在由统一 Filter 默认拒绝；
 - 服务端未知异常不再把原始异常消息直接返回客户端，降低实现细节泄露。
+- 修复官网首页、快速文档与 API 文档复制按钮在 HTTP / 非安全上下文下无响应的问题：优先使用 Clipboard API，受浏览器安全策略限制时自动降级到 selection + `execCommand('copy')`，并增加复制成功/失败状态反馈。
 
 ### Tests
 
 当前源码静态统计：
 
 ```text
-Java @Test              103
+Java @Test              105
 OpenReach Skill Python   12
-合计                    115
+合计                    117
 ```
 
 v1.0.2 新增/扩展覆盖重点：
@@ -202,6 +203,7 @@ v1.0.2 新增/扩展覆盖重点：
 - SSRF：非 80/443、CGNAT、TEST-NET、控制字符、图片 Probe localhost/metadata 拒绝；
 - Wikimedia：imageinfo、source、thumbnail、尺寸、格式、License 与缺失字段容错；
 - 官网 Release Notes：`/changelog` 静态资源打包、Controller Forward、AttackSurface Allowlist、只读 Method 与主导航入口回归；
+- 官网 Copy：Clipboard API 安全上下文路径、HTTP legacy fallback、成功/失败反馈，以及所有 `data-copy` selector 必须指向有效目标节点；
 - v1.0.1 Read / SSRF / Spring / Static Resources 等测试继续保留回归。
 
 本次官网 / 文档维护实际执行：
@@ -214,7 +216,7 @@ HTML / 本地链接 / CSS 括号 / changelog Route + Allowlist 静态校验
 # PASS
 
 源码静态计数
-# Java @Test = 103, Skill Python Test = 12
+# Java @Test = 105, Skill Python Test = 12
 ```
 
 Java 正式门禁仍是：

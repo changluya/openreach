@@ -70,6 +70,34 @@ class StaticWebsiteResourceTest {
 
 
     @Test
+    void copyButtonsSupportHttpFallbackAndVisibleFeedback() throws IOException {
+        String script = read("static/assets/site.js");
+        String style = read("static/assets/site.css");
+        assertTrue(script.contains("window.isSecureContext"));
+        assertTrue(script.contains("navigator.clipboard.writeText"));
+        assertTrue(script.contains("document.execCommand('copy')"));
+        assertTrue(script.contains("legacyCopyText"));
+        assertTrue(script.contains("复制失败"));
+        assertTrue(style.contains(".copy-btn.is-success"));
+        assertTrue(style.contains(".copy-btn.is-error"));
+    }
+
+    @Test
+    void everyCopyButtonPointsToAnExistingElement() throws IOException {
+        for (String resource : new String[]{"static/index.html", "static/docs/index.html", "static/docs/api.html"}) {
+            String html = read(resource);
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("data-copy=\"#([^\"]+)\"").matcher(html);
+            int count = 0;
+            while (matcher.find()) {
+                count++;
+                String id = matcher.group(1);
+                assertTrue(html.contains("id=\"" + id + "\""), resource + " missing copy target #" + id);
+            }
+            assertTrue(count > 0, resource + " should contain at least one copy button");
+        }
+    }
+
+    @Test
     void websiteExposesLatestChangelogNavigation() throws IOException {
         String home = read("static/index.html");
         String docs = read("static/docs/index.html");

@@ -73,14 +73,14 @@
 
     <h2>1. Docker 一键启动（推荐）</h2>
     <p>最快的体验方式。不需要 Clone 项目，也不依赖 Compose 文件；只要本机已安装 Docker，复制下面一条命令即可启动：</p>
-    <div class="codebox"><button class="copy-btn" data-copy="#docker-run">复制</button><pre id="docker-run">docker run -d \
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#docker-run">复制</button><pre id="docker-run">docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
   codercl/openreach:latest</pre></div>
     <p>启动完成后直接访问：</p>
     <ul><li>官网：<code>http://localhost:8080/</code></li><li>文档：<code>http://localhost:8080/docs/</code></li><li>API Base URL：<code>http://localhost:8080/api/web</code></li></ul>
-    <div class="codebox"><button class="copy-btn" data-copy="#docker-manage">复制</button><pre id="docker-manage"># 查看容器
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#docker-manage">复制</button><pre id="docker-manage"># 查看容器
 docker ps --filter name=openreach
 
 # 查看日志
@@ -92,20 +92,20 @@ docker rm -f openreach</pre></div>
 
     <h2>2. Docker Compose（可选）</h2>
     <p>如果你已经 Clone 了工程，或者希望用配置文件管理容器，可以继续使用项目内置 Compose：</p>
-    <div class="codebox"><button class="copy-btn" data-copy="#compose">复制</button><pre id="compose">docker compose up -d
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#compose">复制</button><pre id="compose">docker compose up -d
 
 docker compose ps
 docker compose logs -f openreach</pre></div>
 
     <h2>3. 源码启动</h2>
     <p>适合开发、调试和二次开发。要求 JDK 17+、Maven 3.9+。</p>
-    <div class="codebox"><button class="copy-btn" data-copy="#source-run">复制</button><pre id="source-run">mvn clean test
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#source-run">复制</button><pre id="source-run">mvn clean test
 mvn spring-boot:run</pre></div>
     <div class="note">OpenReach 默认监听 <code>8080</code> 端口。启动后 Spring Boot 会直接托管官网和文档静态资源。</div>
 
     <h2>4. 第一次调用</h2>
     <h3>搜索网页</h3>
-    <div class="codebox"><button class="copy-btn" data-copy="#search-curl">复制</button><pre id="search-curl">curl -X POST 'http://localhost:8080/api/web/search' \
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#search-curl">复制</button><pre id="search-curl">curl -X POST 'http://localhost:8080/api/web/search' \
   -H 'Content-Type: application/json' \
   -d '{
     "query": "Spring Boot AI Agent",
@@ -115,7 +115,7 @@ mvn spring-boot:run</pre></div>
     "timeRange": "any"
   }'</pre></div>
     <h3>文搜图</h3>
-    <div class="codebox"><button class="copy-btn" data-copy="#image-curl">复制</button><pre id="image-curl">curl -X POST 'http://localhost:8080/api/web/image-search' \
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#image-curl">复制</button><pre id="image-curl">curl -X POST 'http://localhost:8080/api/web/image-search' \
   -H 'Content-Type: application/json' \
   -d '{
     "query": "杭州西湖夜景",
@@ -124,7 +124,7 @@ mvn spring-boot:run</pre></div>
     "provider": "auto"
   }'</pre></div>
     <h3>读取网页</h3>
-    <div class="codebox"><button class="copy-btn" data-copy="#read-curl">复制</button><pre id="read-curl">curl -X POST 'http://localhost:8080/api/web/read' \
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#read-curl">复制</button><pre id="read-curl">curl -X POST 'http://localhost:8080/api/web/read' \
   -H 'Content-Type: application/json' \
   -d '{
     "url": "https://spring.io/projects/spring-boot/",
@@ -133,7 +133,7 @@ mvn spring-boot:run</pre></div>
 
     <h2>5. 使用 OpenReach Skill / Python CLI</h2>
     <p>项目根目录内置 <code>skills/openreach/</code>，官网也提供 ZIP 一键下载。CLI 只依赖 Python 标准库，不需要额外安装 requests。</p>
-    <div class="codebox"><button class="copy-btn" data-copy="#skill-cli">复制</button><pre id="skill-cli">export OPENREACH_BASE_URL=http://localhost:8080
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#skill-cli">复制</button><pre id="skill-cli">export OPENREACH_BASE_URL=http://localhost:8080
 
 python3 skills/openreach/scripts/openreach.py search "AI Agent" --region US --provider auto --time-range month --limit 5
 python3 skills/openreach/scripts/openreach.py image-search "杭州西湖" --region auto --provider auto --limit 8
@@ -146,12 +146,12 @@ python3 skills/openreach/scripts/openreach.py read "https://spring.io/projects/s
     
     <h2 id="skill">下载并初始化 OpenReach Skill</h2>
     <p>Agent 判断是否已经初始化时，只执行一次 <code>check</code>。它先检查 Skill 的 <code>config.json</code>；不存在则 0 次网络请求直接返回未初始化，并要求 Agent 向用户索要服务地址；存在则只做 1 次无副作用 API 探测。用户未提供地址前禁止猜测地址、扫描端口、自动创建配置或自行调用 init。</p>
-    <div class="codebox"><button class="copy-btn" data-copy="#skill-init">复制</button><pre id="skill-init">python3 scripts/openreach.py check
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#skill-init">复制</button><pre id="skill-init">python3 scripts/openreach.py check
 
 # 只有用户明确给出服务地址并要求初始化时才执行
 python3 scripts/openreach.py init '&lt;OPENREACH_BASE_URL&gt;'</pre></div>
     <p><code>check</code> 的唯一网络探测是 <code>POST /api/web/search</code> + 空 JSON，预期在本地参数校验阶段返回 <code>400 / VALIDATION_ERROR</code>，不会执行真实搜索或访问上游 Provider。check 成功后，本次任务直接使用 Search / Image Search / Read；<code>doctor</code> 只用于人工排障。</p>
-    <div class="codebox"><button class="copy-btn" data-copy="#skill-search">复制</button><pre id="skill-search">python3 scripts/openreach.py search "OpenReach AI Agent" \
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#skill-search">复制</button><pre id="skill-search">python3 scripts/openreach.py search "OpenReach AI Agent" \
   --region US \
   --provider auto \
   --time-range month \

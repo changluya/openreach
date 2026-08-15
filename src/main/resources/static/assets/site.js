@@ -59,6 +59,101 @@
     if (qrLastTrigger) qrLastTrigger.focus();
   }
 
+
+  function legacyCopyText(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.setAttribute('aria-hidden', 'true');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+
+    const selection = document.getSelection ? document.getSelection() : null;
+    const savedRanges = [];
+    if (selection) {
+      for (let i = 0; i < selection.rangeCount; i += 1) {
+        savedRanges.push(selection.getRangeAt(i));
+      }
+    }
+
+    try {
+      textarea.focus({ preventScroll: true });
+    } catch (e) {
+      textarea.focus();
+    }
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+
+    let copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } catch (e) {
+      copied = false;
+    }
+
+    document.body.removeChild(textarea);
+    if (selection) {
+      selection.removeAllRanges();
+      savedRanges.forEach((range) => selection.addRange(range));
+    }
+    return copied;
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (e) {
+        // Clipboard API may still be rejected by browser permissions/policy.
+        // Fall through to the legacy selection-based copy path.
+      }
+    }
+    return legacyCopyText(text);
+  }
+
+  function showCopyResult(button, success) {
+    const original = button.dataset.copyLabel || button.textContent || '复制';
+    button.dataset.copyLabel = original;
+    button.textContent = success ? '已复制' : '复制失败';
+    button.classList.toggle('is-success', success);
+    button.classList.toggle('is-error', !success);
+    button.setAttribute('aria-live', 'polite');
+    button.setAttribute('aria-label', success ? '复制成功' : '复制失败，请手动选择文本复制');
+
+    window.setTimeout(() => {
+      button.textContent = original;
+      button.classList.remove('is-success', 'is-error');
+      button.setAttribute('aria-label', original);
+    }, success ? 1400 : 2200);
+  }
+
+  async function copyFromButton(button) {
+    const selector = button.dataset.copy;
+    if (!selector) {
+      showCopyResult(button, false);
+      return;
+    }
+
+    let target = null;
+    try {
+      target = document.querySelector(selector);
+    } catch (e) {
+      target = null;
+    }
+    if (!target) {
+      showCopyResult(button, false);
+      return;
+    }
+
+    const text = target.textContent || '';
+    const success = await copyText(text);
+    showCopyResult(button, success);
+  }
+
   document.addEventListener('click', (event) => {
     const qrTrigger = event.target.closest('[data-qr-preview]');
     if (qrTrigger) {
@@ -79,15 +174,7 @@
 
     const button = event.target.closest('[data-copy]');
     if (!button) return;
-    const target = document.querySelector(button.dataset.copy);
-    if (!target) return;
-    const text = target.innerText;
-    if (!navigator.clipboard) return;
-    navigator.clipboard.writeText(text).then(() => {
-      const old = button.textContent;
-      button.textContent = '已复制';
-      setTimeout(() => button.textContent = old, 1200);
-    });
+    copyFromButton(button);
   });
 
   document.querySelectorAll('[data-doc-select]').forEach((select) => {

@@ -163,6 +163,8 @@ html[data-theme="dark"] .skill-banner { background: linear-gradient(135deg, #111
 .codebox pre { margin: 0; color: var(--code-text); font: 13px/1.72 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space: pre-wrap; word-break: break-word; }
 .copy-btn { position: absolute; right: 10px; top: 10px; border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.075); color: #d4deec; border-radius: 8px; padding: 5px 9px; font-size: 11px; cursor: pointer; z-index: 2; }
 .copy-btn:hover { background: rgba(255,255,255,.13); }
+.copy-btn.is-success { border-color: rgba(96, 211, 148, .55); background: rgba(54, 179, 126, .18); color: #c9f7dd; }
+.copy-btn.is-error { border-color: rgba(255, 120, 120, .55); background: rgba(220, 72, 72, .18); color: #ffd0d0; }
 .provider-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .pill { padding: 9px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-solid); color: var(--muted-strong); font-size: 13px; font-weight: 680; box-shadow: var(--shadow-xs); }
 .pipeline { display: flex; align-items: stretch; gap: 10px; overflow-x: auto; padding-bottom: 3px; }
