@@ -1,7 +1,7 @@
 # ImageSearch 核心流程设计
 
 > 接口：`POST /api/web/image-search`
-> 当前版本：**OpenReach v1.0.2**
+> 当前版本：**OpenReach v0.1.2**
 
 ---
 
@@ -55,7 +55,7 @@ wikimedia
 
 ---
 
-## 3. v1.0.2 Route-aware Image Search
+## 3. v0.1.2 Route-aware Image Search
 
 ```text
 region
@@ -145,7 +145,7 @@ license/license_url
 
 ### Wikimedia Commons
 
-v1.0.2 新增：
+v0.1.2 新增：
 
 ```text
 WikimediaImageSearchProvider
@@ -177,7 +177,7 @@ LicenseUrl.value         -> licenseUrl
 
 ---
 
-## 7. 为什么 v1.0.2 不默认接 Brave Images
+## 7. 为什么 v0.1.2 不默认接 Brave Images
 
 Brave Images 虽无需 Key，但当前 Web Interface 的图片数据主要来自内嵌 Svelte/JS 状态，不像 Brave Web 可以直接依赖清晰 HTML Result Block。
 
@@ -201,7 +201,7 @@ Brave Images 虽无需 Key，但当前 Web Interface 的图片数据主要来自
 
 ## 8. 可下载图片质量门禁
 
-Provider 返回的 `imageUrl` 只是候选，不能直接视为可用图片。v1.0.2 在 Service 聚合层强制增加：
+Provider 返回的 `imageUrl` 只是候选，不能直接视为可用图片。v0.1.2 在 Service 聚合层强制增加：
 
 ```text
 候选 over-fetch
@@ -250,7 +250,7 @@ provider-order:
 
 仍可作为 CN Route fallback 配置使用。
 
-v1.0.2 默认采用兼容配置：
+v0.1.2 默认采用兼容配置：
 
 ```yaml
 provider-order: [bing, baidu, sogou, openverse]

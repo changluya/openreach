@@ -44,14 +44,19 @@ python3 scripts/openreach.py read "https://spring.io/projects/spring-boot/" --ma
 
 详细 Agent Search SOP 见 [SKILL.md](SKILL.md)。
 
-## v1.0.2 Route
+## v0.1.2 Route
 
 `region=auto` 默认走 CN；`CN/zh-CN` 等走国内链，其他显式地区如 `US/JP/SG/GLOBAL` 走 GLOBAL 免费链。Web GLOBAL 默认 `brave -> duckduckgo -> bing`，Image GLOBAL 默认 `bing -> openverse -> wikimedia`。
 
-## v1.0.2 时间范围、图片可下载与初始化检查
+## v0.1.2 时间范围、图片可下载与初始化检查
 
 - Web Search：`--time-range any|day|week|month|year`，对应 HTTP `timeRange`。指定时间范围后只使用真正支持该过滤的 Provider。
 - Image Search：返回的 `imageUrl` 均在响应生成时通过公网 SSRF、跳转、HTTP 状态与图片字节签名探测，可直接作为下载目标。
 - Init Check：只检查 `config.json` + 1 次无副作用 API 探测；禁止多余初始化动作。
 - Doctor：只读官网 `GET /`，仅人工排障使用，不额外开放 Health API。
 - 安全边界：服务业务面仅包含 Search / Image Search / Read 三个 JSON POST API，不支持文件上传。
+
+
+## 连接失败快速判断
+
+如果 Search / Read / Image Search 统一出现 `All connection attempts failed`（或 Skill 报 `Cannot reach OpenReach at ...`），并且没有 OpenReach 后端 `traceId`，说明请求没有到 OpenReach。不要继续换 query、Provider 或目标 URL 重试；应检查已配置 `base_url` 是否从当前 Agent/Tool Runner 环境真实可达。容器/沙箱中的 `localhost` 指向当前容器自身，不代表 OpenReach。

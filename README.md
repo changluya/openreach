@@ -14,7 +14,7 @@
   <img alt="Spring Boot 4.1" src="https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white" />
   <img alt="Maven 3.9+" src="https://img.shields.io/badge/Maven-3.9%2B-C71A36?logo=apachemaven&logoColor=white" />
   <img alt="Docker Ready" src="https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white" />
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.2-blue" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.1.2-blue" />
 </p>
 
 <p align="center">
@@ -44,7 +44,7 @@ read(url)            -> 读取网页 / 提取正文与元数据
 
 > **Agent 依赖稳定的能力接口，不依赖具体搜索厂商。**
 
-当前 v1.0.2 同时覆盖国内与海外零 Key 场景：`provider=auto` 时复用现有 `region` 参数，通过 `SearchRouteResolver + ProviderChainResolver` 选择 **CN / GLOBAL** Provider Chain；默认 `region=auto` 仍走 CN，保持 v1.0.1 兼容。工程不要求 Serper、Tavily、Brave API 等商业 Search Key 即可启动。
+当前 v0.1.2 同时覆盖国内与海外零 Key 场景：`provider=auto` 时复用现有 `region` 参数，通过 `SearchRouteResolver + ProviderChainResolver` 选择 **CN / GLOBAL** Provider Chain；默认 `region=auto` 仍走 CN，保持 v1.0.1 兼容。工程不要求 Serper、Tavily、Brave API 等商业 Search Key 即可启动。
 
 > Web Search 的 Bing / 百度 / 搜狗 / 360 / Brave / DuckDuckGo 主要基于公开搜索页面做 best-effort 解析，不属于对应厂商商业 Search API，因此不承诺商业 SLA。Openverse 与 Wikimedia Commons 使用公开读接口。
 
@@ -78,7 +78,7 @@ read(url)            -> 读取网页 / 提取正文与元数据
 | HTML / SSR 网页读取 | ✅ | 当前 Read 核心场景 |
 | Provider 自动降级 | ✅ | 超时、解析失败、空结果时继续下一 Provider |
 | Region 参数 | ✅ | `CN` aliases 走 CN；其他显式地区走 GLOBAL；`auto` 默认 CN |
-| Pagination | ❌ | v1.0.2 仍聚焦首屏 / Top-N |
+| Pagination | ❌ | v0.1.2 仍聚焦首屏 / Top-N |
 | Search 时间范围 | ✅ | `timeRange=any/day/week/month/year`；auto 只调用真正支持该过滤的 Provider |
 | 精确 Geo | ❌ | 不承诺商业级地理定位 |
 | Knowledge Graph / Shopping / Places | ❌ | 后续以垂直 Provider 扩展 |
@@ -124,7 +124,7 @@ Agent 总结、问答、对比、引用或继续深度检索
 
 > **微信公众号说明：** OpenReach 可以对公开可访问的微信文章 URL 尝试执行 `read`；也可以通过 Web Search 尝试发现已经被搜索引擎收录的微信公众号文章。实际可发现性取决于搜索引擎收录情况，页面能否读取则取决于微信页面当时的访问策略、反爬限制和网络环境，因此属于 best-effort 能力，不承诺所有公众号文章都能稳定搜索或读取。
 
-> 对于需要登录、验证码、强 JavaScript 渲染或严格反爬的页面，当前 v1.0.2 的静态 HTTP Reader 可能无法完整读取，后续计划通过 Playwright / Browser Reader 扩展动态页面能力。
+> 对于需要登录、验证码、强 JavaScript 渲染或严格反爬的页面，当前 v0.1.2 的静态 HTTP Reader 可能无法完整读取，后续计划通过 Playwright / Browser Reader 扩展动态页面能力。
 
 ---
 
@@ -380,9 +380,11 @@ state = check_initialized()  # 每个任务只需一次，成功后直接调用�
 results = search("OpenReach AI Agent", region="US", provider="auto", time_range="month", limit=5)
 ```
 
-`search` / `image-search` 的 `region` 默认均为 **`auto`**，省略时等价于 `auto`。v1.0.2 中它先参与核心路由：`CN / zh-CN / zh_CN / cn-zh / zh-Hans-CN / china` 进入 CN 链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 链；之后原始 `region` 再作为 Provider 的 country / locale Hint。`auto` 默认仍为 CN，可通过 `openreach.web.routing.default-route` 调整。
+`search` / `image-search` 的 `region` 默认均为 **`auto`**，省略时等价于 `auto`。v0.1.2 中它先参与核心路由：`CN / zh-CN / zh_CN / cn-zh / zh-Hans-CN / china` 进入 CN 链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 链；之后原始 `region` 再作为 Provider 的 country / locale Hint。`auto` 默认仍为 CN，可通过 `openreach.web.routing.default-route` 调整。
 
 Web Search 新增 **`timeRange`**：`any/day/week/month/year`，并兼容常见 `d/w/m/y`、`pd/pw/pm/py`、`qdr:*` 写法。指定时间范围后，`provider=auto` 会跳过不支持真实上游时间过滤的 Provider，避免参数被静默忽略。当前内置百度 Web 支持 `day/week/month/year`，Bing Web 已验证 `day/week/month`，Brave / DuckDuckGo 支持完整时间过滤；Bing `year` 因免费网页链路暂无稳定可验证参数而不会伪造支持。
+
+为兼容早期 v0.1.2 仅配置 `duckduckgo/brave` 的部署，restricted `timeRange` 会在运行期自动恢复当前已验证的 Baidu/Bing 能力链，并在启动日志打印 `runtime_capabilities`。免费 SERP 命中 `429 / Bot Challenge / 403` 后会进入短期 Provider cooldown，避免同一出口连续撞限流；Read 则将建连超时与单次请求超时拆分，并仅对 GET 网络 I/O 做一次有界重试，HTTP 4xx/5xx 不盲目重试。
 
 Image Search 现在对候选 `imageUrl` 做 **SSRF 安全 + 重定向 + HTTP 状态 + 图片字节签名**即时探测；只有响应生成时可直接下载的被动图片格式才会进入最终 `items`。失效热链、403/404、HTML/伪图片与 SVG 会被过滤，并继续尝试后续 Provider 补足结果。
 
@@ -523,6 +525,7 @@ openreach/
 | 本地 Docker 构建 | `./bin/quick/docker-build.sh` |
 | 本地镜像启动验收 | `./bin/quick/docker-verify.sh` |
 | 公网接口 Smoke Test | `./bin/quick/smoke-test.sh` |
+| 调用方到 OpenReach 连接诊断 | `BASE_URL=<Tool Runner 可访问地址> ./bin/quick/connectivity-test.sh` |
 | 应用自身 HTTP QPS 基准 | `./bin/quick/qps-unit-test.sh` |
 | 已启动服务真实 QPS 压测 | `BASE_URL=http://127.0.0.1:8080 ./bin/quick/qps-test.sh` |
 | 一键发布 Docker Hub | `./bin/quick/release.sh` |
@@ -546,15 +549,17 @@ openreach/
 
 - [ChatGPT 搜索实现与 WebSearch 能力分析](docs/核心市场调研分析/01-ChatGPT搜索实现与WebSearch能力分析.md)
 - [Serper.dev 能力深度分析拆解](docs/核心市场调研分析/02-Serper.dev能力深度分析拆解.md)
-- [海外免费渠道深度调研与 v1.0.2 接入结论](docs/核心市场调研分析/03-海外免费渠道深度调研与v1.0.2接入建议.md)
+- [海外免费渠道深度调研与 v0.1.2 接入结论](docs/核心市场调研分析/03-海外免费渠道深度调研与v0.1.2接入建议.md)
+- [Bing 与百度免费 WebSearch 时间过滤实测调研](docs/核心市场调研分析/04-Bing与百度免费WebSearch时间过滤实测调研.md)
 - [早期第一版调研方案](docs/核心市场调研分析/早期第一版调研方案.md)
 
 ### 工程、测试与能力说明
 
 - [v1.0.1 设计访问文档](docs/设计方案/v1.0.1设计访问文档.md)
-- [v1.0.2 优化（安全 + 海外）文档](docs/设计方案/v1.0.2优化（安全+海外）文档.md)
-- [v1.0.2 请求异常诊断与日志可观测优化方案](docs/设计方案/v1.0.2请求异常诊断与日志可观测优化方案.md)
-- [v1.0.2 并发 QPS 压测与容量评估方案](docs/设计方案/v1.0.2并发QPS压测与容量评估方案.md)
+- [v0.1.2 优化（安全 + 海外）文档](docs/设计方案/v0.1.2优化（安全+海外）文档.md)
+- [v0.1.2 请求异常诊断与日志可观测优化方案](docs/设计方案/v0.1.2请求异常诊断与日志可观测优化方案.md)
+- [v0.1.2 并发 QPS 压测与容量评估方案](docs/设计方案/v0.1.2并发QPS压测与容量评估方案.md)
+- [v0.1.2 连接失败与 Tool Runner 网络诊断方案](docs/设计方案/v0.1.2连接失败与ToolRunner网络诊断方案.md)
 - [接口测试与 Curl 示例](docs/接口测试与Curl示例.md)
 
 ### 部署与发布
@@ -575,6 +580,8 @@ openreach/
 ```text
 docs/agenthub/skills/openreach-http-plugin.json
 ```
+
+> **容器 / 沙箱注意：** Plugin 的 `BASE_URL` 必须是 **AgentHub / Tool Runner 所在环境可以访问** 的 OpenReach 地址。不要把 `localhost:8080` 当成跨容器默认值；Tool Runner 在另一个容器时，`localhost` 指向 Tool Runner 自身。若两个容器在同一 Docker Network，可使用 `http://openreach:8080`（以实际 Service/Container 名称为准）。出现裸 `All connection attempts failed` 且没有 OpenReach `traceId` 时，先运行 `BASE_URL=<实际地址> ./bin/quick/connectivity-test.sh`。
 
 三个核心能力可以直接封装为 Agent Tool：
 
@@ -597,7 +604,7 @@ v1.0.1
 ├── SSRF / Docker / Skill / Plugin    ✅
 └── 测试基线                          ✅
 
-v1.0.2
+v0.1.2
 ├── CN / GLOBAL Region Router        ✅
 ├── Brave Web                        ✅
 ├── DuckDuckGo no-JS POST 强化       ✅
@@ -626,7 +633,7 @@ OpenReach 的目标不是自研 Google SERP 反爬平台。
 
 当前免费 Provider 通过多渠道容错降低单一上游 DOM 改版、限流、网络出口变化带来的影响，但仍属于 **best-effort** 能力。
 
-v1.0.2 默认链严格坚持 **零 API Key / 零账号依赖**。未来如果某个部署方自行需要商业 SLA，可以通过 `SearchProvider` SPI 以可选扩展接入，但不会改变 OpenReach 默认免费开箱路径；项目也不会建设账号池、Cookie 池、住宅代理池或 CAPTCHA 绕过体系。
+v0.1.2 默认链严格坚持 **零 API Key / 零账号依赖**。未来如果某个部署方自行需要商业 SLA，可以通过 `SearchProvider` SPI 以可选扩展接入，但不会改变 OpenReach 默认免费开箱路径；项目也不会建设账号池、Cookie 池、住宅代理池或 CAPTCHA 绕过体系。
 
 ---
 

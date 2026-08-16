@@ -34,6 +34,28 @@ class WebCapabilityPropertiesTest {
     }
 
     @Test
+    void readTimeoutCompatibilityAndRetryDefaultsAreBounded() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        assertEquals(10_000, props.getRead().effectiveConnectTimeoutMs());
+        assertEquals(10_000, props.getRead().effectiveRequestTimeoutMs());
+        assertEquals(2, props.getRead().effectiveMaxAttempts());
+        assertEquals(200, props.getRead().effectiveRetryBackoffMs());
+
+        props.getRead().setTimeoutMs(12_000);
+        assertEquals(12_000, props.getRead().effectiveConnectTimeoutMs());
+        assertEquals(12_000, props.getRead().effectiveRequestTimeoutMs());
+
+        props.getRead().setConnectTimeoutMs(7_000);
+        props.getRead().setRequestTimeoutMs(15_000);
+        props.getRead().setMaxAttempts(0);
+        props.getRead().setRetryBackoffMs(-1);
+        assertEquals(7_000, props.getRead().effectiveConnectTimeoutMs());
+        assertEquals(15_000, props.getRead().effectiveRequestTimeoutMs());
+        assertEquals(1, props.getRead().effectiveMaxAttempts());
+        assertEquals(0, props.getRead().effectiveRetryBackoffMs());
+    }
+
+    @Test
     void imageSearchDoesNotExposeSearchOnlyTimeRangeProviderOrder() {
         assertThrows(NoSuchMethodException.class,
                 () -> WebCapabilityProperties.ImageSearch.class.getMethod("getCnTimeRangeProviderOrder"));

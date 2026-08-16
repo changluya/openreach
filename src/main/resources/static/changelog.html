@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="OpenReach 更新日志：查看 v1.0.2、v1.0.1 的新增能力、修复、安全加固与测试变化。" />
+  <meta name="description" content="OpenReach 更新日志：查看 v0.1.2、v1.0.1 的新增能力、修复、安全加固与测试变化。" />
   <title>更新日志 · OpenReach</title>
   <link rel="icon" href="/assets/logo-mark.png" />
   <link rel="stylesheet" href="/assets/site.css" />
@@ -22,7 +22,7 @@
     <a class="active" href="/changelog">3. 更新日志</a>
     <div class="sidebar-project">
       <div class="label">版本</div>
-      <a href="#v1-0-2">v1.0.2 · 最新</a>
+      <a href="#v1-0-2">v0.1.2 · 最新</a>
       <a href="#v1-0-1">v1.0.1 · 基线</a>
       <a class="sidebar-github" href="https://github.com/changluya/openreach/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md ↗</a>
     </div>
@@ -35,10 +35,10 @@
     <p class="lead">OpenReach 从 <strong>v1.0.1</strong> 开始正式维护版本记录。这里按当前工程 <code>CHANGELOG.md</code> 展示用户真正需要关注的能力变化、安全边界和兼容信息。</p>
 
     <section class="release-hero" id="v1-0-2">
-      <div class="release-hero-top"><div><span class="release-version">v1.0.2</span><span class="release-latest">Latest</span></div><time datetime="2026-08-15">2026-08-15</time></div>
+      <div class="release-hero-top"><div><span class="release-version">v0.1.2</span><span class="release-latest">Latest</span></div><time datetime="2026-08-15">2026-08-15</time></div>
       <h2>从国内优先链升级为 CN / GLOBAL Web Access Router</h2>
-      <p>在 v1.0.1 免费国内链基础上，v1.0.2 增加地区路由、真实时间范围过滤、图片原图可下载门禁，并进一步收敛公网攻击面。默认 Provider Chain 继续坚持零 API Key、零账号依赖、零商业 Search 调用费。</p>
-      <div class="release-metrics"><div><b>3</b><span>核心 HTTP API</span></div><div><b>2</b><span>CN / GLOBAL Route</span></div><div><b>138</b><span>声明测试 Case</span></div><div><b>0</b><span>默认 Search API Key</span></div></div>
+      <p>在 v1.0.1 免费国内链基础上，v0.1.2 增加地区路由、真实时间范围过滤、图片原图可下载门禁，并进一步收敛公网攻击面。默认 Provider Chain 继续坚持零 API Key、零账号依赖、零商业 Search 调用费。</p>
+      <div class="release-metrics"><div><b>3</b><span>核心 HTTP API</span></div><div><b>2</b><span>CN / GLOBAL Route</span></div><div><b>150</b><span>声明测试 Case</span></div><div><b>0</b><span>默认 Search API Key</span></div></div>
     </section>
 
     <div class="release-highlights">
@@ -67,6 +67,7 @@
       <ul>
         <li>Skill 初始化检查收敛为只读 <code>check</code>：配置不存在时 0 次网络请求；配置存在时最多 1 次无副作用 API 探测。</li>
         <li>Skill / README / 官网统一使用 <code>&lt;OPENREACH_BASE_URL&gt;</code> 占位符，不再提供容易被误判为默认值的示例私网 IP。</li>
+        <li>AgentHub HTTP Plugin 不再默认 <code>localhost:8080</code>，导入时必须显式配置 Tool Runner 可访问的 <code>BASE_URL</code>；新增 caller-side DNS/TCP/API 连接诊断脚本，并兼容 <code>time_range</code> / <code>max_chars</code> snake_case 参数。</li>
         <li>Search / Image Search 改为 Route-aware Provider Chain，同时保留 v1.0.1 <code>provider-order</code> 的 CN 兼容策略。</li>
         <li>Bing Web / Images 可以按 Route 自动切换中国与全球 Host。</li>
         <li>官网 Theme 初始化脚本改为外部静态文件，以配合更严格 CSP。</li>
@@ -92,13 +93,15 @@
         <li>修复 DuckDuckGo 简单 GET 模式脆弱、Bing 固定中国 Host、图片 Locale Header 重复等问题。</li>
         <li>修复图片结果可能返回失效热链、HTML 防盗链页面或伪图片 URL 的质量问题。</li>
         <li>统一处理 Provider null/空结果，让 Auto Chain 可以继续 fallback。</li>
+        <li>修复早期 timeRange 仅配置 DuckDuckGo/Brave 时的运行时退化：自动恢复 Baidu/Bing 能力，并对 429 / Bot Challenge / 403 增加短期 Provider cooldown。</li>
+        <li>Read 对瞬时连接超时增加一次有界 GET 重试，并将 connect/request timeout 拆分配置；HTTP 4xx/5xx 不盲目重试。</li>
         <li>修复官网复制按钮在 HTTP / 非安全上下文下失效的问题，增加 Clipboard API → legacy copy 自动降级与明确的成功/失败反馈。</li>
       </ul>
     </section>
 
     <section class="release-section">
       <h2>Compatibility & Limitations</h2>
-      <div class="note"><strong>兼容：</strong>旧部署如果只配置 <code>provider-order</code>，v1.0.2 的 CN Route 仍会继承旧顺序；GLOBAL 使用独立配置，不会污染原国内链。</div>
+      <div class="note"><strong>兼容：</strong>旧部署如果只配置 <code>provider-order</code>，v0.1.2 的 CN Route 仍会继承旧顺序；GLOBAL 使用独立配置，不会污染原国内链。</div>
       <ul>
         <li>Brave / DuckDuckGo / Bing 免费 Web SERP 仍属于 best-effort，可能受 DOM 改版、403/429、CAPTCHA 与网络出口影响。</li>
         <li>当前不提供 Search Pagination、商业级 Geo、账号池、代理池或 CAPTCHA 绕过。</li>
@@ -110,7 +113,7 @@
       <div class="release-entry-head"><div><span class="release-version secondary">v1.0.1</span><span class="release-baseline">Maintenance Baseline</span></div><time datetime="2026-08-15">2026-08-15</time></div>
       <h2>首个正式维护基线</h2>
       <p>确立 Search、Image Search、Read 三个 Agent Web 原语，引入免费 Provider 自动降级、Provider SPI、Read SSRF 防护、内置官网、Agent Skill、AgentHub HTTP Plugin 与 Docker 一键部署。</p>
-      <div class="note"><strong>历史说明：</strong>v1.0.1 曾提供 <code>GET /api/web/health</code>；该接口已在 v1.0.2 的公网攻击面收敛中移除，当前部署不要再依赖它。</div>
+      <div class="note"><strong>历史说明：</strong>v1.0.1 曾提供 <code>GET /api/web/health</code>；该接口已在 v0.1.2 的公网攻击面收敛中移除，当前部署不要再依赖它。</div>
       <div class="release-columns">
         <div><h3>Web Search</h3><p>Bing → 百度 → 搜狗 → 360 → DuckDuckGo，支持 Auto fallback、URL 去重和显式 Provider 诊断。</p></div>
         <div><h3>Image Search</h3><p>Bing Images → 百度图片 → 搜狗图片 → Openverse，统一图片与 License 元数据模型。</p></div>

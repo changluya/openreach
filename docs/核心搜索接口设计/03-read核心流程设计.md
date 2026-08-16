@@ -1,7 +1,7 @@
 # Read 核心流程设计
 
 > 对应接口：`POST /api/web/read`
-> 当前版本：OpenReach v1.0.2
+> 当前版本：OpenReach v0.1.2
 > 核心目标：安全读取指定公网 URL，并把 HTML 转换为适合 Agent 消费的正文、元数据和链接。
 
 ---
@@ -259,7 +259,12 @@ maxChars
 
 ```yaml
 read:
+  # 兼容旧配置；新版本拆分连接与单次请求总超时
   timeout-ms: 10000
+  connect-timeout-ms: 7000
+  request-timeout-ms: 15000
+  max-attempts: 2
+  retry-backoff-ms: 200
   max-bytes: 5242880
   max-chars: 50000
   max-redirects: 5
@@ -272,6 +277,8 @@ read:
 避免 Agent Context 无意义膨胀
 避免下载大型二进制文件
 ```
+
+对于 `HTTP connect timed out`、连接重置等幂等 GET 网络 IO，默认允许 **1 次有界重试（总 2 次）**；`403/404/429/5xx` 等已经收到 HTTP 响应的场景不自动盲目重试，避免扩大上游压力。每次尝试都会在 upstream 日志记录 `attempt/maxAttempts`。
 
 ---
 

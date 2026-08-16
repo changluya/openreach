@@ -52,6 +52,10 @@ openreach:
         - duckduckgo
         - baidu
       timeout-ms: 6000
+      # 免费 SERP 命中 429 / CAPTCHA / 403 后短期冷却，避免同一出口连续撞限流。
+      rate-limit-cooldown-ms: 60000
+      bot-challenge-cooldown-ms: 60000
+      forbidden-cooldown-ms: 30000
       max-results: 20
       # Provider HTML/JSON 上游响应硬上限，防止异常上游造成无界内存占用。
       max-response-bytes: 2097152
@@ -73,7 +77,7 @@ openreach:
         - openverse
       # 默认留空并继承 provider-order，保持 v1.0.1 外部配置兼容。
       cn-provider-order: []
-      # v1.0.2 海外图片 P0 只使用结构更稳定的无 Key 渠道。
+      # v0.1.2 海外图片 P0 只使用结构更稳定的无 Key 渠道。
       global-provider-order:
         - bing
         - openverse
@@ -91,7 +95,7 @@ openreach:
       openverse-url: https://api.openverse.org/v1/images/
       wikimedia-url: https://commons.wikimedia.org/w/api.php
       # Wikimedia 请求要求可识别 User-Agent；可按实际部署地址覆盖。
-      wikimedia-user-agent: OpenReach/1.0.2 (+https://github.com/changluya/openreach)
+      wikimedia-user-agent: OpenReach/0.1.2 (+https://github.com/changluya/openreach)
       # 强制可下载校验：Provider 结果只有通过公网 SSRF + 图片字节签名探测后才返回。
       download-candidate-multiplier: 3
       download-max-candidates: 60
@@ -102,7 +106,13 @@ openreach:
       # 有界验证队列；满载时 CallerRuns 在请求线程回压，避免无界任务堆积。
       download-validation-queue-capacity: 48
     read:
+      # timeout-ms 保留旧配置兼容；新配置将建连与单次请求总超时拆开。
       timeout-ms: 10000
+      connect-timeout-ms: 7000
+      request-timeout-ms: 15000
+      # 仅对 GET 的网络 IO/连接超时做一次有界重试；HTTP 4xx/5xx 不盲目重试。
+      max-attempts: 2
+      retry-backoff-ms: 200
       max-bytes: 5242880
       max-chars: 50000
       max-redirects: 5

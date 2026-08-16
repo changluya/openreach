@@ -48,6 +48,10 @@ public class WebCapabilityProperties {
         private List<String> globalTimeRangeProviderOrder = new ArrayList<>(List.of("bing", "brave", "duckduckgo", "baidu"));
 
         private int timeoutMs = 6000;
+        // Respect upstream throttling/challenge signals instead of hammering the same free SERP repeatedly.
+        private long rateLimitCooldownMs = 60_000L;
+        private long botChallengeCooldownMs = 60_000L;
+        private long forbiddenCooldownMs = 30_000L;
         private int maxResults = 20;
         private int maxResponseBytes = 2 * 1024 * 1024;
         private String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36";
@@ -73,6 +77,12 @@ public class WebCapabilityProperties {
         public void setGlobalTimeRangeProviderOrder(List<String> value) { this.globalTimeRangeProviderOrder = safeList(value); }
         public int getTimeoutMs() { return timeoutMs; }
         public void setTimeoutMs(int timeoutMs) { this.timeoutMs = timeoutMs; }
+        public long getRateLimitCooldownMs() { return rateLimitCooldownMs; }
+        public void setRateLimitCooldownMs(long rateLimitCooldownMs) { this.rateLimitCooldownMs = rateLimitCooldownMs; }
+        public long getBotChallengeCooldownMs() { return botChallengeCooldownMs; }
+        public void setBotChallengeCooldownMs(long botChallengeCooldownMs) { this.botChallengeCooldownMs = botChallengeCooldownMs; }
+        public long getForbiddenCooldownMs() { return forbiddenCooldownMs; }
+        public void setForbiddenCooldownMs(long forbiddenCooldownMs) { this.forbiddenCooldownMs = forbiddenCooldownMs; }
         public int getMaxResults() { return maxResults; }
         public void setMaxResults(int maxResults) { this.maxResults = maxResults; }
         public int getMaxResponseBytes() { return maxResponseBytes; }
@@ -120,7 +130,7 @@ public class WebCapabilityProperties {
         private String sogouUrl = "https://pic.sogou.com/pics";
         private String openverseUrl = "https://api.openverse.org/v1/images/";
         private String wikimediaUrl = "https://commons.wikimedia.org/w/api.php";
-        private String wikimediaUserAgent = "OpenReach/1.0.2 (+https://github.com/changluya/openreach)";
+        private String wikimediaUserAgent = "OpenReach/0.1.2 (+https://github.com/changluya/openreach)";
         // Image results are only returned after a bounded secure download probe.
         private int downloadCandidateMultiplier = 3;
         private int downloadMaxCandidates = 60;
@@ -187,7 +197,12 @@ public class WebCapabilityProperties {
     }
 
     public static class Read {
+        // timeoutMs is kept as the v1.0.1/v0.1.2 compatibility fallback.
         private int timeoutMs = 10000;
+        private int connectTimeoutMs = 0;
+        private int requestTimeoutMs = 0;
+        private int maxAttempts = 2;
+        private int retryBackoffMs = 200;
         private int maxBytes = 5 * 1024 * 1024;
         private int maxChars = 50000;
         private int maxRedirects = 5;
@@ -197,6 +212,18 @@ public class WebCapabilityProperties {
 
         public int getTimeoutMs() { return timeoutMs; }
         public void setTimeoutMs(int timeoutMs) { this.timeoutMs = timeoutMs; }
+        public int getConnectTimeoutMs() { return connectTimeoutMs; }
+        public void setConnectTimeoutMs(int connectTimeoutMs) { this.connectTimeoutMs = connectTimeoutMs; }
+        public int getRequestTimeoutMs() { return requestTimeoutMs; }
+        public void setRequestTimeoutMs(int requestTimeoutMs) { this.requestTimeoutMs = requestTimeoutMs; }
+        public int getMaxAttempts() { return maxAttempts; }
+        public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
+        public int getRetryBackoffMs() { return retryBackoffMs; }
+        public void setRetryBackoffMs(int retryBackoffMs) { this.retryBackoffMs = retryBackoffMs; }
+        public int effectiveConnectTimeoutMs() { return connectTimeoutMs > 0 ? connectTimeoutMs : timeoutMs; }
+        public int effectiveRequestTimeoutMs() { return requestTimeoutMs > 0 ? requestTimeoutMs : timeoutMs; }
+        public int effectiveMaxAttempts() { return Math.max(1, maxAttempts); }
+        public int effectiveRetryBackoffMs() { return Math.max(0, retryBackoffMs); }
         public int getMaxBytes() { return maxBytes; }
         public void setMaxBytes(int maxBytes) { this.maxBytes = maxBytes; }
         public int getMaxChars() { return maxChars; }

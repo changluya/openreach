@@ -1,7 +1,7 @@
 # WebSearch 核心流程设计
 
 > 接口：`POST /api/web/search`
-> 当前版本：**OpenReach v1.0.2**
+> 当前版本：**OpenReach v0.1.2**
 
 ---
 
@@ -51,7 +51,7 @@ query + limit + region + provider + timeRange
 
 ---
 
-## 2. v1.0.2 核心变化
+## 2. v0.1.2 核心变化
 
 v1.0.1：
 
@@ -61,7 +61,7 @@ provider=auto
   -> bing -> baidu -> sogou -> so360 -> duckduckgo
 ```
 
-v1.0.2：
+v0.1.2：
 
 ```text
 provider=auto
@@ -235,7 +235,7 @@ GLOBAL -> www.bing.com
 
 ### Brave
 
-v1.0.2 新增：
+v0.1.2 新增：
 
 ```text
 BraveSearchProvider
@@ -251,7 +251,7 @@ https://search.brave.com/search?q=...&source=web
 
 ### DuckDuckGo
 
-v1.0.2 强化为 HTML no-JS POST Form：
+v0.1.2 强化为 HTML no-JS POST Form：
 
 ```text
 POST https://html.duckduckgo.com/html/

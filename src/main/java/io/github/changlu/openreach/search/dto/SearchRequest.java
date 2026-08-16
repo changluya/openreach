@@ -1,5 +1,7 @@
 package io.github.changlu.openreach.search.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.changlu.openreach.search.SearchTimeRange;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -13,7 +15,7 @@ public record SearchRequest(
         @Min(1) @Max(20) Integer limit,
         @Size(max = 32) String region,
         @Size(max = 32) String provider,
-        @Size(max = 32) String timeRange
+        @JsonProperty("timeRange") @JsonAlias("time_range") @Size(max = 32) String timeRange
 ) {
     public int effectiveLimit(int configuredMax) {
         int requested = limit == null ? 10 : limit;

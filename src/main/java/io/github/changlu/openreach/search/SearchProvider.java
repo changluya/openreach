@@ -31,7 +31,7 @@ public interface SearchProvider {
     }
 
     /**
-     * v1.0.2 extension point. Existing third-party providers continue compiling
+     * v0.1.2 extension point. Existing third-party providers continue compiling
      * because the legacy method remains the only abstract contract.
      */
     default List<SearchItem> search(String query, int limit, String region, SearchTimeRange timeRange) {

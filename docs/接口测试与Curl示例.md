@@ -1,10 +1,10 @@
 # 接口测试与 Curl 示例
 
-> 适用版本：**OpenReach v1.0.2**
+> 适用版本：**OpenReach v0.1.2**
 >
 > 默认服务地址：`http://localhost:8080`
 
-本文档集中维护当前工程的手工接口验证样例。README 只保留快速入口；版本设计与测试验收口径见 [`设计方案/v1.0.1设计访问文档.md`](设计方案/v1.0.1设计访问文档.md) 与 [`设计方案/v1.0.2优化（安全+海外）文档.md`](设计方案/v1.0.2优化（安全+海外）文档.md)。
+本文档集中维护当前工程的手工接口验证样例。README 只保留快速入口；版本设计与测试验收口径见 [`设计方案/v1.0.1设计访问文档.md`](设计方案/v1.0.1设计访问文档.md) 与 [`设计方案/v0.1.2优化（安全+海外）文档.md`](设计方案/v0.1.2优化（安全+海外）文档.md)。
 
 ---
 
@@ -39,7 +39,7 @@ docker run -d --name openreach -p 8080:8080 -e OPENREACH_LOG_PATH=/app/logs -v /
 
 ## 2. 服务连通性 / 公网攻击面
 
-OpenReach v1.0.2 不再暴露独立 Health API。Skill `doctor` 使用只读官网根路径：
+OpenReach v0.1.2 不再暴露独立 Health API。Skill `doctor` 使用只读官网根路径：
 
 ```bash
 curl -fsSI 'http://localhost:8080/'
@@ -182,7 +182,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/search' \
   }'
 ```
 
-v1.0.2 使用 HTML no-JS POST Form。若检测到 bot challenge，会返回 Provider 失败；`provider=auto` 时继续下一个渠道。
+v0.1.2 使用 HTML no-JS POST Form。若检测到 bot challenge，会返回 Provider 失败；`provider=auto` 时继续下一个渠道。
 
 ### 3.8 显式 Bing Global
 

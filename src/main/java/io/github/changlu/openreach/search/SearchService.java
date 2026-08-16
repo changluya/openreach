@@ -14,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
+
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -22,6 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class SearchService {
@@ -30,6 +33,7 @@ public class SearchService {
     private final WebCapabilityProperties properties;
     private final SearchRouteResolver routeResolver;
     private final ProviderChainResolver chainResolver;
+    private final Map<String, Long> providerCooldownUntilMs = new ConcurrentHashMap<>();
 
     public SearchService(List<SearchProvider> providers, WebCapabilityProperties properties,
                          SearchRouteResolver routeResolver, ProviderChainResolver chainResolver) {
@@ -40,6 +44,16 @@ public class SearchService {
         this.properties = properties;
         this.routeResolver = routeResolver;
         this.chainResolver = chainResolver;
+    }
+
+    @PostConstruct
+    void logRuntimeCapabilities() {
+        upstreamLog.info("[OPENREACH-SEARCH] runtime_capabilities registered={} day={} week={} month={} year={}",
+                new ArrayList<>(providers.keySet()),
+                capableProviders(SearchTimeRange.DAY),
+                capableProviders(SearchTimeRange.WEEK),
+                capableProviders(SearchTimeRange.MONTH),
+                capableProviders(SearchTimeRange.YEAR));
     }
 
     public SearchResponse search(SearchRequest request) {
@@ -76,30 +90,58 @@ public class SearchService {
     /**
      * timeRange is a hard capability requirement.  Do not trust only the configured
      * order because an older external application.yml (or a stale deployment config)
-     * may still contain the v1.0.1 CN chain and therefore reduce restricted searches
-     * to DuckDuckGo only.  Preserve operator order first, then append built-in and any
-     * registered time-aware providers as safety fallbacks.
+     * may still contain an early v0.1.2 DuckDuckGo/Brave-only chain. That exact legacy
+     * shape is auto-migrated to the verified route-specific built-ins; otherwise operator
+     * order is preserved and missing time-aware providers are appended as safety fallbacks.
      */
     private List<String> ensureTimeRangeCapableFallbacks(List<String> configuredOrder, SearchRoute route, SearchTimeRange timeRange) {
-        LinkedHashSet<String> effective = new LinkedHashSet<>();
+        LinkedHashSet<String> configured = new LinkedHashSet<>();
         if (configuredOrder != null) {
             for (String configuredName : configuredOrder) {
                 String normalized = normalizeProviderName(configuredName);
-                if (!normalized.isBlank()) effective.add(normalized);
+                if (!normalized.isBlank()) configured.add(normalized);
             }
         }
 
         List<String> preferred = route == SearchRoute.GLOBAL
                 ? List.of("bing", "brave", "duckduckgo", "baidu")
                 : List.of("baidu", "bing", "duckduckgo", "brave");
-        for (String providerName : preferred) {
-            SearchProvider provider = providers.get(providerName);
-            if (provider != null && provider.supportsTimeRange(timeRange)) effective.add(providerName);
+
+        // v0.1.2 early builds used only duckduckgo/brave for restricted searches.
+        // Treat that exact legacy pair as a migration signal and restore the verified
+        // Bing/Baidu free-Web providers ahead of the frequently rate-limited fallbacks.
+        boolean legacyTwoProviderTimeChain = !configured.isEmpty()
+                && configured.size() <= 2
+                && configured.stream().allMatch(name -> "duckduckgo".equals(name) || "brave".equals(name));
+
+        LinkedHashSet<String> effective = new LinkedHashSet<>();
+        if (legacyTwoProviderTimeChain) {
+            appendCapable(effective, preferred, timeRange);
+            effective.addAll(configured);
+        } else {
+            effective.addAll(configured);
+            appendCapable(effective, preferred, timeRange);
         }
+
         for (Map.Entry<String, SearchProvider> entry : providers.entrySet()) {
             if (entry.getValue().supportsTimeRange(timeRange)) effective.add(entry.getKey());
         }
         return new ArrayList<>(effective);
+    }
+
+    private void appendCapable(LinkedHashSet<String> target, List<String> names, SearchTimeRange timeRange) {
+        for (String providerName : names) {
+            SearchProvider provider = providers.get(providerName);
+            if (provider != null && provider.supportsTimeRange(timeRange)) target.add(providerName);
+        }
+    }
+
+    private List<String> capableProviders(SearchTimeRange timeRange) {
+        List<String> capable = new ArrayList<>();
+        for (Map.Entry<String, SearchProvider> entry : providers.entrySet()) {
+            if (entry.getValue().supportsTimeRange(timeRange)) capable.add(entry.getKey());
+        }
+        return capable;
     }
 
     private List<SearchItem> searchAuto(String query, int limit, String region, SearchTimeRange timeRange,
@@ -108,6 +150,7 @@ public class SearchService {
         List<String> errors = new ArrayList<>();
         int attempted = 0;
         int skipped = 0;
+        int capable = 0;
 
         if (providerOrder == null || providerOrder.isEmpty()) {
             throw new UpstreamException("No free search providers configured for the selected route");
@@ -136,6 +179,16 @@ public class SearchService {
                 continue;
             }
 
+            capable++;
+            long cooldownRemainingMs = cooldownRemainingMs(provider.name());
+            if (cooldownRemainingMs > 0) {
+                errors.add(provider.name() + ": skipped (cooldown " + cooldownRemainingMs + "ms)");
+                upstreamLog.info("[OPENREACH-SEARCH] provider_skip provider={} reason=COOLDOWN remainingMs={}",
+                        provider.name(), cooldownRemainingMs);
+                skipped++;
+                continue;
+            }
+
             attempted++;
             long providerStarted = System.nanoTime();
             upstreamLog.info("[OPENREACH-SEARCH] provider_start provider={} region={} timeRange={} limit={}",
@@ -159,20 +212,47 @@ public class SearchService {
                 if (merged.size() >= limit) break;
             } catch (RuntimeException ex) {
                 String message = compactMessage(ex);
+                String failureType = UpstreamFailureClassifier.classify(ex);
                 errors.add(provider.name() + ": " + message);
+                maybeStartCooldown(provider.name(), failureType);
                 upstreamLog.warn("[OPENREACH-SEARCH] provider_fail provider={} type={} latencyMs={} message={}",
-                        provider.name(), UpstreamFailureClassifier.classify(ex), elapsedMs(providerStarted), message);
+                        provider.name(), failureType, elapsedMs(providerStarted), message);
             }
         }
 
         if (merged.isEmpty()) {
-            if (attempted == 0 && timeRange.isRestricted()) {
+            if (capable == 0 && timeRange.isRestricted()) {
                 throw new BadRequestException("No configured search provider supports timeRange=" + timeRange.apiValue());
             }
-            throw new UpstreamException("All free search providers failed (attempted=" + attempted + ", skipped=" + skipped + "): "
-                    + String.join(" | ", errors));
+            throw new UpstreamException("All free search providers failed (attempted=" + attempted + ", skipped=" + skipped
+                    + ", chain=" + providerOrder + "): " + String.join(" | ", errors));
         }
         return new ArrayList<>(merged.values());
+    }
+
+    private long cooldownRemainingMs(String providerName) {
+        Long until = providerCooldownUntilMs.get(normalizeProviderName(providerName));
+        if (until == null) return 0L;
+        long remaining = until - System.currentTimeMillis();
+        if (remaining <= 0) {
+            providerCooldownUntilMs.remove(normalizeProviderName(providerName), until);
+            return 0L;
+        }
+        return remaining;
+    }
+
+    private void maybeStartCooldown(String providerName, String failureType) {
+        long durationMs = switch (failureType) {
+            case "HTTP_429" -> properties.getSearch().getRateLimitCooldownMs();
+            case "BOT_CHALLENGE" -> properties.getSearch().getBotChallengeCooldownMs();
+            case "HTTP_403" -> properties.getSearch().getForbiddenCooldownMs();
+            default -> 0L;
+        };
+        if (durationMs <= 0) return;
+        long until = System.currentTimeMillis() + durationMs;
+        providerCooldownUntilMs.merge(normalizeProviderName(providerName), until, Math::max);
+        upstreamLog.info("[OPENREACH-SEARCH] provider_cooldown provider={} type={} durationMs={}",
+                providerName, failureType, durationMs);
     }
 
     private List<SearchItem> searchOne(String providerName, String query, int limit, String region,

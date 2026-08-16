@@ -217,6 +217,7 @@ class SearchServiceTest {
     @Test
     void allRestrictedTimeRangesRecoverFromLegacyCnChainAndDuckDuckGoChallenge() {
         WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getSearch().setBotChallengeCooldownMs(0);
         // Reproduce the user's stale/legacy chain exactly: unsupported providers first,
         // DuckDuckGo as the only configured time-aware provider, Brave omitted.
         props.getSearch().setCnTimeRangeProviderOrder(List.of(
@@ -347,6 +348,65 @@ class SearchServiceTest {
     }
 
     @Test
+    void legacyDuckDuckGoBraveOnlyCnWeekChainIsAutoExpandedToBaiduAndBing() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getSearch().setCnTimeRangeProviderOrder(List.of("duckduckgo", "brave"));
+        List<String> calls = new ArrayList<>();
+
+        SearchProvider baidu = failingTimeAwareProvider("baidu", "baidu bot challenge detected", calls);
+        SearchProvider bing = timeAwareProvider("bing", calls);
+        SearchProvider duckduckgo = failingTimeAwareProvider("duckduckgo", "duckduckgo bot challenge detected", calls);
+        SearchProvider brave = failingTimeAwareProvider("brave", "brave returned HTTP 429", calls);
+        SearchService service = service(List.of(baidu, bing, duckduckgo, brave), props);
+
+        var response = service.search(new SearchRequest(
+                "OpenAI 谷歌 最新消息 人工智能 2026年8月", 15, null, null, "week"));
+
+        // limit=15 keeps aggregating after Bing returns one result; DDG/Brave may still fail,
+        // but a non-empty Bing result must make the overall request succeed instead of 502.
+        assertEquals(List.of("baidu:week", "bing:week", "duckduckgo:week", "brave:week"), calls);
+        assertEquals("bing", response.items().get(0).source());
+    }
+
+    @Test
+    void globalDayStillFallsBackToBaiduWhenBingBraveAndDuckDuckGoFail() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getSearch().setGlobalTimeRangeProviderOrder(List.of("duckduckgo", "brave"));
+        List<String> calls = new ArrayList<>();
+
+        SearchProvider bing = failingTimeAwareProvider("bing", "bing simulated failure", calls);
+        SearchProvider brave = failingTimeAwareProvider("brave", "brave returned HTTP 429", calls);
+        SearchProvider duckduckgo = failingTimeAwareProvider("duckduckgo", "duckduckgo bot challenge detected", calls);
+        SearchProvider baidu = timeAwareProvider("baidu", calls);
+        SearchService service = service(List.of(bing, brave, duckduckgo, baidu), props);
+
+        var response = service.search(new SearchRequest(
+                "OpenAI news August 15 2026 announcement", 10, "GLOBAL", null, "day"));
+
+        assertEquals(List.of("bing:day", "brave:day", "duckduckgo:day", "baidu:day"), calls);
+        assertEquals("baidu", response.items().get(0).source());
+    }
+
+    @Test
+    void rateLimitedProviderEntersCooldownAndIsSkippedOnNextRequest() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getSearch().setGlobalTimeRangeProviderOrder(List.of("brave", "duckduckgo"));
+        props.getSearch().setRateLimitCooldownMs(60_000);
+        List<String> calls = new ArrayList<>();
+
+        SearchProvider brave = failingTimeAwareProvider("brave", "brave returned HTTP 429", calls);
+        SearchProvider duckduckgo = timeAwareProvider("duckduckgo", calls);
+        SearchService service = service(List.of(brave, duckduckgo), props);
+
+        service.search(new SearchRequest("AI news", 1, "GLOBAL", null, "day"));
+        assertEquals(List.of("brave:day", "duckduckgo:day"), calls);
+
+        calls.clear();
+        service.search(new SearchRequest("AI news 2", 1, "GLOBAL", null, "day"));
+        assertEquals(List.of("duckduckgo:day"), calls);
+    }
+
+    @Test
     void explicitTimeAwareProviderReceivesNormalizedTimeRange() {
         WebCapabilityProperties props = new WebCapabilityProperties();
         List<String> calls = new ArrayList<>();
@@ -368,6 +428,18 @@ class SearchServiceTest {
             @Override public List<SearchItem> search(String query, int limit, String region) {
                 if (fail) throw new UpstreamException(name + " simulated failure");
                 return items;
+            }
+        };
+    }
+
+    private SearchProvider failingTimeAwareProvider(String name, String message, List<String> calls) {
+        return new SearchProvider() {
+            @Override public String name() { return name; }
+            @Override public boolean supportsTimeRange() { return true; }
+            @Override public List<SearchItem> search(String query, int limit, String region) { return List.of(); }
+            @Override public List<SearchItem> search(String query, int limit, String region, SearchTimeRange timeRange) {
+                calls.add(name + ":" + timeRange.apiValue());
+                throw new UpstreamException(message);
             }
         };
     }

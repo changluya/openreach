@@ -129,7 +129,7 @@ class OpenReachClient:
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "User-Agent": "openreach-skill/1.0.2",
+                "User-Agent": "openreach-skill/0.1.2",
             },
         )
         return self._request_json(request)
@@ -137,14 +137,14 @@ class OpenReachClient:
     def health(self) -> dict[str, Any]:
         """Check service reachability through the public static homepage.
 
-        OpenReach v1.0.2 intentionally exposes only three JSON APIs; no separate
+        OpenReach v0.1.2 intentionally exposes only three JSON APIs; no separate
         health/debug API is public. A successful GET / is therefore the zero-upstream
         connectivity check used by the Skill.
         """
         request = urllib.request.Request(
             f"{self.base_url}/",
             method="GET",
-            headers={"Accept": "text/html", "User-Agent": "openreach-skill/1.0.2"},
+            headers={"Accept": "text/html", "User-Agent": "openreach-skill/0.1.2"},
         )
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
@@ -244,7 +244,7 @@ def check_initialized(config_path: Path | None = None, timeout: float = DEFAULT_
         headers={
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "User-Agent": "openreach-skill/1.0.2",
+            "User-Agent": "openreach-skill/0.1.2",
         },
     )
     try:

@@ -107,7 +107,7 @@ class StaticWebsiteResourceTest {
         assertChangelogNavigation(home, "static/index.html");
         assertChangelogNavigation(docs, "static/docs/index.html");
         assertChangelogNavigation(api, "static/docs/api.html");
-        assertTrue(changelog.contains("v1.0.2"));
+        assertTrue(changelog.contains("v0.1.2"));
         assertTrue(changelog.contains("timeRange"));
         assertTrue(changelog.contains("只返回可下载原图"));
         assertTrue(changelog.contains("公网攻击面 Allowlist"));

@@ -4,15 +4,15 @@
   "plugin": {
     "name": "OpenReach Web 搜索 / 图片搜索 / 网页读取插件",
     "logoUrl": "",
-    "baseUrl": "http://localhost:8080",
+    "baseUrl": "{{BASE_URL}}",
     "staticHeaders": "{\"Content-Type\":\"application/json\",\"Accept\":\"application/json\"}",
     "maskConfig": "[{\"sourceType\":2,\"key\":\"baseUrl\",\"exportValue\":\"{{BASE_URL}}\"}]",
-    "description": "OpenReach v1.0.2 为 Agent 提供 Web Search、可下载图片搜索与网页读取。region 驱动 CN/GLOBAL 免费 Provider Chain；Search 支持 timeRange；默认无需 API Key。",
-    "installConfig": "{\"installDesc\":\"导入后请确认 BASE_URL 指向已启动的 OpenReach 服务。默认本地地址为 http://localhost:8080；部署到服务器或容器环境时请替换为实际可访问地址。无需 API Key。\",\"installVersion\":\"v1.0.2\"}",
+    "description": "OpenReach v0.1.2 为 Agent 提供 Web Search、可下载图片搜索与网页读取。region 驱动 CN/GLOBAL 免费 Provider Chain；Search 支持 timeRange；默认无需 API Key。",
+    "installConfig": "{\"installDesc\":\"导入时必须显式配置 BASE_URL，并确保该地址能从 AgentHub/Tool Runner 所在运行环境访问 OpenReach。不要默认使用 localhost：当 Tool Runner 位于容器或沙箱时，localhost 指向 Tool Runner 自身而不是 OpenReach。无需 API Key。\",\"installVersion\":\"v0.1.2\"}",
     "methods": [
       {
         "methodName": "searchWeb",
-        "methodDescription": "搜索互联网网页并返回标题、URL、摘要、排名和来源。支持 timeRange=any/day/week/month/year；provider=auto 时只选择真正支持该时间过滤的零 Key Provider，避免静默忽略。",
+        "methodDescription": "搜索互联网网页并返回标题、URL、摘要、排名和来源。支持 timeRange=any/day/week/month/year；provider=auto 时只选择真正支持该时间过滤的零 Key Provider，避免静默忽略。若工具层返回 All connection attempts failed 且没有 OpenReach traceId，说明调用方未连接到 OpenReach，应停止重复搜索并先检查 BASE_URL/容器网络。",
         "httpMethodType": 2,
         "uri": "/api/web/search",
         "status": 1,
@@ -55,7 +55,7 @@
           },
           {
             "methodParamName": "timeRange",
-            "methodParamDescription": "时间范围过滤。可选 any、day、week、month、year；默认 any。指定后由上游搜索引擎真实过滤，不支持该能力的 Provider 会被跳过。",
+            "methodParamDescription": "时间范围过滤。可选 any、day、week、month、year；默认 any。HTTP JSON 同时兼容 timeRange 与 time_range。指定后由上游搜索引擎真实过滤，不支持该能力的 Provider 会被跳过。",
             "mappedName": "timeRange",
             "useTypeValue": 2,
             "dataTypeValue": 1,
@@ -66,7 +66,7 @@
       },
       {
         "methodName": "searchImages",
-        "methodDescription": "根据文本搜索互联网图片。返回前会对原图 imageUrl 做 SSRF 安全校验、重定向校验和真实图片字节探测，只返回当前可直接下载的图片；无效热链/HTML/403/404/伪图片会被过滤。",
+        "methodDescription": "根据文本搜索互联网图片。返回前会对原图 imageUrl 做 SSRF 安全校验、重定向校验和真实图片字节探测，只返回当前可直接下载的图片；无效热链/HTML/403/404/伪图片会被过滤。若工具层返回 All connection attempts failed 且没有 OpenReach traceId，先检查 BASE_URL/容器网络，不要连续重试。",
         "httpMethodType": 2,
         "uri": "/api/web/image-search",
         "status": 1,
@@ -111,7 +111,7 @@
       },
       {
         "methodName": "readWebPage",
-        "methodDescription": "读取指定公网 HTTP/HTTPS 网页并提取主要正文。仅允许公网 80/443，内置 SSRF、每跳重定向复检、响应体与正文长度限制。",
+        "methodDescription": "读取指定公网 HTTP/HTTPS 网页并提取主要正文。仅允许公网 80/443，内置 SSRF、每跳重定向复检、响应体与正文长度限制。若不同站点都统一返回 All connection attempts failed 且没有 OpenReach traceId，应停止重复 Read 并先检查 Tool Runner 到 OpenReach 的 BASE_URL/网络。",
         "httpMethodType": 2,
         "uri": "/api/web/read",
         "status": 1,
@@ -127,7 +127,7 @@
           },
           {
             "methodParamName": "maxChars",
-            "methodParamDescription": "最多返回的正文字数，范围 1000-200000；未传时使用服务端默认值",
+            "methodParamDescription": "最多返回的正文字数，范围 1000-200000；HTTP JSON 同时兼容 maxChars 与 max_chars；未传时使用服务端默认值",
             "mappedName": "maxChars",
             "useTypeValue": 2,
             "dataTypeValue": 2,

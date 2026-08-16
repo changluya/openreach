@@ -41,7 +41,7 @@ docker run -d \
   --log-driver json-file \
   --log-opt max-size=20m \
   --log-opt max-file=3 \
-  codercl/openreach:1.0.2
+  codercl/openreach:0.1.2
 ```
 
 Docker 会根据客户机器自动选择：
@@ -76,7 +76,7 @@ docker compose up -d
 固定版本：
 
 ```bash
-OPENREACH_IMAGE=codercl/openreach:1.0.2 docker compose up -d
+OPENREACH_IMAGE=codercl/openreach:0.1.2 docker compose up -d
 ```
 
 修改宿主机端口：
@@ -193,13 +193,13 @@ docker login
 然后推荐直接使用项目脚本：
 
 ```bash
-./bin/quick/release.sh 1.0.2
+./bin/quick/release.sh 0.1.2
 ```
 
 脚本会构建并推送：
 
 ```text
-codercl/openreach:1.0.2
+codercl/openreach:0.1.2
 codercl/openreach:latest
 ```
 
@@ -217,7 +217,7 @@ linux/arm64
 
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t codercl/openreach:1.0.2 \
+  -t codercl/openreach:0.1.2 \
   -t codercl/openreach:latest \
   --push \
   .
@@ -236,7 +236,7 @@ docker buildx build \
 发布后：
 
 ```bash
-docker buildx imagetools inspect codercl/openreach:1.0.2
+docker buildx imagetools inspect codercl/openreach:0.1.2
 ```
 
 至少应确认：
@@ -359,7 +359,7 @@ cap_drop: ALL（Compose）
 
 ### 运行阶段
 
-v1.0.2 根据请求 `region` 自动选择免费 Provider Chain：
+v0.1.2 根据请求 `region` 自动选择免费 Provider Chain：
 
 ```text
 Web / CN     : Bing 中国 -> 百度 -> 搜狗 -> 360 -> DuckDuckGo
@@ -393,11 +393,11 @@ docker compose logs -f openreach
 # 停止
 docker compose down
 
-# 一键发布 1.0.2 多架构镜像
-./bin/quick/release.sh 1.0.2
+# 一键发布 0.1.2 多架构镜像
+./bin/quick/release.sh 0.1.2
 
 # 检查远程 manifest
-docker buildx imagetools inspect codercl/openreach:1.0.2
+docker buildx imagetools inspect codercl/openreach:0.1.2
 ```
 
 ---
@@ -463,7 +463,7 @@ OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
 
 ---
 
-## v1.0.2 公网安全补充
+## v0.1.2 公网安全补充
 
 OpenReach 当前业务面严格只有三个 JSON POST API：
 

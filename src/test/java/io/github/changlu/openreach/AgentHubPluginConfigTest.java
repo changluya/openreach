@@ -1,0 +1,25 @@
+package io.github.changlu.openreach;
+
+import org.junit.jupiter.api.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class AgentHubPluginConfigTest {
+
+    @Test
+    void pluginRequiresExplicitReachableBaseUrlInsteadOfLocalhostDefault() throws Exception {
+        String json = Files.readString(
+                Path.of("docs/agenthub/skills/openreach-http-plugin.json"),
+                StandardCharsets.UTF_8
+        );
+
+        assertTrue(json.contains("\"baseUrl\": \"{{BASE_URL}}\""));
+        assertTrue(json.contains("Tool Runner"));
+        assertFalse(json.contains("\"baseUrl\": \"http://localhost:8080\""));
+    }
+}

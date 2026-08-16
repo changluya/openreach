@@ -27,8 +27,8 @@
   </aside>
   <main class="docs-main">
     <div class="mobile-docs"><select data-doc-select aria-label="切换文档"><option value="/docs/">1. 快速启动</option><option value="/docs/api.html" selected>2. 官方接口文档</option><option value="/changelog">3. 更新日志</option></select></div>
-    <div class="doc-eyebrow">API Reference · v1.0.2</div><h1>官方接口文档</h1>
-    <p class="lead">OpenReach v1.0.2 只对外提供三个核心 HTTP POST 能力；官网、文档和 Skill ZIP 作为只读静态资源提供。以下参数以当前 Java DTO、Service 与安全过滤器为准。</p>
+    <div class="doc-eyebrow">API Reference · v0.1.2</div><h1>官方接口文档</h1>
+    <p class="lead">OpenReach v0.1.2 只对外提供三个核心 HTTP POST 能力；官网、文档和 Skill ZIP 作为只读静态资源提供。以下参数以当前 Java DTO、Service 与安全过滤器为准。</p>
     <div class="note">Base URL：<code>http://localhost:8080</code>。所有接口路径统一位于 <code>/api/web</code>。</div>
 
 
@@ -54,7 +54,7 @@
 
     <section class="endpoint-block">
       <h2 style="margin-top:0"><span class="method">POST</span>/api/web/image-search</h2>
-      <p>根据文本搜索图片与来源页面。v1.0.2 会对原始 <code>imageUrl</code> 做公网 URL/重定向校验和真实图片字节探测，只把当前可直接下载的被动图片格式返回给调用方。</p>
+      <p>根据文本搜索图片与来源页面。v0.1.2 会对原始 <code>imageUrl</code> 做公网 URL/重定向校验和真实图片字节探测，只把当前可直接下载的被动图片格式返回给调用方。</p>
       <h3>请求参数</h3>
       <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
         <tr><td><code>query</code></td><td>string</td><td>是</td><td>非空图片搜索关键词，最长 500 字符</td></tr>
@@ -121,7 +121,7 @@
 
     <h2>Provider 默认顺序</h2>
     <ul><li>Web CN：Bing → 百度 → 搜狗 → 360 → DuckDuckGo</li><li>Web GLOBAL：Brave → DuckDuckGo → Bing Global</li><li>Image CN：Bing → 百度图片 → 搜狗图片 → Openverse</li><li>Image GLOBAL：Bing Global → Openverse → Wikimedia</li></ul>
-    <div class="note">免费搜索结果依赖公开页面结构、访问策略和网络环境，因此属于 best-effort。v1.0.2 默认链均无需 API Key；Openverse 与 Wikimedia 使用公开读接口。</div>
+    <div class="note">免费搜索结果依赖公开页面结构、访问策略和网络环境，因此属于 best-effort。v0.1.2 默认链均无需 API Key；Openverse 与 Wikimedia 使用公开读接口。</div>
 
     <section id="community" class="api-community docs-community">
       <div class="doc-eyebrow">Project & Community</div>

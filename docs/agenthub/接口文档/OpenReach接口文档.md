@@ -1,6 +1,6 @@
 # OpenReach 接口文档
 
-> 适用版本：**v1.0.2** · 服务默认地址：`http://localhost:8080`
+> 适用版本：**v0.1.2** · 本机直接运行示例：`http://localhost:8080`；AgentHub / Tool Runner 必须配置其运行环境真实可达的 `BASE_URL`
 
 本文档基于当前工程源码（`io.github.changlu.openreach`）维护 OpenReach 对外 HTTP 接口的完整说明，面向 Agent 集成方、HTTP 插件开发者和 API 调用方。
 
@@ -60,7 +60,7 @@ Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabi
 | `limit` | int | 否 | `10` | `@Min(1)` `@Max(20)` | 最多返回条数，服务端还会受配置 `max-results`（默认 20）钳制 |
 | `region` | string | 否 | `auto` | `@Size(max=32)` | 核心路由 + Provider Locale Hint；CN aliases 走 CN，其他显式地区走 GLOBAL |
 | `provider` | string | 否 | `auto` | `@Size(max=32)` | 渠道，见 [第 7 章 Provider 矩阵](#71-web-search) |
-| `timeRange` | string | 否 | `any` | `@Size(max=32)` | `any/day/week/month/year`；兼容 `all/none/off/0`、`d/w/m/y`、`1d/1w/1m/1y`、`past_*`、`pd/pw/pm/py`、`qdr:*` |
+| `timeRange` / `time_range` | string | 否 | `any` | `@Size(max=32)` | 两种字段名等价；`any/day/week/month/year`；兼容 `all/none/off/0`、`d/w/m/y`、`1d/1w/1m/1y`、`past_*`、`pd/pw/pm/py`、`qdr:*` |
 
 校验失败返回 `400 VALIDATION_ERROR`（如 `query` 为空）。
 
@@ -235,7 +235,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/image-search' \
 | 字段 | 类型 | 必填 | 默认值 | 校验约束 | 说明 |
 |---|---|---|---|---|---|
 | `url` | string | 是 | - | `@NotBlank` `@Size(max=2048)` | 需要读取的公网 HTTP/HTTPS 网页地址，最长 2048 字符 |
-| `maxChars` | int | 否 | `50000` | `@Min(1000)` `@Max(200000)` | 最多返回的正文字符数；未传使用服务端配置 `read.max-chars`（默认 50000） |
+| `maxChars` / `max_chars` | int | 否 | `50000` | `@Min(1000)` `@Max(200000)` | 两种字段名等价；最多返回的正文字符数；未传使用服务端配置 `read.max-chars`（默认 50000） |
 
 ### 5.2 响应字段
 
@@ -374,7 +374,7 @@ Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `time
 | Openverse | `openverse` | 4 | 2 | 公开图片 API | 否 |
 | Wikimedia Commons | `wikimedia` | - | 3 | MediaWiki Action API | 否 |
 
-> v1.0.2 默认链严格限定为无需 API Key / 无需注册账号的免费能力。公开 SERP Provider 仍属于 **best-effort**，可能受 DOM 改版、限流、CAPTCHA、网络出口影响，不承诺商业 SLA。
+> v0.1.2 默认链严格限定为无需 API Key / 无需注册账号的免费能力。公开 SERP Provider 仍属于 **best-effort**，可能受 DOM 改版、限流、CAPTCHA、网络出口影响，不承诺商业 SLA。
 
 ---
 
@@ -394,6 +394,9 @@ Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `time
 | `openreach.web.search.brave-url` | `https://search.brave.com/search` | Brave Web Interface |
 | `openreach.web.search.duckduckgo-url` | `https://html.duckduckgo.com/html/` | DDG no-JS HTML |
 | `openreach.web.search.timeout-ms` | `6000` | 单渠道搜索超时 |
+| `openreach.web.search.rate-limit-cooldown-ms` | `60000` | Provider 命中 HTTP 429 后的短期冷却时间 |
+| `openreach.web.search.bot-challenge-cooldown-ms` | `60000` | Provider 命中 CAPTCHA/Bot Challenge 后的短期冷却时间 |
+| `openreach.web.search.forbidden-cooldown-ms` | `30000` | Provider 命中 HTTP 403 后的短期冷却时间 |
 | `openreach.web.search.max-results` | `20` | Web Search 最大结果数 |
 | `openreach.web.search.max-response-bytes` | `2097152` | 单个 Web Search Provider 上游响应硬上限（2 MiB） |
 | `openreach.web.image-search.provider` | `auto` | 默认 Image Search 模式 |
@@ -402,7 +405,7 @@ Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `time
 | `openreach.web.image-search.global-provider-order` | `bing,openverse,wikimedia` | GLOBAL Image Chain |
 | `openreach.web.image-search.bing-global-url` | `https://www.bing.com/images/async` | GLOBAL Bing Images |
 | `openreach.web.image-search.wikimedia-url` | `https://commons.wikimedia.org/w/api.php` | Wikimedia Action API |
-| `openreach.web.image-search.wikimedia-user-agent` | `OpenReach/1.0.2 (...)` | Wikimedia 可识别 UA |
+| `openreach.web.image-search.wikimedia-user-agent` | `OpenReach/0.1.2 (...)` | Wikimedia 可识别 UA |
 | `openreach.web.image-search.timeout-ms` | `8000` | 单渠道图片搜索超时 |
 | `openreach.web.image-search.max-results` | `30` | Image Search 最大结果数 |
 | `openreach.web.image-search.max-response-bytes` | `4194304` | 单个图片 Provider 上游响应硬上限（4 MiB） |
@@ -413,7 +416,11 @@ Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `time
 | `openreach.web.image-search.download-validation-max-bytes` | `65536` | 图片验证最多读取字节数 |
 | `openreach.web.image-search.download-validation-concurrency` | `6` | 图片验证线程并发数 |
 | `openreach.web.image-search.download-validation-queue-capacity` | `48` | 图片验证有界队列容量 |
-| `openreach.web.read.timeout-ms` | `10000` | Read 请求超时 |
+| `openreach.web.read.timeout-ms` | `10000` | 旧配置兼容的 Read 超时 fallback |
+| `openreach.web.read.connect-timeout-ms` | `7000` | Read TCP/TLS 建连超时；未配置时回退 `timeout-ms` |
+| `openreach.web.read.request-timeout-ms` | `15000` | Read 单次 GET 请求总超时；未配置时回退 `timeout-ms` |
+| `openreach.web.read.max-attempts` | `2` | 网络 IO/连接超时最大尝试次数；HTTP 状态错误不盲目重试 |
+| `openreach.web.read.retry-backoff-ms` | `200` | Read 网络 IO 重试间隔 |
 | `openreach.web.read.max-bytes` | `5242880` | Read 响应体上限（5 MiB） |
 | `openreach.web.read.max-chars` | `50000` | 正文字数上限 |
 | `openreach.web.read.max-redirects` | `5` | 最大重定向次数 |
@@ -465,3 +472,39 @@ mvn spring-boot:run
 - Curl 示例与 Smoke Test：`docs/接口测试与Curl示例.md`
 - HTTP 插件 JSON（Agent 平台直接导入）：`docs/agenthub/skills/openreach-http-plugin.json`
 - 部署：`docs/部署篇/`
+
+
+---
+
+## 11. `All connection attempts failed` 快速判断
+
+如果 Search / Read / Image Search 对多个完全不同目标统一出现：
+
+```text
+All connection attempts failed
+```
+
+并且没有 OpenReach 标准 `traceId`，说明错误通常发生在 **AgentHub / Tool Runner -> OpenReach** 连接阶段，请优先检查：
+
+1. Plugin `BASE_URL` 是否仍为 `localhost`；
+2. Tool Runner 是否运行在另一个容器 / 沙箱；
+3. OpenReach 容器是否存活、8080 是否发布；
+4. 两个容器是否在同一 Docker Network；
+5. DNS / 防火墙 / 安全组 / 反向代理是否允许 Tool Runner 访问。
+
+调用方现场验证：
+
+```bash
+BASE_URL='<插件实际 BASE_URL>' ./bin/quick/connectivity-test.sh
+```
+
+HTTP Plugin 模板不再内置 `localhost`，导入时必须显式配置 `{{BASE_URL}}`。同 Docker Network 可使用 `http://openreach:8080`（以实际服务名为准）。
+
+另外，后端 JSON 现在同时兼容：
+
+```text
+timeRange / time_range
+maxChars  / max_chars
+```
+
+避免 Agent Tool Adapter 的 snake_case 转换导致时间范围或读取长度参数被忽略。

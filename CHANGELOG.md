@@ -4,17 +4,27 @@ OpenReach 的版本更新记录。
 
 本文件从 **v1.0.1** 开始作为正式维护基线，后续版本按 `Added / Changed / Fixed / Security / Known Limitations / Roadmap` 持续记录，避免能力演进只散落在 README、设计文档或提交记录中。
 
-> 版本说明：正式维护口径从 **v1.0.1** 起记录；v1.0.2 已同步 Maven Artifact、README、运行文档与部署示例。`docs/设计方案/v1.0.1设计访问文档.md` 统一收敛首个正式基线设计、渠道与验收口径；早期市场调研继续保留历史语境。
+> 版本说明：正式维护口径从 **v1.0.1** 起记录；v0.1.2 已同步 Maven Artifact、README、运行文档与部署示例。`docs/设计方案/v1.0.1设计访问文档.md` 统一收敛首个正式基线设计、渠道与验收口径；早期市场调研继续保留历史语境。
 
 ---
 
-## [v1.0.2] - 2026-08-15
+## [v0.1.2] - 2026-08-15
 
 ### 版本定位
 
-v1.0.2 在 v1.0.1 国内免费渠道基线之上，把 OpenReach 从“单一国内优先 Provider Chain”升级为**由 `region` 驱动的 CN / GLOBAL Web Access Router**，并继续坚持默认链 **零 API Key、零账号依赖、零商业 Search 调用费**。
+v0.1.2 在 v1.0.1 国内免费渠道基线之上，把 OpenReach 从“单一国内优先 Provider Chain”升级为**由 `region` 驱动的 CN / GLOBAL Web Access Router**，并继续坚持默认链 **零 API Key、零账号依赖、零商业 Search 调用费**。
 
 ### Fixed
+
+#### Search 时间链运行时自检 / 上游冷却与 Read 瞬时连接重试（2026-08-16）
+
+- 针对真实 Bad Case `week/day` 只出现 `duckduckgo + brave` 的情况，restricted timeRange 遇到早期 v0.1.2 的两路配置时会自动迁移到当前已验证链：CN `baidu → bing → duckduckgo → brave`、GLOBAL `bing → brave → duckduckgo → baidu`；
+- Search 启动时新增 `runtime_capabilities` 日志，明确打印已注册 Provider 以及 `day/week/month/year` 每档实际可用 Provider，快速识别“代码已更新但运行镜像/外部配置仍旧”的部署漂移；
+- Search 最终失败消息增加实际 `chain=[...]`，与 `attempted/skipped` 一起返回，便于仅凭 Trace ID/错误消息还原运行时路由；
+- DuckDuckGo CAPTCHA/Bot Challenge、Brave/其他 Provider HTTP 429、HTTP 403 会进入可配置短期 cooldown；后续请求直接跳过仍处于冷却期的 Provider，避免同一出口持续撞限流/验证页；
+- Read 将旧单一 `timeout-ms` 拆为兼容式 `connect-timeout-ms` / `request-timeout-ms`，默认仅对幂等 GET 的网络 IO/连接超时执行 1 次有界重试（总 2 次），HTTP 4xx/5xx 不盲目重试；
+- Read 上游日志增加 `attempt/maxAttempts`、`http_retry` 与最终 `attempts` 字段，区分瞬时连接异常与持续不可达；
+- 新增真实 Bad Case 回归：CN `week` 的 DDG/Brave-only 旧链自动扩展、GLOBAL `day` 在 Bing fail + Brave 429 + DDG challenge 后继续 Baidu、429 Provider 下一请求进入 cooldown，以及 Read 首次 connect timeout/第二次成功的重试测试。
 
 #### timeRange 全量范围兼容、免费 Web 实测增强与旧配置自愈（2026-08-16）
 
@@ -71,7 +81,7 @@ Skill Python Test 从 6 个扩展到 **12 个**，新增覆盖“配置缺失零
 - Docker 默认日志目录 `/app/logs`，Compose 支持 `OPENREACH_LOG_DIR` 映射到宿主机，容器重建后日志仍保留；Docker stdout json-file 限制 `20MB × 3`；
 - Read 新增可配置 `accept-language` Header，提升普通网页静态读取兼容性；
 - 新增 `bin/quick/logs.sh`，支持按 API / Upstream / Error / Trace ID 快速定位持久化日志；
-- 新增 `docs/设计方案/v1.0.2请求异常诊断与日志可观测优化方案.md`，记录 403 / bot challenge / timeRange skip 根因分析以及 Rate Limiter、Circuit Breaker、Header Profile、ProxySelector / Browser Reader 后续演进方案。
+- 新增 `docs/设计方案/v0.1.2请求异常诊断与日志可观测优化方案.md`，记录 403 / bot challenge / timeRange skip 根因分析以及 Rate Limiter、Circuit Breaker、Header Profile、ProxySelector / Browser Reader 后续演进方案。
 
 #### 并发 QPS 压测与容量评估
 
@@ -79,7 +89,7 @@ Skill Python Test 从 6 个扩展到 **12 个**，新增覆盖“配置缺失零
 - 新增 `bin/quick/qps-unit-test.sh`，输出 QPS、Avg、P50/P95/P99/Max、成功率和 HTTP 状态码分布。
 - 新增 `bin/quick/qps-test.sh`，可对已经启动的 OpenReach 进行真实上游并发压测，并保留失败 Trace ID。
 - 压测报告落盘到 `target/qps/`，便于不同版本和部署规格长期对比。
-- 新增 `docs/设计方案/v1.0.2并发QPS压测与容量评估方案.md`。
+- 新增 `docs/设计方案/v0.1.2并发QPS压测与容量评估方案.md`。
 
 #### 1. CN / GLOBAL 统一路由层
 
@@ -192,13 +202,13 @@ POST /api/web/read
 #### 8. 官网 Release Notes
 
 - 官网右上角新增“更新日志”入口，并新增独立 `/changelog` 页面；
-- 页面直接按本文件的 v1.0.2 / v1.0.1 事实源展示能力变化、兼容边界和安全说明；
+- 页面直接按本文件的 v0.1.2 / v1.0.1 事实源展示能力变化、兼容边界和安全说明；
 - 文档侧边栏与移动端文档切换同步增加“更新日志”；
-- v1.0.1 中历史存在的 `/api/web/health` 在页面中明确标注为已于 v1.0.2 移除，避免用户按旧版本调用。
+- v1.0.1 中历史存在的 `/api/web/health` 在页面中明确标注为已于 v0.1.2 移除，避免用户按旧版本调用。
 
 ### Changed
 
-- Maven Artifact 版本升级为 `1.0.2`；
+- Maven Artifact 版本升级为 `0.1.2`；
 - `SearchService` / `ImageSearchService` 改为 Route-aware Provider Chain；
 - 自动链对空 Provider Order 给出明确配置错误；
 - Provider Order 会 trim / lowercase，并跳过空名称，提升配置容错；
@@ -207,7 +217,7 @@ POST /api/web/read
 - `docs/agenthub/接口文档/OpenReach接口文档.md` 已按当前 DTO / Service / `application.yml` / AttackSurfaceFilter 重新对齐参数长度、64 KiB API Body、完整错误码、Provider 上游 Body 限制及图片下载验证配置；
 - 官网 inline theme script 移为 `/assets/theme-init.js`，配合 `script-src 'self'` CSP；
 - `check-project.sh` / `package.sh` 将 Skill Python Test 纳入正式门禁；新增 `build-skill-zip.sh`，打包前自动刷新官网 Skill ZIP，避免 Skill 源码与下载包不一致；
-- 设计文档进一步按版本收敛：v1.0.1 统一为 `docs/设计方案/v1.0.1设计访问文档.md`，v1.0.2 的海外与安全设计统一为 `docs/设计方案/v1.0.2优化（安全+海外）文档.md`。
+- 设计文档进一步按版本收敛：v1.0.1 统一为 `docs/设计方案/v1.0.1设计访问文档.md`，v0.1.2 的海外与安全设计统一为 `docs/设计方案/v0.1.2优化（安全+海外）文档.md`。
 
 ### Fixed
 
@@ -215,7 +225,7 @@ POST /api/web/read
 - 修正海外请求虽传 `region` 但 Auto Chain 仍优先国内 Provider 的架构问题；
 - 修正 Bing Web / Image 固定中国 Host、无法按地区切换的问题；
 - 修正图片 HTTP 请求追加 Locale Header 可能形成重复 Header 的问题；
-- 修正内置非空 `cn-provider-order` 可能遮蔽外部 v1.0.1 `provider-order` 的兼容隐患：v1.0.2 内置值保持空列表，由运行时继承旧字段；
+- 修正内置非空 `cn-provider-order` 可能遮蔽外部 v1.0.1 `provider-order` 的兼容隐患：v0.1.2 内置值保持空列表，由运行时继承旧字段；
 - 空结果 / null 结果在 Auto Chain 中统一视为本 Provider 失败并继续 fallback；
 - 修复 Search 缺少结构化时间范围的问题；
 - 修复 Image Search 可能返回失效热链、HTML 防盗链页或伪图片 URL 的质量问题；
@@ -228,17 +238,17 @@ POST /api/web/read
 当前源码静态统计：
 
 ```text
-Java @Test              126
+Java @Test              138
 OpenReach Skill Python   12
-合计                    138
+合计                    150
 ```
 
-v1.0.2 新增/扩展覆盖重点：
+v0.1.2 新增/扩展覆盖重点：
 
 - `SearchRouteResolver`：auto、default-route、CN aliases、非 CN → GLOBAL、非法默认值 fail-safe；
 - `ProviderChainResolver`：CN legacy fallback、显式 CN Chain、GLOBAL Web/Image Chain 独立解析；
 - `RegionLocaleSupport`：CN / US / JP / worldwide locale 映射；
-- `WebCapabilityProperties`：v1.0.2 默认链、CN legacy 配置 fallback 与显式 CN 链覆盖；
+- `WebCapabilityProperties`：v0.1.2 默认链、CN legacy 配置 fallback 与显式 CN 链覆盖；
 - Search / Image Service：CN/GLOBAL 链、旧配置兼容、显式 Provider 覆盖 Route、空链、空 Provider 名称、null/empty 结果继续 fallback、dedupe；
 - Bing Web / Image：CN 与 Global Host/`cc` URI 构建；
 - Brave：DOM Fixture 与内部链接过滤；
@@ -263,7 +273,7 @@ HTML / 本地链接 / CSS 括号 / changelog Route + Allowlist 静态校验
 # PASS
 
 源码静态计数
-# Java @Test = 126, Skill Python Test = 12
+# Java @Test = 138, Skill Python Test = 12
 ```
 
 Java 正式门禁仍是：
@@ -277,15 +287,15 @@ mvn clean test
 ### Known Limitations
 
 - Brave / DuckDuckGo / Bing 免费 Web SERP 仍是 best-effort，可能受到 DOM 改版、403/429、CAPTCHA、出口网络与地区策略影响；
-- v1.0.2 不做 Search Pagination、商业级 Geo、账号池、代理池或 CAPTCHA 绕过；
+- v0.1.2 不做 Search Pagination、商业级 Geo、账号池、代理池或 CAPTCHA 绕过；
 - Brave Images 因当前公开页面依赖较脆弱的内嵌 JS/Svelte 状态，未进入默认链；
 - Read 主链保持本地 SafeHttpFetcher + Jsoup，不引入远端 Key/账号依赖。
 
 ### Docs
 
-- [`docs/设计方案/v1.0.2优化（安全+海外）文档.md`](docs/设计方案/v1.0.2优化（安全+海外）文档.md)
+- [`docs/设计方案/v0.1.2优化（安全+海外）文档.md`](docs/设计方案/v0.1.2优化（安全+海外）文档.md)
 - [`docs/设计方案/v1.0.1设计访问文档.md`](docs/设计方案/v1.0.1设计访问文档.md)
-- [`docs/核心市场调研分析/03-海外免费渠道深度调研与v1.0.2接入建议.md`](docs/核心市场调研分析/03-海外免费渠道深度调研与v1.0.2接入建议.md)
+- [`docs/核心市场调研分析/03-海外免费渠道深度调研与v0.1.2接入建议.md`](docs/核心市场调研分析/03-海外免费渠道深度调研与v0.1.2接入建议.md)
 
 ---
 
@@ -513,9 +523,9 @@ OpenReach 不建设代理池、账号池、验证码绕过或 CAPTCHA 绕过能�
 
 当前源码中维护：
 
-- **117 个 Java `@Test` 方法**（其中 1 个 QPS Benchmark 默认 opt-in，不进入普通性能门禁）；
+- **138 个 Java `@Test` 方法**（其中 1 个 QPS Benchmark 默认 opt-in，不进入普通性能门禁）；
 - **12 个 OpenReach Skill Python Test Case**；
-- 共 **138 个声明测试 Case**；普通 Gate 默认跳过 1 个硬件相关 QPS Benchmark。
+- 共 **150 个声明测试 Case**；普通 Gate 默认跳过 1 个硬件相关 QPS Benchmark。
 
 Java 测试覆盖：
 
@@ -570,7 +580,15 @@ BUILD SUCCESS
 
 ### Roadmap
 
-#### v1.0.2 - 海外零 Key 免费渠道增强
+#### v0.1.2 - 海外零 Key 免费渠道增强
+
+### Tool Runner 连接故障与参数适配修复
+
+- 修复 AgentHub HTTP Plugin 把 `http://localhost:8080` 作为默认 `baseUrl` 的跨容器误导：模板改为 `{{BASE_URL}}`，要求导入时显式配置 Tool Runner 可访问地址。
+- 新增 `bin/quick/connectivity-test.sh`，从调用方环境按 URL -> DNS -> TCP -> GET `/` -> 无上游 API Probe 定位 `All connection attempts failed`。
+- Web Search 请求 JSON 同时兼容 `timeRange` / `time_range`；Web Read 同时兼容 `maxChars` / `max_chars`，适配 Agent Tool 常见 snake_case schema。
+- 新增 DTO alias 与 AgentHub Plugin 配置回归测试；补充 Tool Runner / Docker Network 排障文档。
+
 
 下一阶段重点严格限定为 **无需 API Key / 无需账号 / 零调用费** 的能力：
 
@@ -578,13 +596,13 @@ BUILD SUCCESS
 - Image Search：Bing Images 全球化，新增 Wikimedia Commons，继续保留 Openverse；Brave Images 经过进一步实现评估后降为观察项；
 - Routing：新增 CN / GLOBAL Region-aware Provider Chain，保持现有 API / DTO 不变；
 - Read：评估 Jina Reader 作为默认关闭的无 Key 远端 fallback，本地 Jsoup 永远第一路；
-- 任何需要 API Key / Token / 注册账号或依赖“免费额度”的搜索服务均不进入 v1.0.2 设计范围；
+- 任何需要 API Key / Token / 注册账号或依赖“免费额度”的搜索服务均不进入 v0.1.2 设计范围；
 - 海外 Provider 必须通过 Fixture 单测和独立在线 Smoke Test 后才能进入默认链。
 
 详细文档见：
 
-- [`docs/核心市场调研分析/03-海外免费渠道深度调研与v1.0.2接入建议.md`](docs/核心市场调研分析/03-海外免费渠道深度调研与v1.0.2接入建议.md)
-- [`docs/设计方案/v1.0.2优化（安全+海外）文档.md`](docs/设计方案/v1.0.2优化（安全+海外）文档.md)
+- [`docs/核心市场调研分析/03-海外免费渠道深度调研与v0.1.2接入建议.md`](docs/核心市场调研分析/03-海外免费渠道深度调研与v0.1.2接入建议.md)
+- [`docs/设计方案/v0.1.2优化（安全+海外）文档.md`](docs/设计方案/v0.1.2优化（安全+海外）文档.md)
 
 ---
 

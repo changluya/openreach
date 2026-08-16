@@ -100,7 +100,7 @@ python3 scripts/openreach.py search "Spring Boot AI Agent" \
   --limit 5
 ```
 
-`region` **始终建议显式展示**。默认值为 `auto`；v1.0.2 中 `auto` 默认进入 CN Route。`CN / zh-CN` 等中国 alias 走国内免费链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 免费链；之后 `region` 继续作为 Provider 的 locale/country Hint。它不是商业级精确 Geo，但已是核心 Route 参数。
+`region` **始终建议显式展示**。默认值为 `auto`；v0.1.2 中 `auto` 默认进入 CN Route。`CN / zh-CN` 等中国 alias 走国内免费链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 免费链；之后 `region` 继续作为 Provider 的 locale/country Hint。它不是商业级精确 Geo，但已是核心 Route 参数。
 
 `time-range` 对应 HTTP `timeRange`，支持 `any/day/week/month/year`，默认 `any`。需要“最近一天/一周/一月/一年”的最新性约束时应显式传入；`provider=auto` 会自动跳过不能真实执行时间过滤的 Provider，不能把该参数仅当作提示词。
 
@@ -258,3 +258,8 @@ Citation
 - 服务公网只开放三个 JSON POST API 与官网只读静态资源；Skill 不应尝试文件上传、任意 Method、Actuator/debug 等未暴露能力。
 - Read 与图片原图探测只允许公网 HTTP/HTTPS 80/443，并对跳转目标重新做 SSRF 校验。
 - CLI 错误时退出码为 `2`，Agent 应把它视为 Tool 执行失败并进行降级/重试/换 Query，而不是伪造结果。
+
+
+## 连接失败快速判断
+
+如果 Search / Read / Image Search 统一出现 `All connection attempts failed`（或 Skill 报 `Cannot reach OpenReach at ...`），并且没有 OpenReach 后端 `traceId`，说明请求没有到 OpenReach。不要继续换 query、Provider 或目标 URL 重试；应检查已配置 `base_url` 是否从当前 Agent/Tool Runner 环境真实可达。容器/沙箱中的 `localhost` 指向当前容器自身，不代表 OpenReach。
