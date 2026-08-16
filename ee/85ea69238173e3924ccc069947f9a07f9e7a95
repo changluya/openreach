@@ -1,0 +1,98 @@
+CHANGELOG.md
+  h_415c008e101ba5 7,11,15,19-28,84,92,205,207,211,220,228,241,243,246,251,276,290,296,298,526,528,583-591,599,604-605
+README.md
+  h_415c008e101ba5 17,47,81,127,383,387-388,528,552-553,559-562,584-585,607,636
+bin/quick/README.md
+  h_415c008e101ba5 3,51,58,76,84,219,226,232,279,282,307,332,337,345,351,360,450-471
+bin/quick/connectivity-test.sh
+  h_415c008e101ba5 1-86
+bin/quick/release.sh
+  h_415c008e101ba5 26
+docs/agenthub/skills/openreach-http-plugin.json
+  h_415c008e101ba5 7,10-11,15,58,69,114,130
+docs/agenthub/接口文档/OpenReach接口文档.md
+  h_415c008e101ba5 3,63,238,377,397-399,408,419-423,475-510
+docs/接口测试与Curl示例.md
+  h_415c008e101ba5 3,7,42,185
+docs/核心市场调研分析/03-海外免费渠道深度调研与v1.0.2接入建议.md
+  h_415c008e101ba5 1,4,11,15,25,39,49,57,80,110,145,168,185,256,266,276,291,372,393
+docs/核心搜索接口设计/01-websearch核心流程设计.md
+  h_415c008e101ba5 4,54,64,238,254
+docs/核心搜索接口设计/02-imagesearch核心流程设计.md
+  h_415c008e101ba5 4,58,148,180,204,253
+docs/核心搜索接口设计/03-read核心流程设计.md
+  h_415c008e101ba5 4,262,264-267,281-282
+docs/设计方案/v1.0.1设计访问文档.md
+  h_415c008e101ba5 6,246,263,363,558,560,573-574,590
+docs/设计方案/v1.0.2优化（安全+海外）文档.md
+  h_415c008e101ba5 1,4,6,11,35,51,53,152,164,229,264,286,323,394,410,420,423-426,511,601,629,651,653,682,704,706,873,877,888,890,895
+docs/设计方案/v1.0.2并发QPS压测与容量评估方案.md
+  h_415c008e101ba5 1,13
+docs/设计方案/v1.0.2请求异常诊断与日志可观测优化方案.md
+  h_415c008e101ba5 1,286,446-448
+docs/设计方案/v1.0.2连接失败与ToolRunner网络诊断方案.md
+  h_415c008e101ba5 1-174
+docs/部署篇/01-Docker一键部署指南.md
+  h_415c008e101ba5 44,79,196,202,220,239,362,396-397,400,466
+docs/部署篇/02-Docker多架构镜像与一键部署核心知识点.md
+  h_415c008e101ba5 59,99,105,140,301,530,620-621,628,642,664,670,696,711,994,1000,1148
+docs/部署篇/03-DockerHub镜像发布操作指南.md
+  h_415c008e101ba5 8,124,140,154,165,224,246,261,265,271-272,292
+docs/部署篇/04-Docker构建代理配置.md
+  h_415c008e101ba5 43,145,152,158,228
+docs/部署篇/05-Docker网络与发布坑点排障.md
+  h_415c008e101ba5 117,142,168
+pom.xml
+  h_415c008e101ba5 16
+skills/openreach/README.md
+  h_415c008e101ba5 47,51,58-62
+skills/openreach/SKILL.md
+  h_415c008e101ba5 103,261-265
+skills/openreach/scripts/openreach.py
+  h_415c008e101ba5 132,140,147,247
+src/main/java/io/github/changlu/openreach/config/WebCapabilityProperties.java
+  h_415c008e101ba5 51-54,80-85,133,200,202-205,215-226
+src/main/java/io/github/changlu/openreach/read/dto/ReadRequest.java
+  h_415c008e101ba5 3-4,12
+src/main/java/io/github/changlu/openreach/read/reader/SafeHttpFetcher.java
+  h_415c008e101ba5 9,29,31,35-36,39-45,53-86,89-92,94-98,100-120,122-136,140-144,168-172
+src/main/java/io/github/changlu/openreach/search/SearchProvider.java
+  h_415c008e101ba5 34
+src/main/java/io/github/changlu/openreach/search/SearchService.java
+  h_415c008e101ba5 17-18,27,36,49-58,93-95,98,102,109-123,125,132-146,153,182-191,215,217,219,224,227-228,233-257
+src/main/java/io/github/changlu/openreach/search/dto/SearchRequest.java
+  h_415c008e101ba5 3-4,18
+src/main/resources/application.yml
+  h_415c008e101ba5 55-58,80,98,109,111-115
+src/main/resources/static/changelog.html
+  h_415c008e101ba5 6,25,38,40-41,70,96-97,104,116
+src/main/resources/static/docs/api.html
+  h_415c008e101ba5 30-31,57,124
+src/main/resources/static/docs/index.html
+  h_415c008e101ba5 155
+src/main/resources/static/index.html
+  h_415c008e101ba5 41,140
+src/test/java/io/github/changlu/openreach/AgentHubPluginConfigTest.java
+  h_415c008e101ba5 1-25
+src/test/java/io/github/changlu/openreach/StaticWebsiteResourceTest.java
+  h_415c008e101ba5 110
+src/test/java/io/github/changlu/openreach/config/WebCapabilityPropertiesTest.java
+  h_415c008e101ba5 36-57
+src/test/java/io/github/changlu/openreach/read/reader/SafeHttpFetcherTest.java
+  h_415c008e101ba5 1-96
+src/test/java/io/github/changlu/openreach/search/SearchServiceTest.java
+  h_415c008e101ba5 220,350-408,435-446
+src/test/java/io/github/changlu/openreach/web/RequestJsonAliasTest.java
+  h_415c008e101ba5 1-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "ee85ea69238173e3924ccc069947f9a07f9e7a95",
+  "prompts": {},
+  "humans": {
+    "h_415c008e101ba5": {
+      "author": "changlu <939974883@qq.com>"
+    }
+  }
+}
