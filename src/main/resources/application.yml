@@ -40,6 +40,13 @@ openreach:
         - brave
         - duckduckgo
         - bing
+      # 携带 timeRange 时使用独立真实时间过滤链，避免 CN 链退化为单一 DuckDuckGo。
+      cn-time-range-provider-order:
+        - duckduckgo
+        - brave
+      global-time-range-provider-order:
+        - brave
+        - duckduckgo
       timeout-ms: 6000
       max-results: 20
       # Provider HTML/JSON 上游响应硬上限，防止异常上游造成无界内存占用。
@@ -97,6 +104,7 @@ openreach:
       max-redirects: 5
       allowed-ports: [80, 443]
       user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+      accept-language: zh-CN,zh;q=0.9,en;q=0.6
 
     security:
       # 三个 JSON API 的请求体都很小；过滤器也会对 chunked 请求做真实读取上限。

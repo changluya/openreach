@@ -85,14 +85,22 @@
       <div class="banner-grid">
         <div>
           <div class="kicker">Quick start</div>
-          <h2>一个命令启动，浏览器直接看到官网</h2>
-          <p>无需 Clone 工程、无需准备 Compose 文件，直接执行一条 <strong>docker run</strong> 即可启动。源码开发场景再使用 Maven。服务启动后访问 <strong>http://localhost:8080</strong> 即可看到当前官网。</p>
+          <h2>一组命令启动，浏览器直接看到官网</h2>
+          <p>无需 Clone 工程、无需准备 Compose 文件，准备日志目录后执行 <strong>docker run</strong> 即可启动。源码开发场景再使用 Maven。服务启动后访问 <strong>http://localhost:8080</strong> 即可看到当前官网。</p>
           <div class="hero-actions" style="justify-content:flex-start;margin-top:22px"><a class="btn" href="/docs/">打开快速启动文档</a></div>
         </div>
-        <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#docker-code">复制</button><pre id="docker-code">docker run -d \
+        <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#docker-code">复制</button><pre id="docker-code">sudo mkdir -p /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach/logs
+
+docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
+  -e OPENREACH_LOG_PATH=/app/logs \
+  -v /data/openreach/logs:/app/logs \
+  --log-driver json-file \
+  --log-opt max-size=20m \
+  --log-opt max-file=3 \
   codercl/openreach:latest
 
 # Website  http://localhost:8080/

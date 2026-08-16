@@ -8,6 +8,9 @@ services:
     environment:
       JAVA_OPTS: "${JAVA_OPTS:--Xms128m -Xmx512m}"
       SERVER_PORT: "8080"
+      OPENREACH_LOG_PATH: "/app/logs"
+    volumes:
+      - "${OPENREACH_LOG_DIR:-./logs}:/app/logs"
     read_only: true
     tmpfs:
       - /tmp:size=64m,mode=1777
@@ -15,3 +18,9 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"

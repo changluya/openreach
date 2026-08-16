@@ -26,6 +26,15 @@ public class ProviderChainResolver {
         return copy(configured);
     }
 
+    public List<String> searchProviders(SearchRoute route, boolean requireTimeRange) {
+        if (!requireTimeRange) return searchProviders(route);
+        List<String> configured = route == SearchRoute.GLOBAL
+                ? properties.getSearch().getGlobalTimeRangeProviderOrder()
+                : properties.getSearch().getCnTimeRangeProviderOrder();
+        if (configured == null || configured.isEmpty()) return searchProviders(route);
+        return copy(configured);
+    }
+
     public List<String> imageSearchProviders(SearchRoute route) {
         List<String> configured = route == SearchRoute.GLOBAL
                 ? properties.getImageSearch().getGlobalProviderOrder()

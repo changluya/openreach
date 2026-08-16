@@ -25,6 +25,7 @@ class StaticWebsiteResourceTest {
         assertNotNull(loader.getResource("static/assets/theme-init.js"));
         assertNotNull(loader.getResource("static/assets/wechat-group.png"));
         assertNotNull(loader.getResource("static/downloads/openreach-skill.zip"));
+        assertNotNull(loader.getResource("logback-spring.xml"));
     }
 
     @Test

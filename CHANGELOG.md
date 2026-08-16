@@ -14,6 +14,14 @@ OpenReach 的版本更新记录。
 
 v1.0.2 在 v1.0.1 国内免费渠道基线之上，把 OpenReach 从“单一国内优先 Provider Chain”升级为**由 `region` 驱动的 CN / GLOBAL Web Access Router**，并继续坚持默认链 **零 API Key、零账号依赖、零商业 Search 调用费**。
 
+### Fixed
+
+#### QPS benchmark 编译回归修复（2026-08-16）
+
+- 修复 `WebCapabilityProperties.ImageSearch` 误包含 Web Search 专属 `cn/globalTimeRangeProviderOrder` getter/setter，导致 `mvn compile` 报 `cannot find symbol` 的问题；
+- `timeRange` Provider Chain 配置继续仅保留在 `WebCapabilityProperties.Search`；
+- 增加配置边界回归测试，明确 Image Search 不应暴露 Search-only timeRange Provider Order API。
+
 ### Changed
 
 #### Skill 初始化状态检查收敛
@@ -33,6 +41,28 @@ OpenReach Skill 新增只读 `check`：Agent 判断是否完成初始化时，�
 Skill Python Test 从 6 个扩展到 **12 个**，新增覆盖“配置缺失零网络请求 / 缺失配置不读取环境变量或本机 fallback / 配置存在严格单探测 / 配置损坏不探测且不修复 / 无配置时拒绝猜默认 Host / CLI 帮助不出现示例私网 IP”。
 
 ### Added
+
+#### 请求 Trace、上游诊断日志与 Docker 日志持久化（2026-08-16 增补）
+
+- 新增 `RequestTraceFilter` / MDC Trace Context；Trace ID 采用 `UTC 毫秒时间戳 + 随机后缀`，响应头统一返回 `X-OpenReach-Trace-Id`；
+- Spring MVC 错误 JSON 与安全 Filter 提前拒绝 JSON 都增加 `traceId`；
+- Search / Image Search / Read 增加统一 `[OPENREACH-*]` 日志前缀，记录 Provider start/skip/success/fail、上游 HTTP status/host/latency、redirect 与失败分类；
+- 新增 `UpstreamFailureClassifier`，区分 `HTTP_403 / HTTP_429 / BOT_CHALLENGE / TIMEOUT / PARSE_EMPTY / IO_ERROR` 等；
+- Search Auto Chain 的最终错误增加 `attempted / skipped`，明确区分“Provider 未执行”和“Provider 已请求但失败”；
+- 新增独立 `timeRange` Provider Chain：CN 默认 `duckduckgo → brave`、GLOBAL 默认 `brave → duckduckgo`，避免 CN 时间过滤请求只剩 DuckDuckGo 单路；
+- 新增 `logback-spring.xml`，输出 `openreach.log / openreach-api.log / openreach-upstream.log`，按日期 + 大小滚动压缩归档；
+- Docker 默认日志目录 `/app/logs`，Compose 支持 `OPENREACH_LOG_DIR` 映射到宿主机，容器重建后日志仍保留；Docker stdout json-file 限制 `20MB × 3`；
+- Read 新增可配置 `accept-language` Header，提升普通网页静态读取兼容性；
+- 新增 `bin/quick/logs.sh`，支持按 API / Upstream / Error / Trace ID 快速定位持久化日志；
+- 新增 `docs/设计方案/v1.0.2请求异常诊断与日志可观测优化方案.md`，记录 403 / bot challenge / timeRange skip 根因分析以及 Rate Limiter、Circuit Breaker、Header Profile、ProxySelector / Browser Reader 后续演进方案。
+
+#### 并发 QPS 压测与容量评估
+
+- 新增 `OpenReachApiQpsBenchmarkTest`：真实 Spring Boot HTTP 链路 + 内存 Provider 的 opt-in 并发基准测试。
+- 新增 `bin/quick/qps-unit-test.sh`，输出 QPS、Avg、P50/P95/P99/Max、成功率和 HTTP 状态码分布。
+- 新增 `bin/quick/qps-test.sh`，可对已经启动的 OpenReach 进行真实上游并发压测，并保留失败 Trace ID。
+- 压测报告落盘到 `target/qps/`，便于不同版本和部署规格长期对比。
+- 新增 `docs/设计方案/v1.0.2并发QPS压测与容量评估方案.md`。
 
 #### 1. CN / GLOBAL 统一路由层
 
@@ -181,9 +211,9 @@ POST /api/web/read
 当前源码静态统计：
 
 ```text
-Java @Test              105
+Java @Test              113
 OpenReach Skill Python   12
-合计                    117
+合计                    125
 ```
 
 v1.0.2 新增/扩展覆盖重点：
@@ -216,7 +246,7 @@ HTML / 本地链接 / CSS 括号 / changelog Route + Allowlist 静态校验
 # PASS
 
 源码静态计数
-# Java @Test = 105, Skill Python Test = 12
+# Java @Test = 113, Skill Python Test = 12
 ```
 
 Java 正式门禁仍是：
@@ -466,9 +496,9 @@ OpenReach 不建设代理池、账号池、验证码绕过或 CAPTCHA 绕过能�
 
 当前源码中维护：
 
-- **38 个 Java `@Test` Case**；
-- **5 个 OpenReach Skill Python Test Case**；
-- 共 **43 个测试 Case**。
+- **115 个 Java `@Test` 方法**（其中 1 个 QPS Benchmark 默认 opt-in，不进入普通性能门禁）；
+- **12 个 OpenReach Skill Python Test Case**；
+- 共 **127 个声明测试 Case**；普通 Gate 默认跳过 1 个硬件相关 QPS Benchmark。
 
 Java 测试覆盖：
 
@@ -559,3 +589,4 @@ Roadmap
 ```
 
 若某版本仅为修复，可只保留实际发生变化的栏目。
+

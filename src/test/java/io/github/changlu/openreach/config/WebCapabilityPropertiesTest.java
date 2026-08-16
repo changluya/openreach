@@ -8,6 +8,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class WebCapabilityPropertiesTest {
 
@@ -20,6 +21,8 @@ class WebCapabilityPropertiesTest {
                 props.getSearch().effectiveCnProviderOrder());
         assertEquals(List.of("brave", "duckduckgo", "bing"),
                 props.getSearch().getGlobalProviderOrder());
+        assertEquals(List.of("duckduckgo", "brave"), props.getSearch().getCnTimeRangeProviderOrder());
+        assertEquals(List.of("brave", "duckduckgo"), props.getSearch().getGlobalTimeRangeProviderOrder());
         assertEquals(2 * 1024 * 1024, props.getSearch().getMaxResponseBytes());
         assertEquals(List.of("bing", "baidu", "sogou", "openverse"),
                 props.getImageSearch().effectiveCnProviderOrder());
@@ -28,6 +31,14 @@ class WebCapabilityPropertiesTest {
         assertEquals(4 * 1024 * 1024, props.getImageSearch().getMaxResponseBytes());
         assertEquals(6, props.getImageSearch().getDownloadValidationConcurrency());
         assertEquals(48, props.getImageSearch().getDownloadValidationQueueCapacity());
+    }
+
+    @Test
+    void imageSearchDoesNotExposeSearchOnlyTimeRangeProviderOrder() {
+        assertThrows(NoSuchMethodException.class,
+                () -> WebCapabilityProperties.ImageSearch.class.getMethod("getCnTimeRangeProviderOrder"));
+        assertThrows(NoSuchMethodException.class,
+                () -> WebCapabilityProperties.ImageSearch.class.getMethod("getGlobalTimeRangeProviderOrder"));
     }
 
     @Test

@@ -4,6 +4,8 @@ import io.github.changlu.openreach.common.BadRequestException;
 import io.github.changlu.openreach.common.UpstreamException;
 import io.github.changlu.openreach.config.WebCapabilityProperties;
 import io.github.changlu.openreach.security.UrlSafetyGuard;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
@@ -20,6 +22,7 @@ import java.util.Optional;
 
 @Component
 public class SafeHttpFetcher {
+    private static final Logger upstreamLog = LoggerFactory.getLogger("OPENREACH.UPSTREAM");
     private final UrlSafetyGuard safetyGuard;
     private final WebCapabilityProperties properties;
     private final HttpClient client;
@@ -42,11 +45,19 @@ public class SafeHttpFetcher {
                     .timeout(Duration.ofMillis(properties.getRead().getTimeoutMs()))
                     .header("User-Agent", properties.getRead().getUserAgent())
                     .header("Accept", "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5")
+                    .header("Accept-Language", properties.getRead().getAcceptLanguage())
                     .GET()
                     .build();
+            long started = System.nanoTime();
+            upstreamLog.info("[OPENREACH-UPSTREAM] http_start provider=read method=GET host={} path={} redirect={}",
+                    current.getHost(), current.getPath(), redirects);
             try {
                 HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
                 int status = response.statusCode();
+                upstreamLog.info("[OPENREACH-UPSTREAM] http_response provider=read status={} host={} latencyMs={} contentType={} retryAfter={}",
+                        status, current.getHost(), (System.nanoTime() - started) / 1_000_000L,
+                        response.headers().firstValue("content-type").orElse("unknown"),
+                        response.headers().firstValue("retry-after").orElse("none"));
 
                 if (status >= 300 && status < 400) {
                     response.body().close();
@@ -55,7 +66,10 @@ public class SafeHttpFetcher {
                     }
                     Optional<String> location = response.headers().firstValue("location");
                     if (location.isEmpty()) throw new UpstreamException("Redirect response missing Location header");
-                    current = safetyGuard.validate(current.resolve(location.get()).toString());
+                    URI next = safetyGuard.validate(current.resolve(location.get()).toString());
+                    upstreamLog.info("[OPENREACH-UPSTREAM] redirect provider=read fromHost={} toHost={} status={} redirect={}",
+                            current.getHost(), next.getHost(), status, redirects);
+                    current = next;
                     continue;
                 }
 
@@ -74,9 +88,13 @@ public class SafeHttpFetcher {
                 byte[] body = readLimited(response.body(), maxBytes);
                 return new FetchedPage(current.toString(), contentType, body, response.headers().map());
             } catch (IOException ex) {
+                upstreamLog.warn("[OPENREACH-UPSTREAM] http_io_fail provider=read host={} latencyMs={} message={}",
+                        current.getHost(), (System.nanoTime() - started) / 1_000_000L, ex.getMessage());
                 throw new UpstreamException("Failed to read URL: " + ex.getMessage(), ex);
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
+                upstreamLog.warn("[OPENREACH-UPSTREAM] http_interrupted provider=read host={} latencyMs={}",
+                        current.getHost(), (System.nanoTime() - started) / 1_000_000L);
                 throw new UpstreamException("Read interrupted", ex);
             }
         }

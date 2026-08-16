@@ -4,6 +4,8 @@ import io.github.changlu.openreach.common.BoundedBodyReader;
 import io.github.changlu.openreach.common.UpstreamException;
 import io.github.changlu.openreach.config.WebCapabilityProperties;
 import org.jsoup.Jsoup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +27,7 @@ import java.util.regex.Pattern;
 
 @Component
 public class SearchHttpClient {
+    private static final Logger upstreamLog = LoggerFactory.getLogger("OPENREACH.UPSTREAM");
     private static final Pattern CHARSET_PATTERN = Pattern.compile("charset\\s*=\\s*[\\\"']?([^;\\s\\\"']+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern META_CHARSET_PATTERN = Pattern.compile("<meta[^>]+charset\\s*=\\s*[\\\"']?([^\\s\\\"'/>]+)", Pattern.CASE_INSENSITIVE);
 
@@ -67,11 +70,19 @@ public class SearchHttpClient {
     }
 
     private Document sendDocument(String providerName, HttpRequest request) {
+        long started = System.nanoTime();
+        upstreamLog.info("[OPENREACH-UPSTREAM] http_start provider={} method={} host={} path={}",
+                providerName, request.method(), request.uri().getHost(), request.uri().getPath());
         try {
             HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            int status = response.statusCode();
+            upstreamLog.info("[OPENREACH-UPSTREAM] http_response provider={} status={} host={} latencyMs={} contentType={} retryAfter={}",
+                    providerName, status, response.uri().getHost(), (System.nanoTime() - started) / 1_000_000L,
+                    response.headers().firstValue("content-type").orElse("unknown"),
+                    response.headers().firstValue("retry-after").orElse("none"));
+            if (status < 200 || status >= 300) {
                 response.body().close();
-                throw new UpstreamException(providerName + " returned HTTP " + response.statusCode());
+                throw new UpstreamException(providerName + " returned HTTP " + status);
             }
             int maxBytes = properties.getSearch().getMaxResponseBytes();
             long contentLength = response.headers().firstValueAsLong("content-length").orElse(-1L);
@@ -85,9 +96,13 @@ public class SearchHttpClient {
             Charset charset = detectCharset(contentType, body);
             return Jsoup.parse(new String(body, charset), response.uri().toString());
         } catch (IOException ex) {
+            upstreamLog.warn("[OPENREACH-UPSTREAM] http_io_fail provider={} host={} latencyMs={} message={}",
+                    providerName, request.uri().getHost(), (System.nanoTime() - started) / 1_000_000L, ex.getMessage());
             throw new UpstreamException(providerName + " request failed: " + ex.getMessage(), ex);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
+            upstreamLog.warn("[OPENREACH-UPSTREAM] http_interrupted provider={} host={} latencyMs={}",
+                    providerName, request.uri().getHost(), (System.nanoTime() - started) / 1_000_000L);
             throw new UpstreamException(providerName + " request interrupted", ex);
         }
     }

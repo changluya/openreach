@@ -72,19 +72,30 @@
     </section>
 
     <h2>1. Docker 一键启动（推荐）</h2>
-    <p>最快的体验方式。不需要 Clone 项目，也不依赖 Compose 文件；只要本机已安装 Docker，复制下面一条命令即可启动：</p>
-    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#docker-run">复制</button><pre id="docker-run">docker run -d \
+    <p>最快的体验方式。不需要 Clone 项目，也不依赖 Compose 文件；只要本机已安装 Docker，准备日志目录后复制下面命令即可启动：</p>
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#docker-run">复制</button><pre id="docker-run">sudo mkdir -p /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach/logs
+
+docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
+  -e OPENREACH_LOG_PATH=/app/logs \
+  -v /data/openreach/logs:/app/logs \
+  --log-driver json-file \
+  --log-opt max-size=20m \
+  --log-opt max-file=3 \
   codercl/openreach:latest</pre></div>
     <p>启动完成后直接访问：</p>
     <ul><li>官网：<code>http://localhost:8080/</code></li><li>文档：<code>http://localhost:8080/docs/</code></li><li>API Base URL：<code>http://localhost:8080/api/web</code></li></ul>
     <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#docker-manage">复制</button><pre id="docker-manage"># 查看容器
 docker ps --filter name=openreach
 
-# 查看日志
+# 查看控制台日志
 docker logs -f openreach
+
+# 查看持久化日志
+tail -f ./logs/openreach-upstream.log
 
 # 停止并删除
 docker rm -f openreach</pre></div>

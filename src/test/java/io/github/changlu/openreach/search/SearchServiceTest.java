@@ -201,7 +201,7 @@ class SearchServiceTest {
     @Test
     void timeRangeSkipsUnsupportedProvidersAndUsesCapableFallback() {
         WebCapabilityProperties props = new WebCapabilityProperties();
-        props.getSearch().setGlobalProviderOrder(List.of("unsupported", "brave"));
+        props.getSearch().setGlobalTimeRangeProviderOrder(List.of("unsupported", "brave"));
         List<String> calls = new ArrayList<>();
         SearchProvider unsupported = recordingProvider("unsupported", calls);
         SearchProvider brave = timeAwareProvider("brave", calls);
@@ -223,6 +223,42 @@ class SearchServiceTest {
                 () -> service.search(new SearchRequest("news", 3, "CN", "baidu", "day")));
 
         org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("does not support timeRange"));
+    }
+
+    @Test
+    void autoTimeRangeReturnsBadRequestWhenNoConfiguredProviderSupportsIt() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getSearch().setGlobalTimeRangeProviderOrder(List.of("bing", "baidu"));
+        SearchService service = service(List.of(
+                recordingProvider("bing", new ArrayList<>()),
+                recordingProvider("baidu", new ArrayList<>())
+        ), props);
+
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> service.search(new SearchRequest("news", 3, "US", null, "week")));
+
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("No configured search provider supports timeRange=week"));
+    }
+
+    @Test
+    void autoFailureSummaryReportsAttemptedAndSkippedProviders() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getSearch().setGlobalTimeRangeProviderOrder(List.of("bing", "duckduckgo"));
+        SearchProvider failedTimeAware = new SearchProvider() {
+            @Override public String name() { return "duckduckgo"; }
+            @Override public boolean supportsTimeRange() { return true; }
+            @Override public List<SearchItem> search(String query, int limit, String region) { return List.of(); }
+            @Override public List<SearchItem> search(String query, int limit, String region, SearchTimeRange timeRange) {
+                throw new UpstreamException("duckduckgo bot challenge detected");
+            }
+        };
+        SearchService service = service(List.of(recordingProvider("bing", new ArrayList<>()), failedTimeAware), props);
+
+        UpstreamException ex = assertThrows(UpstreamException.class,
+                () -> service.search(new SearchRequest("news", 3, "US", null, "week")));
+
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("attempted=1, skipped=1"));
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("bot challenge"));
     }
 
     @Test

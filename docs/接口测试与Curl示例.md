@@ -26,7 +26,7 @@ python3 -m unittest discover -s skills/openreach/tests -p 'test_*.py' -v
 ### Docker
 
 ```bash
-docker run -d --name openreach -p 8080:8080 codercl/openreach:latest
+docker run -d --name openreach -p 8080:8080 -e OPENREACH_LOG_PATH=/app/logs -v /data/openreach/logs:/app/logs codercl/openreach:latest
 ```
 
 从源码本地构建验收：

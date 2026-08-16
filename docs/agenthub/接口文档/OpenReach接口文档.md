@@ -98,7 +98,7 @@ Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabi
 - `provider=<具体渠道>`：显式 Provider 优先级最高，仅请求指定渠道，不进入 Route Chain fallback；`region` 仍作为该 Provider 的 locale/country Hint。
 - 所有渠道均失败且无任何结果时返回 `502 UPSTREAM_ERROR`；Route Provider Order 为空时也返回清晰的 `UPSTREAM_ERROR`。
 - 返回前会对 `items` 重新编号（`rank` 从 1 连续）。
-- `timeRange!=any` 时，auto 会跳过 `supportsTimeRange=false` 的 Provider；显式 Provider 不支持时返回 `400 BAD_REQUEST`。当前 Brave / DuckDuckGo 实现真实上游时间过滤。
+- `timeRange!=any` 时，auto 优先使用独立时间过滤链：CN 默认 `duckduckgo -> brave`、GLOBAL 默认 `brave -> duckduckgo`；链内仍会跳过 `supportsTimeRange=false` 的 Provider。显式 Provider 不支持时返回 `400 BAD_REQUEST`。当前 Brave / DuckDuckGo 实现真实上游时间过滤。
 
 ### 3.4 示例
 
@@ -313,13 +313,14 @@ curl -sS -X POST 'http://localhost:8080/api/web/read' \
 
 ## 6. 错误码与公共错误响应
 
-Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `timestamp`：
+Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `timestamp` 与 `traceId`；所有请求响应头同时返回 `X-OpenReach-Trace-Id`：
 
 ```json
 {
   "timestamp": "2026-08-15T02:00:00.000Z",
   "status": 400,
   "code": "BAD_REQUEST",
+  "traceId": "req-20260815T175351289-8f31a4c2",
   "message": "Only http/https URLs are allowed"
 }
 ```
@@ -330,6 +331,7 @@ Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `time
 {
   "status": 415,
   "code": "UPLOAD_DISABLED",
+  "traceId": "req-20260815T175351289-8f31a4c2",
   "message": "File upload is disabled"
 }
 ```

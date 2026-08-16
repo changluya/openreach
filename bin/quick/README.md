@@ -80,10 +80,18 @@ docker buildx imagetools inspect codercl/openreach:1.0.2
 普通用户部署（无需 Maven/JDK/源码）：
 
 ```bash
+sudo mkdir -p /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach/logs
+
 docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
+  -e OPENREACH_LOG_PATH=/app/logs \
+  -v /data/openreach/logs:/app/logs \
+  --log-driver json-file \
+  --log-opt max-size=20m \
+  --log-opt max-file=3 \
   codercl/openreach:latest
 ```
 
@@ -231,10 +239,18 @@ linux/arm64
 镜像发布完成后，普通用户无需 Maven/JDK/源码：
 
 ```bash
+sudo mkdir -p /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach/logs
+
 docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
+  -e OPENREACH_LOG_PATH=/app/logs \
+  -v /data/openreach/logs:/app/logs \
+  --log-driver json-file \
+  --log-opt max-size=20m \
+  --log-opt max-file=3 \
   codercl/openreach:latest
 ```
 
@@ -253,9 +269,60 @@ Docker 会根据宿主机 CPU 自动选择 `linux/amd64` 或 `linux/arm64`。
 | 本地镜像构建 | `./bin/quick/docker-build.sh` |
 | 本地镜像启动验收 | `./bin/quick/docker-verify.sh` |
 | 公网接口 Smoke Test | `./bin/quick/smoke-test.sh` |
+| 应用自身 QPS 基准 | `./bin/quick/qps-unit-test.sh` |
+| 真实上游 QPS 压测 | `./bin/quick/qps-test.sh` |
 | 查看远程架构 | `docker buildx imagetools inspect codercl/openreach:1.0.2` |
+| 查看 API 日志 | `OPENREACH_LOG_DIR=/data/openreach/logs ./bin/quick/logs.sh api` |
+| 按 Trace 排障 | `OPENREACH_LOG_DIR=/data/openreach/logs ./bin/quick/logs.sh trace <traceId>` |
 
 ---
+
+---
+
+## 9. Docker 日志持久化与 Trace 排障
+
+推荐线上固定宿主机目录：
+
+```bash
+sudo mkdir -p /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach/logs
+
+docker run -d \
+  --name openreach \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -e OPENREACH_LOG_PATH=/app/logs \
+  -v /data/openreach/logs:/app/logs \
+  --log-driver json-file \
+  --log-opt max-size=20m \
+  --log-opt max-file=3 \
+  codercl/openreach:1.0.2
+```
+
+日志文件：
+
+```text
+openreach.log          完整应用日志
+openreach-api.log      API request_start/request_end/request_failed
+openreach-upstream.log Search/Image/Read 上游请求全过程
+archive/               按日期 + 大小滚动压缩归档
+```
+
+接口返回头和错误 JSON 都包含 Trace ID。定位一条失败请求：
+
+```bash
+TRACE_ID=req-20260815T175351289-8f31a4c2
+grep "$TRACE_ID" /data/openreach/logs/openreach*.log
+
+# 或使用项目内置日志助手
+OPENREACH_LOG_DIR=/data/openreach/logs ./bin/quick/logs.sh trace "$TRACE_ID"
+```
+
+详细设计见：
+
+```text
+docs/设计方案/v1.0.2请求异常诊断与日志可观测优化方案.md
+```
 
 ## 快速打 Tag + 推送远程仓库
 
@@ -283,3 +350,92 @@ git push origin HEAD --follow-tags
 ```
 
 > 发布新版本时只需把 `v1.0.2` 替换成目标版本号。若 Tag 已存在，先确认远端是否已经发布，不建议直接强制覆盖 Release Tag。
+
+---
+
+## 10. 并发 QPS 压测
+
+### 10.1 推荐：应用自身 HTTP QPS 基准单测
+
+该测试会启动真实 Spring Boot HTTP 服务和完整 Filter / Trace / JSON / SearchService 链路，但使用**内存 benchmark Provider**，不会请求 Bing、百度、Brave、DuckDuckGo 等公网渠道，因此适合测 OpenReach 自身吞吐，不会触发第三方反爬。
+
+```bash
+./bin/quick/qps-unit-test.sh
+```
+
+默认参数：
+
+```text
+每档请求数: 500
+预热请求:   50
+并发档位:   1,4,8,16,32
+Provider延迟: 0ms
+日志级别:   INFO（保留当前生产日志成本）
+```
+
+自定义：
+
+```bash
+REQUESTS_PER_LEVEL=2000 \
+CONCURRENCY_LEVELS=1,8,16,32,64,128 \
+PROVIDER_DELAY_MS=20 \
+./bin/quick/qps-unit-test.sh
+```
+
+如果希望在固定压测机器上增加可选峰值 QPS 回归门槛：
+
+```bash
+MIN_PEAK_QPS=500 \
+REQUESTS_PER_LEVEL=3000 \
+CONCURRENCY_LEVELS=8,16,32,64 \
+./bin/quick/qps-unit-test.sh
+```
+
+默认 `MIN_PEAK_QPS=0`，只报告、不阻断普通构建。
+
+如果希望单独观察关闭高频 API/Upstream INFO 日志后的吞吐上限：
+
+```bash
+QPS_API_LOG_LEVEL=WARN \
+QPS_UPSTREAM_LOG_LEVEL=WARN \
+REQUESTS_PER_LEVEL=2000 \
+CONCURRENCY_LEVELS=1,8,16,32,64 \
+./bin/quick/qps-unit-test.sh
+```
+
+报告输出：
+
+```text
+target/qps/openreach-qps-report.md
+target/qps/openreach-qps-report.csv
+```
+
+压测期间的 Logback 文件默认单独写入：
+
+```text
+target/qps/logs/
+```
+
+可通过 `QPS_LOG_PATH` 覆盖，避免污染项目根目录的运行日志。
+
+指标包含：Concurrency、Requests、Success、Fail、Duration、QPS、Avg、P50、P95、P99、Max、HTTP Status。
+
+### 10.2 已启动服务：真实上游 QPS
+
+下面命令会真正调用当前 OpenReach 的 `/api/web/search`，因此 QPS 会同时受公网延迟、搜索渠道限流、反爬、出口 IP 和网络质量影响：
+
+```bash
+BASE_URL=http://127.0.0.1:8080 \
+TOTAL_REQUESTS=50 \
+CONCURRENCY=5 \
+./bin/quick/qps-test.sh
+```
+
+报告：
+
+```text
+target/qps/openreach-real-qps-report.json
+target/qps/openreach-real-qps-failures.json   # 仅失败时生成，包含 traceId 样本
+```
+
+> 公网渠道压测建议从 5 并发、50 请求开始，不建议直接用几十/上百并发轰免费搜索 Provider。应用自身性能请优先使用 `qps-unit-test.sh`。

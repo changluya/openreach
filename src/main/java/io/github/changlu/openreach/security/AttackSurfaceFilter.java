@@ -1,6 +1,7 @@
 package io.github.changlu.openreach.security;
 
 import io.github.changlu.openreach.config.WebCapabilityProperties;
+import io.github.changlu.openreach.observability.TraceContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletInputStream;
@@ -8,6 +9,8 @@ import jakarta.servlet.ReadListener;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -29,6 +32,7 @@ import java.util.Set;
  */
 @Component
 public class AttackSurfaceFilter extends OncePerRequestFilter {
+    private static final Logger apiLog = LoggerFactory.getLogger("OPENREACH.API");
     private static final Set<String> API_PATHS = Set.of(
             "/api/web/search",
             "/api/web/image-search",
@@ -176,11 +180,13 @@ public class AttackSurfaceFilter extends OncePerRequestFilter {
     }
 
     private void reject(HttpServletResponse response, int status, String code, String message) throws IOException {
+        apiLog.warn("[OPENREACH-API] request_rejected code={} status={} message={}", code, status, message);
         response.setStatus(status);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         String escaped = message.replace("\\", "\\\\").replace("\"", "\\\"");
-        response.getWriter().write("{\"status\":" + status + ",\"code\":\"" + code + "\",\"message\":\"" + escaped + "\"}");
+        String traceId = TraceContext.traceId().replace("\\", "\\\\").replace("\"", "\\\"");
+        response.getWriter().write("{\"status\":" + status + ",\"code\":\"" + code + "\",\"traceId\":\"" + traceId + "\",\"message\":\"" + escaped + "\"}");
     }
 
     private static final class PayloadTooLargeException extends Exception {}

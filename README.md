@@ -132,13 +132,21 @@ Agent 总结、问答、对比、引用或继续深度检索
 
 ### 方式一：Docker 一键启动（推荐）
 
-适合普通使用者。**不需要 Clone 工程，也不依赖 Compose 文件**；当 `codercl/openreach:latest` 镜像已经发布到镜像仓库后，直接执行一条命令：
+适合普通使用者。**不需要 Clone 工程，也不依赖 Compose 文件**；当 `codercl/openreach:latest` 镜像已经发布到镜像仓库后，直接执行下面这组命令：
 
 ```bash
+sudo mkdir -p /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach/logs
+
 docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
+  -e OPENREACH_LOG_PATH=/app/logs \
+  -v /data/openreach/logs:/app/logs \
+  --log-driver json-file \
+  --log-opt max-size=20m \
+  --log-opt max-file=3 \
   codercl/openreach:latest
 ```
 
@@ -156,8 +164,11 @@ docker run -d \
 # 查看容器
 docker ps --filter name=openreach
 
-# 查看日志
+# 查看控制台日志
 docker logs -f openreach
+
+# 查看持久化上游日志
+tail -f /data/openreach/logs/openreach-upstream.log
 
 # 停止并删除
 docker rm -f openreach
@@ -512,8 +523,10 @@ openreach/
 | 本地 Docker 构建 | `./bin/quick/docker-build.sh` |
 | 本地镜像启动验收 | `./bin/quick/docker-verify.sh` |
 | 公网接口 Smoke Test | `./bin/quick/smoke-test.sh` |
+| 应用自身 HTTP QPS 基准 | `./bin/quick/qps-unit-test.sh` |
+| 已启动服务真实 QPS 压测 | `BASE_URL=http://127.0.0.1:8080 ./bin/quick/qps-test.sh` |
 | 一键发布 Docker Hub | `./bin/quick/release.sh` |
-| Docker 一键启动 | `docker run -d --name openreach --restart unless-stopped -p 8080:8080 codercl/openreach:latest` |
+| Docker 一键启动 | `docker run -d --name openreach --restart unless-stopped -p 8080:8080 -v /data/openreach/logs:/app/logs --log-driver json-file --log-opt max-size=20m --log-opt max-file=3 codercl/openreach:latest` |
 | Docker Compose 启动（可选） | `docker compose up -d` |
 | Docker Compose 停止 | `docker compose down` |
 
@@ -540,6 +553,8 @@ openreach/
 
 - [v1.0.1 设计访问文档](docs/设计方案/v1.0.1设计访问文档.md)
 - [v1.0.2 优化（安全 + 海外）文档](docs/设计方案/v1.0.2优化（安全+海外）文档.md)
+- [v1.0.2 请求异常诊断与日志可观测优化方案](docs/设计方案/v1.0.2请求异常诊断与日志可观测优化方案.md)
+- [v1.0.2 并发 QPS 压测与容量评估方案](docs/设计方案/v1.0.2并发QPS压测与容量评估方案.md)
 - [接口测试与 Curl 示例](docs/接口测试与Curl示例.md)
 
 ### 部署与发布
@@ -650,7 +665,7 @@ read(url)
 Quick start with Docker:
 
 ```bash
-docker run -d --name openreach --restart unless-stopped -p 8080:8080 codercl/openreach:latest
+docker run -d --name openreach --restart unless-stopped -p 8080:8080 -e OPENREACH_LOG_PATH=/app/logs -v /data/openreach/logs:/app/logs --log-driver json-file --log-opt max-size=20m --log-opt max-file=3 codercl/openreach:latest
 ```
 
 For local development:

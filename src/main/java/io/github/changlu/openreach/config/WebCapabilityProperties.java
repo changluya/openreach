@@ -43,6 +43,9 @@ public class WebCapabilityProperties {
         private List<String> providerOrder = new ArrayList<>(List.of("bing", "baidu", "sogou", "so360", "duckduckgo"));
         private List<String> cnProviderOrder = new ArrayList<>();
         private List<String> globalProviderOrder = new ArrayList<>(List.of("brave", "duckduckgo", "bing"));
+        // Restricted timeRange uses only providers with verified native upstream filtering.
+        private List<String> cnTimeRangeProviderOrder = new ArrayList<>(List.of("duckduckgo", "brave"));
+        private List<String> globalTimeRangeProviderOrder = new ArrayList<>(List.of("brave", "duckduckgo"));
 
         private int timeoutMs = 6000;
         private int maxResults = 20;
@@ -64,6 +67,10 @@ public class WebCapabilityProperties {
         public void setCnProviderOrder(List<String> cnProviderOrder) { this.cnProviderOrder = safeList(cnProviderOrder); }
         public List<String> getGlobalProviderOrder() { return globalProviderOrder; }
         public void setGlobalProviderOrder(List<String> globalProviderOrder) { this.globalProviderOrder = safeList(globalProviderOrder); }
+        public List<String> getCnTimeRangeProviderOrder() { return cnTimeRangeProviderOrder; }
+        public void setCnTimeRangeProviderOrder(List<String> value) { this.cnTimeRangeProviderOrder = safeList(value); }
+        public List<String> getGlobalTimeRangeProviderOrder() { return globalTimeRangeProviderOrder; }
+        public void setGlobalTimeRangeProviderOrder(List<String> value) { this.globalTimeRangeProviderOrder = safeList(value); }
         public int getTimeoutMs() { return timeoutMs; }
         public void setTimeoutMs(int timeoutMs) { this.timeoutMs = timeoutMs; }
         public int getMaxResults() { return maxResults; }
@@ -186,6 +193,7 @@ public class WebCapabilityProperties {
         private int maxRedirects = 5;
         private List<Integer> allowedPorts = new ArrayList<>(List.of(80, 443));
         private String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36";
+        private String acceptLanguage = "zh-CN,zh;q=0.9,en;q=0.6";
 
         public int getTimeoutMs() { return timeoutMs; }
         public void setTimeoutMs(int timeoutMs) { this.timeoutMs = timeoutMs; }
@@ -199,6 +207,8 @@ public class WebCapabilityProperties {
         public void setAllowedPorts(List<Integer> allowedPorts) { this.allowedPorts = allowedPorts == null ? new ArrayList<>() : new ArrayList<>(allowedPorts); }
         public String getUserAgent() { return userAgent; }
         public void setUserAgent(String userAgent) { this.userAgent = userAgent; }
+        public String getAcceptLanguage() { return acceptLanguage; }
+        public void setAcceptLanguage(String acceptLanguage) { this.acceptLanguage = acceptLanguage; }
     }
     public static class Security {
         // All public JSON APIs are tiny control payloads; reject oversized/chunked abuse early.

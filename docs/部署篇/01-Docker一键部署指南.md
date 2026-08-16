@@ -14,10 +14,18 @@
 正式镜像发布到 Docker Hub 后，推荐：
 
 ```bash
+sudo mkdir -p /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach/logs
+
 docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
+  -e OPENREACH_LOG_PATH=/app/logs \
+  -v /data/openreach/logs:/app/logs \
+  --log-driver json-file \
+  --log-opt max-size=20m \
+  --log-opt max-file=3 \
   codercl/openreach:latest
 ```
 
@@ -28,6 +36,11 @@ docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
+  -e OPENREACH_LOG_PATH=/app/logs \
+  -v /data/openreach/logs:/app/logs \
+  --log-driver json-file \
+  --log-opt max-size=20m \
+  --log-opt max-file=3 \
   codercl/openreach:1.0.2
 ```
 
@@ -253,6 +266,21 @@ Docker Run：
 ```bash
 docker ps
 docker logs -f openreach
+
+# 全量应用日志
+tail -f /data/openreach/logs/openreach.log
+
+# API 入口/出口日志
+tail -f /data/openreach/logs/openreach-api.log
+
+# Provider / Read 上游日志
+tail -f /data/openreach/logs/openreach-upstream.log
+```
+
+按 Trace ID 串联一次请求：
+
+```bash
+grep 'req-<timestamp>-<suffix>' /data/openreach/logs/openreach*.log
 ```
 
 Compose：
@@ -289,6 +317,11 @@ docker run -d \
   --name openreach \
   -p 8080:8080 \
   -e 'JAVA_OPTS=-Xms256m -Xmx1024m' \
+  -e OPENREACH_LOG_PATH=/app/logs \
+  -v /data/openreach/logs:/app/logs \
+  --log-driver json-file \
+  --log-opt max-size=20m \
+  --log-opt max-file=3 \
   codercl/openreach:latest
 ```
 

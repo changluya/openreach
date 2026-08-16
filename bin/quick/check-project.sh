@@ -26,3 +26,8 @@ if [[ "${RUN_SMOKE:-false}" == "true" ]]; then
   echo "RUN_SMOKE=true: make sure the Spring Boot service is already running."
   "$SCRIPT_DIR/smoke-test.sh"
 fi
+
+if [[ "${RUN_QPS:-false}" == "true" ]]; then
+  echo "RUN_QPS=true: running opt-in HTTP concurrency benchmark."
+  "$SCRIPT_DIR/qps-unit-test.sh"
+fi
