@@ -16,11 +16,28 @@ v1.0.2 在 v1.0.1 国内免费渠道基线之上，把 OpenReach 从“单一国
 
 ### Fixed
 
+#### timeRange 全量范围兼容、免费 Web 实测增强与旧配置自愈（2026-08-16）
+
+- 修复 `day/week/month/year` 在旧 CN Provider Chain 下可能退化为 `bing/baidu/sogou/so360` 全部 capability skip、最终仅剩 DuckDuckGo 单点并因 bot challenge 返回 502 的问题；
+- **不接付费 API、不引入 API Key**：继续使用 Bing / 百度公开 Web 搜索页面。
+- 百度真实结果页验证 `gpc=stf=<start>,<end>|stftype=1`，且 `timefactor=21/22/23/24` 分别对应 1 天 / 7 天 / 30 天 / 365 天；`BaiduSearchProvider` 现支持 `day/week/month/year`；
+- Bing 免费 Web 当前可验证 `filters=ex1:"ez1/ez2/ez3"`，对应过去 24 小时 / 一周 / 一月；`BingSearchProvider` 支持 `day/week/month`，`year` 因未验证到稳定免费 Web 参数而主动判定 unsupported，不伪造支持；
+- `SearchProvider` 新增范围级 `supportsTimeRange(SearchTimeRange)` default 能力判断，兼容已有第三方 Provider；
+- restricted timeRange 默认链更新为 CN `baidu → bing → duckduckgo → brave`、GLOBAL `bing → brave → duckduckgo → baidu`；SearchService 会按**具体范围**自动补入真正可用的 Provider；
+- restricted timeRange 请求保留 `provider_chain` 日志，直接打印本次候选链；
+- 新增百度四档 epoch/timefactor 参数测试、百度安全验证页 `BOT_CHALLENGE` 识别测试、Bing `ez1/ez2/ez3` 与 year fail-fast 测试，以及 SearchService “Bing month 可用 / year 自动跳过”回归测试。
+
 #### QPS benchmark 编译回归修复（2026-08-16）
 
 - 修复 `WebCapabilityProperties.ImageSearch` 误包含 Web Search 专属 `cn/globalTimeRangeProviderOrder` getter/setter，导致 `mvn compile` 报 `cannot find symbol` 的问题；
 - `timeRange` Provider Chain 配置继续仅保留在 `WebCapabilityProperties.Search`；
 - 增加配置边界回归测试，明确 Image Search 不应暴露 Search-only timeRange Provider Order API。
+
+#### Release / CI 发布门禁修复（2026-08-16）
+
+- 修复官网 Changelog 与静态资源发布门禁不一致：Security 区补齐“公网攻击面 Allowlist”说明；
+- 更新日志导航断言允许 `<a>` 携带 `class` 等合法属性，降低官网样式调整导致的脆弱测试误报；
+- `release.sh` 增加版本归一化与 `pom.xml` 版本一致性检查，发布前输出镜像与代理上下文。
 
 ### Changed
 
@@ -49,7 +66,7 @@ Skill Python Test 从 6 个扩展到 **12 个**，新增覆盖“配置缺失零
 - Search / Image Search / Read 增加统一 `[OPENREACH-*]` 日志前缀，记录 Provider start/skip/success/fail、上游 HTTP status/host/latency、redirect 与失败分类；
 - 新增 `UpstreamFailureClassifier`，区分 `HTTP_403 / HTTP_429 / BOT_CHALLENGE / TIMEOUT / PARSE_EMPTY / IO_ERROR` 等；
 - Search Auto Chain 的最终错误增加 `attempted / skipped`，明确区分“Provider 未执行”和“Provider 已请求但失败”；
-- 新增独立 `timeRange` Provider Chain：CN 默认 `duckduckgo → brave`、GLOBAL 默认 `brave → duckduckgo`，避免 CN 时间过滤请求只剩 DuckDuckGo 单路；
+- 新增独立 `timeRange` Provider Chain，并在本轮免费 Web 实测后扩展为 CN 默认 `baidu → bing → duckduckgo → brave`、GLOBAL 默认 `bing → brave → duckduckgo → baidu`；运行期再按具体范围过滤能力，避免时间搜索退化成单 Provider；
 - 新增 `logback-spring.xml`，输出 `openreach.log / openreach-api.log / openreach-upstream.log`，按日期 + 大小滚动压缩归档；
 - Docker 默认日志目录 `/app/logs`，Compose 支持 `OPENREACH_LOG_DIR` 映射到宿主机，容器重建后日志仍保留；Docker stdout json-file 限制 `20MB × 3`；
 - Read 新增可配置 `accept-language` Header，提升普通网页静态读取兼容性；
@@ -211,9 +228,9 @@ POST /api/web/read
 当前源码静态统计：
 
 ```text
-Java @Test              113
+Java @Test              126
 OpenReach Skill Python   12
-合计                    125
+合计                    138
 ```
 
 v1.0.2 新增/扩展覆盖重点：
@@ -246,7 +263,7 @@ HTML / 本地链接 / CSS 括号 / changelog Route + Allowlist 静态校验
 # PASS
 
 源码静态计数
-# Java @Test = 113, Skill Python Test = 12
+# Java @Test = 126, Skill Python Test = 12
 ```
 
 Java 正式门禁仍是：
@@ -496,9 +513,9 @@ OpenReach 不建设代理池、账号池、验证码绕过或 CAPTCHA 绕过能�
 
 当前源码中维护：
 
-- **115 个 Java `@Test` 方法**（其中 1 个 QPS Benchmark 默认 opt-in，不进入普通性能门禁）；
+- **117 个 Java `@Test` 方法**（其中 1 个 QPS Benchmark 默认 opt-in，不进入普通性能门禁）；
 - **12 个 OpenReach Skill Python Test Case**；
-- 共 **127 个声明测试 Case**；普通 Gate 默认跳过 1 个硬件相关 QPS Benchmark。
+- 共 **138 个声明测试 Case**；普通 Gate 默认跳过 1 个硬件相关 QPS Benchmark。
 
 Java 测试覆盖：
 

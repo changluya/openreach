@@ -44,8 +44,8 @@ public class WebCapabilityProperties {
         private List<String> cnProviderOrder = new ArrayList<>();
         private List<String> globalProviderOrder = new ArrayList<>(List.of("brave", "duckduckgo", "bing"));
         // Restricted timeRange uses only providers with verified native upstream filtering.
-        private List<String> cnTimeRangeProviderOrder = new ArrayList<>(List.of("duckduckgo", "brave"));
-        private List<String> globalTimeRangeProviderOrder = new ArrayList<>(List.of("brave", "duckduckgo"));
+        private List<String> cnTimeRangeProviderOrder = new ArrayList<>(List.of("baidu", "bing", "duckduckgo", "brave"));
+        private List<String> globalTimeRangeProviderOrder = new ArrayList<>(List.of("bing", "brave", "duckduckgo", "baidu"));
 
         private int timeoutMs = 6000;
         private int maxResults = 20;

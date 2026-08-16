@@ -31,7 +31,13 @@ public class ProviderChainResolver {
         List<String> configured = route == SearchRoute.GLOBAL
                 ? properties.getSearch().getGlobalTimeRangeProviderOrder()
                 : properties.getSearch().getCnTimeRangeProviderOrder();
-        if (configured == null || configured.isEmpty()) return searchProviders(route);
+        if (configured == null || configured.isEmpty()) {
+            // Restricted timeRange must never silently fall back to the legacy CN/GLOBAL
+            // chain where most providers do not implement native time filtering.
+            return route == SearchRoute.GLOBAL
+                    ? new ArrayList<>(List.of("bing", "brave", "duckduckgo", "baidu"))
+                    : new ArrayList<>(List.of("baidu", "bing", "duckduckgo", "brave"));
+        }
         return copy(configured);
     }
 

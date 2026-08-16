@@ -40,13 +40,17 @@ openreach:
         - brave
         - duckduckgo
         - bing
-      # 携带 timeRange 时使用独立真实时间过滤链，避免 CN 链退化为单一 DuckDuckGo。
+      # 携带 timeRange 时使用独立零 Key 时间过滤链；能力按具体范围判断，避免旧配置造成单点退化。
       cn-time-range-provider-order:
+        - baidu
+        - bing
         - duckduckgo
         - brave
       global-time-range-provider-order:
+        - bing
         - brave
         - duckduckgo
+        - baidu
       timeout-ms: 6000
       max-results: 20
       # Provider HTML/JSON 上游响应硬上限，防止异常上游造成无界内存占用。

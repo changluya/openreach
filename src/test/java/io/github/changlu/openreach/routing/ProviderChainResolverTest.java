@@ -19,13 +19,13 @@ class ProviderChainResolverTest {
 
         assertEquals(List.of("legacy-cn"), resolver.searchProviders(SearchRoute.CN));
         assertEquals(List.of("global-a", "global-b"), resolver.searchProviders(SearchRoute.GLOBAL));
-        assertEquals(List.of("duckduckgo", "brave"), resolver.searchProviders(SearchRoute.CN, true));
-        assertEquals(List.of("brave", "duckduckgo"), resolver.searchProviders(SearchRoute.GLOBAL, true));
+        assertEquals(List.of("baidu", "bing", "duckduckgo", "brave"), resolver.searchProviders(SearchRoute.CN, true));
+        assertEquals(List.of("bing", "brave", "duckduckgo", "baidu"), resolver.searchProviders(SearchRoute.GLOBAL, true));
 
         props.getSearch().setCnProviderOrder(List.of("new-cn"));
         assertEquals(List.of("new-cn"), resolver.searchProviders(SearchRoute.CN));
         props.getSearch().setCnTimeRangeProviderOrder(List.of());
-        assertEquals(List.of("new-cn"), resolver.searchProviders(SearchRoute.CN, true));
+        assertEquals(List.of("baidu", "bing", "duckduckgo", "brave"), resolver.searchProviders(SearchRoute.CN, true));
     }
 
     @Test

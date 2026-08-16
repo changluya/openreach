@@ -21,8 +21,8 @@ class WebCapabilityPropertiesTest {
                 props.getSearch().effectiveCnProviderOrder());
         assertEquals(List.of("brave", "duckduckgo", "bing"),
                 props.getSearch().getGlobalProviderOrder());
-        assertEquals(List.of("duckduckgo", "brave"), props.getSearch().getCnTimeRangeProviderOrder());
-        assertEquals(List.of("brave", "duckduckgo"), props.getSearch().getGlobalTimeRangeProviderOrder());
+        assertEquals(List.of("baidu", "bing", "duckduckgo", "brave"), props.getSearch().getCnTimeRangeProviderOrder());
+        assertEquals(List.of("bing", "brave", "duckduckgo", "baidu"), props.getSearch().getGlobalTimeRangeProviderOrder());
         assertEquals(2 * 1024 * 1024, props.getSearch().getMaxResponseBytes());
         assertEquals(List.of("bing", "baidu", "sogou", "openverse"),
                 props.getImageSearch().effectiveCnProviderOrder());

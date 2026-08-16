@@ -20,13 +20,25 @@ public interface SearchProvider {
     }
 
     /**
+     * Range-aware capability check. Providers that support every restricted range
+     * can keep overriding {@link #supportsTimeRange()} only. Providers with partial
+     * support (for example Bing Web: day/week/month but not a verified year filter)
+     * override this method.
+     */
+    default boolean supportsTimeRange(SearchTimeRange timeRange) {
+        SearchTimeRange normalized = timeRange == null ? SearchTimeRange.ANY : timeRange;
+        return !normalized.isRestricted() || supportsTimeRange();
+    }
+
+    /**
      * v1.0.2 extension point. Existing third-party providers continue compiling
      * because the legacy method remains the only abstract contract.
      */
     default List<SearchItem> search(String query, int limit, String region, SearchTimeRange timeRange) {
         SearchTimeRange normalized = timeRange == null ? SearchTimeRange.ANY : timeRange;
-        if (normalized.isRestricted() && !supportsTimeRange()) {
-            throw new BadRequestException("Search provider '" + name() + "' does not support timeRange");
+        if (normalized.isRestricted() && !supportsTimeRange(normalized)) {
+            throw new BadRequestException("Search provider '" + name()
+                    + "' does not support timeRange=" + normalized.apiValue());
         }
         return search(query, limit, region);
     }

@@ -69,6 +69,13 @@ mvn clean package + 全量单测
 → 校验远程 Manifest
 ```
 
+发布门禁说明：
+
+- `OPENREACH_BUILD_PROXY` 只负责 Maven / Docker 构建网络代理，不会跳过测试；
+- 任意 Java / Skill 单测失败都会在 Docker Push 前立即停止；
+- `release.sh` 会校验传入版本与 `pom.xml` 版本一致，`v1.0.2` 与 `1.0.2` 均可；
+- 如果 Maven 已进入 `TESTS` 阶段后失败，优先处理具体失败用例，而不是继续排查代理。
+
 ### 1.3 发布后验证
 
 确认远程镜像两个架构都在：

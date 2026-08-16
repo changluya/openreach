@@ -98,7 +98,7 @@ Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabi
 - `provider=<具体渠道>`：显式 Provider 优先级最高，仅请求指定渠道，不进入 Route Chain fallback；`region` 仍作为该 Provider 的 locale/country Hint。
 - 所有渠道均失败且无任何结果时返回 `502 UPSTREAM_ERROR`；Route Provider Order 为空时也返回清晰的 `UPSTREAM_ERROR`。
 - 返回前会对 `items` 重新编号（`rank` 从 1 连续）。
-- `timeRange!=any` 时，auto 优先使用独立时间过滤链：CN 默认 `duckduckgo -> brave`、GLOBAL 默认 `brave -> duckduckgo`；链内仍会跳过 `supportsTimeRange=false` 的 Provider。显式 Provider 不支持时返回 `400 BAD_REQUEST`。当前 Brave / DuckDuckGo 实现真实上游时间过滤。
+- `timeRange!=any` 时，auto 使用独立时间过滤链：CN 默认 `baidu -> bing -> duckduckgo -> brave`、GLOBAL 默认 `bing -> brave -> duckduckgo -> baidu`。能力判断细化到具体范围：百度免费 Web 支持 `day/week/month/year`；Bing 免费 Web 已验证 `day/week/month`，`year` 不会伪造支持；Brave / DuckDuckGo 支持完整范围。显式 Provider 不支持指定范围时返回 `400 BAD_REQUEST`。
 
 ### 3.4 示例
 

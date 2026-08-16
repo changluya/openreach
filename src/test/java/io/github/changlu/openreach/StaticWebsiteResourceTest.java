@@ -104,13 +104,21 @@ class StaticWebsiteResourceTest {
         String docs = read("static/docs/index.html");
         String api = read("static/docs/api.html");
         String changelog = read("static/changelog.html");
-        assertTrue(home.contains("href=\"/changelog\">更新日志</a>"));
-        assertTrue(docs.contains("href=\"/changelog\">更新日志</a>"));
-        assertTrue(api.contains("href=\"/changelog\">更新日志</a>"));
+        assertChangelogNavigation(home, "static/index.html");
+        assertChangelogNavigation(docs, "static/docs/index.html");
+        assertChangelogNavigation(api, "static/docs/api.html");
         assertTrue(changelog.contains("v1.0.2"));
         assertTrue(changelog.contains("timeRange"));
         assertTrue(changelog.contains("只返回可下载原图"));
         assertTrue(changelog.contains("公网攻击面 Allowlist"));
+    }
+
+    private void assertChangelogNavigation(String html, String resource) {
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                "<a\\b[^>]*href=\"/changelog\"[^>]*>\\s*更新日志\\s*</a>",
+                java.util.regex.Pattern.CASE_INSENSITIVE
+        );
+        assertTrue(pattern.matcher(html).find(), resource + " should expose /changelog navigation");
     }
 
     private String read(String resource) throws IOException {

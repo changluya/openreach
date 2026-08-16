@@ -215,6 +215,57 @@ class SearchServiceTest {
     }
 
     @Test
+    void allRestrictedTimeRangesRecoverFromLegacyCnChainAndDuckDuckGoChallenge() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        // Reproduce the user's stale/legacy chain exactly: unsupported providers first,
+        // DuckDuckGo as the only configured time-aware provider, Brave omitted.
+        props.getSearch().setCnTimeRangeProviderOrder(List.of(
+                "bing", "baidu", "sogou", "so360", "duckduckgo"));
+
+        List<String> calls = new ArrayList<>();
+        SearchProvider duckduckgo = new SearchProvider() {
+            @Override public String name() { return "duckduckgo"; }
+            @Override public boolean supportsTimeRange() { return true; }
+            @Override public List<SearchItem> search(String query, int limit, String region) { return List.of(); }
+            @Override public List<SearchItem> search(String query, int limit, String region, SearchTimeRange timeRange) {
+                calls.add("duckduckgo:" + timeRange.apiValue());
+                throw new UpstreamException("duckduckgo bot challenge detected");
+            }
+        };
+        SearchProvider brave = timeAwareProvider("brave", calls);
+        SearchService service = service(List.of(
+                recordingProvider("bing", new ArrayList<>()),
+                recordingProvider("baidu", new ArrayList<>()),
+                recordingProvider("sogou", new ArrayList<>()),
+                recordingProvider("so360", new ArrayList<>()),
+                duckduckgo, brave
+        ), props);
+
+        for (String range : List.of("day", "week", "month", "year")) {
+            calls.clear();
+            var response = service.search(new SearchRequest("AI 融资 投资 最新", 10, null, null, range));
+            assertEquals(range, response.timeRange());
+            assertEquals(1, response.count());
+            assertEquals("brave", response.items().get(0).source());
+            assertEquals(List.of("duckduckgo:" + range, "brave:" + range), calls);
+        }
+    }
+
+    @Test
+    void emptyRestrictedCnOrderUsesTimeAwareDefaultsInsteadOfLegacyProviderChain() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getSearch().setCnProviderOrder(List.of("bing", "baidu", "sogou", "so360", "duckduckgo"));
+        props.getSearch().setCnTimeRangeProviderOrder(List.of());
+        List<String> calls = new ArrayList<>();
+        SearchService service = service(List.of(timeAwareProvider("brave", calls)), props);
+
+        var response = service.search(new SearchRequest("news", 1, "CN", null, "day"));
+
+        assertEquals(List.of("brave:day"), calls);
+        assertEquals(1, response.count());
+    }
+
+    @Test
     void explicitProviderRejectsUnsupportedTimeRangeInsteadOfIgnoringIt() {
         WebCapabilityProperties props = new WebCapabilityProperties();
         SearchService service = service(List.of(recordingProvider("baidu", new ArrayList<>())), props);
@@ -259,6 +310,40 @@ class SearchServiceTest {
 
         org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("attempted=1, skipped=1"));
         org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("bot challenge"));
+    }
+
+    @Test
+    void rangeAwareCapabilitySkipsBingForYearButKeepsItForMonth() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getSearch().setGlobalTimeRangeProviderOrder(List.of("bing", "baidu"));
+        List<String> calls = new ArrayList<>();
+
+        SearchProvider bing = new SearchProvider() {
+            @Override public String name() { return "bing"; }
+            @Override public boolean supportsTimeRange() { return true; }
+            @Override public boolean supportsTimeRange(SearchTimeRange timeRange) {
+                return timeRange == null || timeRange == SearchTimeRange.ANY
+                        || timeRange == SearchTimeRange.DAY
+                        || timeRange == SearchTimeRange.WEEK
+                        || timeRange == SearchTimeRange.MONTH;
+            }
+            @Override public List<SearchItem> search(String query, int limit, String region) { return List.of(); }
+            @Override public List<SearchItem> search(String query, int limit, String region, SearchTimeRange timeRange) {
+                calls.add("bing:" + timeRange.apiValue());
+                return List.of(new SearchItem(1, "bing", "https://bing.example/result", "", "bing"));
+            }
+        };
+        SearchProvider baidu = timeAwareProvider("baidu", calls);
+        SearchService service = service(List.of(bing, baidu), props);
+
+        var month = service.search(new SearchRequest("AI news", 1, "US", null, "month"));
+        assertEquals(List.of("bing:month"), calls);
+        assertEquals("bing", month.items().get(0).source());
+
+        calls.clear();
+        var year = service.search(new SearchRequest("AI news", 1, "US", null, "year"));
+        assertEquals(List.of("baidu:year"), calls);
+        assertEquals("baidu", year.items().get(0).source());
     }
 
     @Test

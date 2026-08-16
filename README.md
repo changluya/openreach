@@ -382,7 +382,7 @@ results = search("OpenReach AI Agent", region="US", provider="auto", time_range=
 
 `search` / `image-search` 的 `region` 默认均为 **`auto`**，省略时等价于 `auto`。v1.0.2 中它先参与核心路由：`CN / zh-CN / zh_CN / cn-zh / zh-Hans-CN / china` 进入 CN 链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 链；之后原始 `region` 再作为 Provider 的 country / locale Hint。`auto` 默认仍为 CN，可通过 `openreach.web.routing.default-route` 调整。
 
-Web Search 新增 **`timeRange`**：`any/day/week/month/year`，并兼容常见 `d/w/m/y`、`pd/pw/pm/py`、`qdr:*` 写法。指定时间范围后，`provider=auto` 会跳过不支持真实上游时间过滤的 Provider，避免参数被静默忽略。当前内置 Brave / DuckDuckGo 支持该能力。
+Web Search 新增 **`timeRange`**：`any/day/week/month/year`，并兼容常见 `d/w/m/y`、`pd/pw/pm/py`、`qdr:*` 写法。指定时间范围后，`provider=auto` 会跳过不支持真实上游时间过滤的 Provider，避免参数被静默忽略。当前内置百度 Web 支持 `day/week/month/year`，Bing Web 已验证 `day/week/month`，Brave / DuckDuckGo 支持完整时间过滤；Bing `year` 因免费网页链路暂无稳定可验证参数而不会伪造支持。
 
 Image Search 现在对候选 `imageUrl` 做 **SSRF 安全 + 重定向 + HTTP 状态 + 图片字节签名**即时探测；只有响应生成时可直接下载的被动图片格式才会进入最终 `items`。失效热链、403/404、HTML/伪图片与 SVG 会被过滤，并继续尝试后续 Provider 补足结果。
 

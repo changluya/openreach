@@ -38,7 +38,7 @@
       <div class="release-hero-top"><div><span class="release-version">v1.0.2</span><span class="release-latest">Latest</span></div><time datetime="2026-08-15">2026-08-15</time></div>
       <h2>从国内优先链升级为 CN / GLOBAL Web Access Router</h2>
       <p>在 v1.0.1 免费国内链基础上，v1.0.2 增加地区路由、真实时间范围过滤、图片原图可下载门禁，并进一步收敛公网攻击面。默认 Provider Chain 继续坚持零 API Key、零账号依赖、零商业 Search 调用费。</p>
-      <div class="release-metrics"><div><b>3</b><span>核心 HTTP API</span></div><div><b>2</b><span>CN / GLOBAL Route</span></div><div><b>125</b><span>源码测试用例统计</span></div><div><b>0</b><span>默认 Search API Key</span></div></div>
+      <div class="release-metrics"><div><b>3</b><span>核心 HTTP API</span></div><div><b>2</b><span>CN / GLOBAL Route</span></div><div><b>138</b><span>声明测试 Case</span></div><div><b>0</b><span>默认 Search API Key</span></div></div>
     </section>
 
     <div class="release-highlights">
@@ -54,7 +54,7 @@
         <li><strong>统一路由层：</strong>新增 <code>SearchRouteResolver</code>、<code>ProviderChainResolver</code> 与地区 Locale 支持，Service 不再硬编码国内/海外链。</li>
         <li><strong>GLOBAL Web Search：</strong>默认 <code>brave → duckduckgo → bing</code>；Brave 作为海外第一路，DuckDuckGo 强化 no-JS HTML 模式。</li>
         <li><strong>GLOBAL Image Search：</strong>默认 <code>bing → openverse → wikimedia</code>；Wikimedia 可输出原图、尺寸、格式与 License 信息。</li>
-        <li><strong>Search timeRange：</strong>新增 <code>timeRange</code> 参数；Brave / DuckDuckGo 当前实现真实上游时间过滤，并增加 CN <code>duckduckgo → brave</code> / GLOBAL <code>brave → duckduckgo</code> 独立时间过滤链。</li>
+        <li><strong>Search timeRange：</strong>新增 <code>timeRange</code> 参数；百度免费 Web 支持 <code>day/week/month/year</code>，Bing 免费 Web 已验证 <code>day/week/month</code>，Brave / DuckDuckGo 支持完整范围；CN 时间链为 <code>baidu → bing → duckduckgo → brave</code>，GLOBAL 为 <code>bing → brave → duckduckgo → baidu</code>。</li>
         <li><strong>图片下载质量门禁：</strong>候选结果必须通过公网 URL 与真实图片字节验证才能进入最终响应。</li>
         <li><strong>Attack Surface Filter：</strong>静态官网之外，仅开放三个精确 JSON POST API，并统一限制请求体、Content-Type 与浏览器安全 Header。</li>
         <li><strong>请求 Trace 与上游诊断：</strong>新增 <code>X-OpenReach-Trace-Id</code>、<code>openreach-api.log</code>、<code>openreach-upstream.log</code>，记录 Provider skip/start/success/fail、HTTP 状态码和耗时。</li>
@@ -76,6 +76,7 @@
     <section class="release-section release-security">
       <h2>Security</h2>
       <ul>
+        <li><strong>公网攻击面 Allowlist：</strong>静态官网之外，仅允许三个精确 JSON POST API；其余未知 Controller、Actuator、Debug、危险 Method 与路径穿越统一提前拒绝。</li>
         <li>移除公开 <code>/api/web/health</code>，Skill 人工诊断改用只读 <code>GET /</code>。</li>
         <li>禁用 Multipart / 文件上传，未知 Controller、Actuator、Debug、危险 Method 和路径穿越均在统一 Filter 提前拒绝。</li>
         <li>API Body 默认限制为 64 KiB；Search / Image Provider 上游 Body 也增加独立硬上限。</li>

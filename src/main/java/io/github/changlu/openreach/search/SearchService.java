@@ -18,6 +18,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -53,8 +54,14 @@ public class SearchService {
                 selected, route, region, timeRange.apiValue(), limit, safeLength(request.query()));
 
         try {
+            List<String> providerOrder = chainResolver.searchProviders(route, timeRange.isRestricted());
+            if ("auto".equals(selected) && timeRange.isRestricted()) {
+                providerOrder = ensureTimeRangeCapableFallbacks(providerOrder, route, timeRange);
+                upstreamLog.info("[OPENREACH-SEARCH] provider_chain route={} timeRange={} providers={}",
+                        route, timeRange.apiValue(), providerOrder);
+            }
             List<SearchItem> items = "auto".equals(selected)
-                    ? searchAuto(request.query(), limit, region, timeRange, chainResolver.searchProviders(route, timeRange.isRestricted()))
+                    ? searchAuto(request.query(), limit, region, timeRange, providerOrder)
                     : searchOne(selected, request.query(), limit, region, timeRange);
             long latencyMs = elapsedMs(started);
             upstreamLog.info("[OPENREACH-SEARCH] search_success provider={} count={} latencyMs={}", selected, items.size(), latencyMs);
@@ -64,6 +71,35 @@ public class SearchService {
                     UpstreamFailureClassifier.classify(ex), elapsedMs(started), compactMessage(ex));
             throw ex;
         }
+    }
+
+    /**
+     * timeRange is a hard capability requirement.  Do not trust only the configured
+     * order because an older external application.yml (or a stale deployment config)
+     * may still contain the v1.0.1 CN chain and therefore reduce restricted searches
+     * to DuckDuckGo only.  Preserve operator order first, then append built-in and any
+     * registered time-aware providers as safety fallbacks.
+     */
+    private List<String> ensureTimeRangeCapableFallbacks(List<String> configuredOrder, SearchRoute route, SearchTimeRange timeRange) {
+        LinkedHashSet<String> effective = new LinkedHashSet<>();
+        if (configuredOrder != null) {
+            for (String configuredName : configuredOrder) {
+                String normalized = normalizeProviderName(configuredName);
+                if (!normalized.isBlank()) effective.add(normalized);
+            }
+        }
+
+        List<String> preferred = route == SearchRoute.GLOBAL
+                ? List.of("bing", "brave", "duckduckgo", "baidu")
+                : List.of("baidu", "bing", "duckduckgo", "brave");
+        for (String providerName : preferred) {
+            SearchProvider provider = providers.get(providerName);
+            if (provider != null && provider.supportsTimeRange(timeRange)) effective.add(providerName);
+        }
+        for (Map.Entry<String, SearchProvider> entry : providers.entrySet()) {
+            if (entry.getValue().supportsTimeRange(timeRange)) effective.add(entry.getKey());
+        }
+        return new ArrayList<>(effective);
     }
 
     private List<SearchItem> searchAuto(String query, int limit, String region, SearchTimeRange timeRange,
@@ -92,7 +128,7 @@ public class SearchService {
                 skipped++;
                 continue;
             }
-            if (timeRange.isRestricted() && !provider.supportsTimeRange()) {
+            if (timeRange.isRestricted() && !provider.supportsTimeRange(timeRange)) {
                 errors.add(provider.name() + ": skipped (timeRange unsupported)");
                 upstreamLog.info("[OPENREACH-SEARCH] provider_skip provider={} reason=UNSUPPORTED_CAPABILITY capability=timeRange value={}",
                         provider.name(), timeRange.apiValue());
@@ -146,9 +182,9 @@ public class SearchService {
             throw new BadRequestException("Unsupported search provider: " + providerName
                     + ". Supported: auto," + String.join(",", providers.keySet()));
         }
-        if (timeRange.isRestricted() && !provider.supportsTimeRange()) {
-            throw new BadRequestException("Search provider '" + provider.name() + "' does not support timeRange. "
-                    + "Use provider=auto, brave or duckduckgo.");
+        if (timeRange.isRestricted() && !provider.supportsTimeRange(timeRange)) {
+            throw new BadRequestException("Search provider '" + provider.name() + "' does not support timeRange="
+                    + timeRange.apiValue() + ". Use provider=auto or choose a provider that supports this range.");
         }
 
         long providerStarted = System.nanoTime();

@@ -282,13 +282,16 @@ bot challenge detection
 SearchRequest.timeRange
   -> SearchTimeRange.parse
   -> ANY / DAY / WEEK / MONTH / YEAR
-  -> SearchProvider.supportsTimeRange()
+  -> SearchProvider.supportsTimeRange(timeRange)
   -> Provider-specific mapping
 ```
 
 当前真实映射：
 
 ```text
+Baidu Web:  day/week/month/year -> gpc=stf=<start>,<end>|stftype=1 + timefactor=21/22/23/24
+Bing Web:   day/week/month      -> filters=ex1:"ez1/ez2/ez3"
+             year               -> 未验证稳定免费 Web 参数，主动判定 unsupported
 Brave:      day=pd week=pw month=pm year=py
 DuckDuckGo: day=d  week=w  month=m  year=y
 ```
@@ -352,7 +355,7 @@ DDG Challenge Fixture
 SearchTimeRange alias / invalid value
 timeRange 下跳过 unsupported Provider
 显式 unsupported Provider fail-fast
-Brave / DDG 时间参数映射
+Baidu / Bing / Brave / DDG 时间参数映射
 Bing Parser 回归
 ```
 

@@ -43,7 +43,7 @@
         <tr><td><code>limit</code></td><td>integer</td><td>否</td><td>1–20，默认 10，并受服务端 max-results 限制</td></tr>
         <tr><td><code>region</code></td><td>string</td><td>否</td><td>最长 32 字符；默认 auto（默认 CN）；CN aliases 走 CN，其他显式地区走 GLOBAL；之后作为 Provider locale Hint</td></tr>
         <tr><td><code>provider</code></td><td>string</td><td>否</td><td>最长 32 字符；默认 auto；可选 bing / baidu / sogou / so360 / duckduckgo / brave</td></tr>
-        <tr><td><code>timeRange</code></td><td>string</td><td>否</td><td>最长 32 字符；any / day / week / month / year，默认 any；另兼容 all/none/off/0、d/w/m/y、1d/1w/1m/1y、past_*、pd/pw/pm/py、qdr:*。指定时间范围后，auto 只调用真正支持该能力的 Provider；CN 默认 duckduckgo → brave，GLOBAL 默认 brave → duckduckgo。</td></tr>
+        <tr><td><code>timeRange</code></td><td>string</td><td>否</td><td>最长 32 字符；any / day / week / month / year，默认 any；另兼容 all/none/off/0、d/w/m/y、1d/1w/1m/1y、past_*、pd/pw/pm/py、qdr:*。指定时间范围后，auto 只执行真正支持该能力的 Provider；CN 默认 baidu → bing → duckduckgo → brave，GLOBAL 默认 bing → brave → duckduckgo → baidu。百度免费 Web 支持 day/week/month/year；Bing 免费 Web 已验证 day/week/month，year 会自动跳过 Bing；运行期按具体范围补入真正可用的 Provider。</td></tr>
       </tbody></table></div>
       <h3>示例</h3>
       <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#api-search">复制</button><pre id="api-search">curl -X POST 'http://localhost:8080/api/web/search' \
