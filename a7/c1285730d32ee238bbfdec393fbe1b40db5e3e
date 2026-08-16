@@ -1,0 +1,94 @@
+CHANGELOG.md
+  h_415c008e101ba5 17-24,45-66,214,216,249,499-501,592
+Dockerfile
+  h_415c008e101ba5 16,21-22
+README.md
+  h_415c008e101ba5 135,138-140,145-149,167,170-172,526-527,529,556-557,668
+bin/quick/README.md
+  h_415c008e101ba5 83-85,90-94,242-244,249-253,272-273,275-276,280-326,353-441
+bin/quick/check-project.sh
+  h_415c008e101ba5 29-33
+bin/quick/logs.sh
+  h_415c008e101ba5 1-80
+bin/quick/qps-test.sh
+  h_415c008e101ba5 1-186
+bin/quick/qps-unit-test.sh
+  h_415c008e101ba5 1-62
+docker-compose.build.yml
+  h_415c008e101ba5 14-16,24-29
+docker-compose.yml
+  h_415c008e101ba5 11-13,21-26
+docs/agenthub/接口文档/OpenReach接口文档.md
+  h_415c008e101ba5 101,316,323,334
+docs/接口测试与Curl示例.md
+  h_415c008e101ba5 29
+docs/设计方案/v1.0.2并发QPS压测与容量评估方案.md
+  h_415c008e101ba5 1-298
+docs/设计方案/v1.0.2请求异常诊断与日志可观测优化方案.md
+  h_415c008e101ba5 1-548
+docs/部署篇/01-Docker一键部署指南.md
+  h_415c008e101ba5 17-19,24-28,39-43,269-283,320-324
+src/main/java/io/github/changlu/openreach/config/WebCapabilityProperties.java
+  h_415c008e101ba5 46-48,70-73,196,210-211
+src/main/java/io/github/changlu/openreach/imagesearch/ImageSearchService.java
+  h_415c008e101ba5 10,14-15,27,54-67,83,89,92-94,99-100,106-107,115-116,120-121,139-157,182-185,197-198
+src/main/java/io/github/changlu/openreach/imagesearch/provider/ImageSearchHttpClient.java
+  h_415c008e101ba5 7-8,29,61-64,66-72,74,88-89,93-94
+src/main/java/io/github/changlu/openreach/observability/RequestTraceFilter.java
+  h_415c008e101ba5 1-87
+src/main/java/io/github/changlu/openreach/observability/TraceContext.java
+  h_415c008e101ba5 1-20
+src/main/java/io/github/changlu/openreach/observability/UpstreamFailureClassifier.java
+  h_415c008e101ba5 1-31
+src/main/java/io/github/changlu/openreach/read/WebReadService.java
+  h_415c008e101ba5 3,6-7,10-11,14,22-45
+src/main/java/io/github/changlu/openreach/read/reader/SafeHttpFetcher.java
+  h_415c008e101ba5 7-8,25,48,51-53,57-60,69-72,91-92,96-97
+src/main/java/io/github/changlu/openreach/routing/ProviderChainResolver.java
+  h_415c008e101ba5 29-37
+src/main/java/io/github/changlu/openreach/search/SearchService.java
+  h_415c008e101ba5 6,10-14,27,52-53,55-66,73-74,84-85,91-92,97-99,102-106,111-112,121-123,125-128,133-137,143,153-168,201-208,212-213
+src/main/java/io/github/changlu/openreach/search/provider/SearchHttpClient.java
+  h_415c008e101ba5 7-8,30,73-75,78-83,85,99-100,104-105
+src/main/java/io/github/changlu/openreach/security/AttackSurfaceFilter.java
+  h_415c008e101ba5 4,12-13,35,183,188-189
+src/main/java/io/github/changlu/openreach/web/GlobalExceptionHandler.java
+  h_415c008e101ba5 5-6,24,28,38,44,50-51,63,78
+src/main/resources/application.yml
+  h_415c008e101ba5 43-49,107
+src/main/resources/logback-spring.xml
+  h_415c008e101ba5 1-55
+src/main/resources/static/changelog.html
+  h_415c008e101ba5 41,48,57,60-61
+src/main/resources/static/docs/api.html
+  h_415c008e101ba5 46,93
+src/main/resources/static/docs/index.html
+  h_415c008e101ba5 75-79,83-87,94,97-99
+src/main/resources/static/index.html
+  h_415c008e101ba5 88-89,92-95,99-103
+src/test/java/io/github/changlu/openreach/StaticWebsiteResourceTest.java
+  h_415c008e101ba5 28
+src/test/java/io/github/changlu/openreach/config/WebCapabilityPropertiesTest.java
+  h_415c008e101ba5 11,24-25,36-43
+src/test/java/io/github/changlu/openreach/observability/RequestTraceFilterTest.java
+  h_415c008e101ba5 1-22
+src/test/java/io/github/changlu/openreach/observability/UpstreamFailureClassifierTest.java
+  h_415c008e101ba5 1-14
+src/test/java/io/github/changlu/openreach/performance/OpenReachApiQpsBenchmarkTest.java
+  h_415c008e101ba5 1-382
+src/test/java/io/github/changlu/openreach/routing/ProviderChainResolverTest.java
+  h_415c008e101ba5 22-23,27-28
+src/test/java/io/github/changlu/openreach/search/SearchServiceTest.java
+  h_415c008e101ba5 204,228-263
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "a7c1285730d32ee238bbfdec393fbe1b40db5e3e",
+  "prompts": {},
+  "humans": {
+    "h_415c008e101ba5": {
+      "author": "changlu <939974883@qq.com>"
+    }
+  }
+}
