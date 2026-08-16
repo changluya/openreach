@@ -1,0 +1,60 @@
+CHANGELOG.md
+  h_415c008e101ba5 19-29,36-41,69,231,233,266,516,518
+README.md
+  h_415c008e101ba5 385
+bin/quick/README.md
+  h_415c008e101ba5 72-78
+bin/quick/release.sh
+  h_415c008e101ba5 30-59
+docs/agenthub/接口文档/OpenReach接口文档.md
+  h_415c008e101ba5 101
+docs/核心市场调研分析/04-Bing与百度免费WebSearch时间过滤实测调研.md
+  h_415c008e101ba5 1-156
+docs/核心搜索接口设计/01-websearch核心流程设计.md
+  h_415c008e101ba5 285,292-294,358
+docs/设计方案/v1.0.2优化（安全+海外）文档.md
+  h_415c008e101ba5 672,680
+docs/设计方案/v1.0.2请求异常诊断与日志可观测优化方案.md
+  h_415c008e101ba5 47,55-57,60
+src/main/java/io/github/changlu/openreach/config/WebCapabilityProperties.java
+  h_415c008e101ba5 47-48
+src/main/java/io/github/changlu/openreach/routing/ProviderChainResolver.java
+  h_415c008e101ba5 34-40
+src/main/java/io/github/changlu/openreach/search/SearchProvider.java
+  h_415c008e101ba5 22-32,39-41
+src/main/java/io/github/changlu/openreach/search/SearchService.java
+  h_415c008e101ba5 21,57-62,64,76-104,131,185-187
+src/main/java/io/github/changlu/openreach/search/provider/BaiduSearchProvider.java
+  h_415c008e101ba5 6,14,19,30-31,34-39,41,47-93
+src/main/java/io/github/changlu/openreach/search/provider/BingSearchProvider.java
+  h_415c008e101ba5 3,10,35-45,48-57,59-60,70-73,75-80,83-106,109-115
+src/main/resources/application.yml
+  h_415c008e101ba5 43,45-46,50,53
+src/main/resources/static/changelog.html
+  h_415c008e101ba5 41,57,79
+src/main/resources/static/docs/api.html
+  h_415c008e101ba5 46
+src/test/java/io/github/changlu/openreach/StaticWebsiteResourceTest.java
+  h_415c008e101ba5 107-109,116-123
+src/test/java/io/github/changlu/openreach/config/WebCapabilityPropertiesTest.java
+  h_415c008e101ba5 24-25
+src/test/java/io/github/changlu/openreach/routing/ProviderChainResolverTest.java
+  h_415c008e101ba5 22-23,28
+src/test/java/io/github/changlu/openreach/search/SearchServiceTest.java
+  h_415c008e101ba5 217-267,315-348
+src/test/java/io/github/changlu/openreach/search/provider/BaiduSearchProviderTest.java
+  h_415c008e101ba5 4,8-12,32-90
+src/test/java/io/github/changlu/openreach/search/provider/BingSearchProviderTest.java
+  h_415c008e101ba5 3,6,10-12,14-16,33,35,44-66,69-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "bae78487dbcd2daf5d2a7e254adcc2f0765be232",
+  "prompts": {},
+  "humans": {
+    "h_415c008e101ba5": {
+      "author": "changlu <939974883@qq.com>"
+    }
+  }
+}
