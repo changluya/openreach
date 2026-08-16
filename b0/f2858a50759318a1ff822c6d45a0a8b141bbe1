@@ -1,0 +1,19 @@
+bin/quick/README.md
+  s_43ebcef59ebc51::t_0d98a16d463fd7 3,51,58,76,78,85,91-92,99-101,223,230,236,253-254,261-263,289,302-303,310-312,317,347,355,361,370
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b0f2858a50759318a1ff822c6d45a0a8b141bbe1",
+  "prompts": {},
+  "sessions": {
+    "s_43ebcef59ebc51": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a009d2-fa29-7fa3-be86-6262f75733d9",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "changlu <939974883@qq.com>"
+    }
+  }
+}
