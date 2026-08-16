@@ -14,7 +14,7 @@
   <img alt="Spring Boot 4.1" src="https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white" />
   <img alt="Maven 3.9+" src="https://img.shields.io/badge/Maven-3.9%2B-C71A36?logo=apachemaven&logoColor=white" />
   <img alt="Docker Ready" src="https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white" />
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.2-blue" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.1.3-blue" />
 </p>
 
 <p align="center">
@@ -44,7 +44,7 @@ read(url)            -> 读取网页 / 提取正文与元数据
 
 > **Agent 依赖稳定的能力接口，不依赖具体搜索厂商。**
 
-当前 v0.1.2 同时覆盖国内与海外零 Key 场景：`provider=auto` 时复用现有 `region` 参数，通过 `SearchRouteResolver + ProviderChainResolver` 选择 **CN / GLOBAL** Provider Chain；默认 `region=auto` 仍走 CN，保持 v1.0.1 兼容。工程不要求 Serper、Tavily、Brave API 等商业 Search Key 即可启动。
+当前 v0.1.3 延续国内与海外零 Key 场景，并新增独立的 `/monitor` 内部调用监控后台。该入口不展示在官网导航中，访问时需要先登录；三个 Web API 的调用记录会异步持久化到 SQLite，默认数据目录为 `./data/monitor`（容器内 `/app/data/monitor`）。核心 Search 路由能力在 v0.1.3 继续沿用并增强：`provider=auto` 时复用现有 `region` 参数，通过 `SearchRouteResolver + ProviderChainResolver` 选择 **CN / GLOBAL** Provider Chain；默认 `region=auto` 仍走 CN，保持 v1.0.1 兼容。工程不要求 Serper、Tavily、Brave API 等商业 Search Key 即可启动。
 
 > Web Search 的 Bing / 百度 / 搜狗 / 360 / Brave / DuckDuckGo 主要基于公开搜索页面做 best-effort 解析，不属于对应厂商商业 Search API，因此不承诺商业 SLA。Openverse 与 Wikimedia Commons 使用公开读接口。
 
@@ -68,6 +68,7 @@ read(url)            -> 读取网页 / 提取正文与元数据
 | **Dynamic Browser Read** | - | ⏳ | 预留 Playwright Reader | JS 渲染页面 |
 | **CN / GLOBAL Region Router** | 内部能力 | ✅ | `SearchRouteResolver + ProviderChainResolver` | `region` 驱动国内/海外免费链路 |
 | **Public Attack Surface Guard** | HTTP Filter | ✅ | 三 API 精确 Allowlist + JSON-only + 静态资源 Allowlist | 禁上传/危险 Method/未知端点/路径穿越/超大请求体 |
+| **Internal Monitor** | `GET /monitor` | ✅ | Session + SQLite + Async Writer | 今日/7日/自定义区间、失败下钻、请求明细、失败记录 UTF-8 日志导出 |
 
 ### 当前能力边界
 
@@ -78,7 +79,7 @@ read(url)            -> 读取网页 / 提取正文与元数据
 | HTML / SSR 网页读取 | ✅ | 当前 Read 核心场景 |
 | Provider 自动降级 | ✅ | 超时、解析失败、空结果时继续下一 Provider |
 | Region 参数 | ✅ | `CN` aliases 走 CN；其他显式地区走 GLOBAL；`auto` 默认 CN |
-| Pagination | ❌ | v0.1.2 仍聚焦首屏 / Top-N |
+| Pagination | ❌ | v0.1.3 仍聚焦首屏 / Top-N |
 | Search 时间范围 | ✅ | `timeRange=any/day/week/month/year`；auto 只调用真正支持该过滤的 Provider |
 | 精确 Geo | ❌ | 不承诺商业级地理定位 |
 | Knowledge Graph / Shopping / Places | ❌ | 后续以垂直 Provider 扩展 |
@@ -124,7 +125,7 @@ Agent 总结、问答、对比、引用或继续深度检索
 
 > **微信公众号说明：** OpenReach 可以对公开可访问的微信文章 URL 尝试执行 `read`；也可以通过 Web Search 尝试发现已经被搜索引擎收录的微信公众号文章。实际可发现性取决于搜索引擎收录情况，页面能否读取则取决于微信页面当时的访问策略、反爬限制和网络环境，因此属于 best-effort 能力，不承诺所有公众号文章都能稳定搜索或读取。
 
-> 对于需要登录、验证码、强 JavaScript 渲染或严格反爬的页面，当前 v0.1.2 的静态 HTTP Reader 可能无法完整读取，后续计划通过 Playwright / Browser Reader 扩展动态页面能力。
+> 对于需要登录、验证码、强 JavaScript 渲染或严格反爬的页面，当前 v0.1.3 的静态 HTTP Reader 可能无法完整读取，后续计划通过 Playwright / Browser Reader 扩展动态页面能力。
 
 ---
 
@@ -135,19 +136,22 @@ Agent 总结、问答、对比、引用或继续深度检索
 适合普通使用者。**不需要 Clone 工程，也不依赖 Compose 文件**；当 `codercl/openreach:latest` 镜像已经发布到镜像仓库后，直接执行下面这组命令：
 
 ```bash
-sudo mkdir -p /data/openreach/logs
-sudo chown -R 10001:10001 /data/openreach/logs
+sudo mkdir -p /data/openreach/data /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach
 
 docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
   -e OPENREACH_LOG_PATH=/app/logs \
+  -e OPENREACH_MONITOR_USERNAME=openreach \
+  -e OPENREACH_MONITOR_PASSWORD=openreach \
+  -v /data/openreach/data:/app/data \
   -v /data/openreach/logs:/app/logs \
   --log-driver json-file \
   --log-opt max-size=20m \
   --log-opt max-file=3 \
-  codercl/openreach:latest
+  codercl/openreach:0.1.3
 ```
 
 服务启动后同时内置 OpenReach 官网与文档站点：
@@ -170,11 +174,33 @@ docker logs -f openreach
 # 查看持久化上游日志
 tail -f /data/openreach/logs/openreach-upstream.log
 
-# 停止并删除
+# 停止并删除容器（/data/openreach/data 与 logs 仍保留）
 docker rm -f openreach
 ```
 
 如果宿主机 `8080` 已被占用，可以改成 `-p 18080:8080`，此时访问 `http://localhost:18080`。
+
+#### 启动时指定内部监控用户名 / 密码
+
+v0.1.3 支持在**首次启动、容器销毁重建或版本升级**时直接通过 Docker 环境变量指定内部监控账号。凭据属于运行配置，不写入 SQLite，因此重建容器时应继续传入你希望使用的用户名和密码：
+
+```bash
+MONITOR_USERNAME='admin'
+MONITOR_PASSWORD='change-me-now'
+
+docker run -d \
+  --name openreach \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -e OPENREACH_LOG_PATH=/app/logs \
+  -e OPENREACH_MONITOR_USERNAME="$MONITOR_USERNAME" \
+  -e OPENREACH_MONITOR_PASSWORD="$MONITOR_PASSWORD" \
+  -v /data/openreach/data:/app/data \
+  -v /data/openreach/logs:/app/logs \
+  codercl/openreach:0.1.3
+```
+
+不传时默认仍为 `openreach / openreach`。如果密码包含 `$`、`!`、空格等 shell 特殊字符，推荐使用项目提供的 `.env.example` 复制成 `.env` 后由 Compose 读取，避免命令行转义错误。
 
 ---
 
@@ -380,11 +406,11 @@ state = check_initialized()  # 每个任务只需一次，成功后直接调用�
 results = search("OpenReach AI Agent", region="US", provider="auto", time_range="month", limit=5)
 ```
 
-`search` / `image-search` 的 `region` 默认均为 **`auto`**，省略时等价于 `auto`。v0.1.2 中它先参与核心路由：`CN / zh-CN / zh_CN / cn-zh / zh-Hans-CN / china` 进入 CN 链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 链；之后原始 `region` 再作为 Provider 的 country / locale Hint。`auto` 默认仍为 CN，可通过 `openreach.web.routing.default-route` 调整。
+`search` / `image-search` 的 `region` 默认均为 **`auto`**，省略时等价于 `auto`。v0.1.3 中它继续作为核心路由参数：`CN / zh-CN / zh_CN / cn-zh / zh-Hans-CN / china` 进入 CN 链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 链；之后原始 `region` 再作为 Provider 的 country / locale Hint。`auto` 默认仍为 CN，可通过 `openreach.web.routing.default-route` 调整。
 
 Web Search 新增 **`timeRange`**：`any/day/week/month/year`，并兼容常见 `d/w/m/y`、`pd/pw/pm/py`、`qdr:*` 写法。指定时间范围后，`provider=auto` 会跳过不支持真实上游时间过滤的 Provider，避免参数被静默忽略。当前内置百度 Web 支持 `day/week/month/year`，Bing Web 已验证 `day/week/month`，Brave / DuckDuckGo 支持完整时间过滤；Bing `year` 因免费网页链路暂无稳定可验证参数而不会伪造支持。
 
-为兼容早期 v0.1.2 仅配置 `duckduckgo/brave` 的部署，restricted `timeRange` 会在运行期自动恢复当前已验证的 Baidu/Bing 能力链，并在启动日志打印 `runtime_capabilities`。免费 SERP 命中 `429 / Bot Challenge / 403` 后会进入短期 Provider cooldown，避免同一出口连续撞限流；Read 则将建连超时与单次请求超时拆分，并仅对 GET 网络 I/O 做一次有界重试，HTTP 4xx/5xx 不盲目重试。
+为兼容早期版本仅配置 `duckduckgo/brave` 的部署，restricted `timeRange` 会在运行期自动恢复当前已验证的 Baidu/Bing 能力链，并在启动日志打印 `runtime_capabilities`。免费 SERP 命中 `429 / Bot Challenge / 403` 后会进入短期 Provider cooldown，避免同一出口连续撞限流；Read 则将建连超时与单次请求超时拆分，并仅对 GET 网络 I/O 做一次有界重试，HTTP 4xx/5xx 不盲目重试。
 
 Image Search 现在对候选 `imageUrl` 做 **SSRF 安全 + 重定向 + HTTP 状态 + 图片字节签名**即时探测；只有响应生成时可直接下载的被动图片格式才会进入最终 `items`。失效热链、403/404、HTML/伪图片与 SVG 会被过滤，并继续尝试后续 Provider 补足结果。
 
@@ -529,7 +555,7 @@ openreach/
 | 应用自身 HTTP QPS 基准 | `./bin/quick/qps-unit-test.sh` |
 | 已启动服务真实 QPS 压测 | `BASE_URL=http://127.0.0.1:8080 ./bin/quick/qps-test.sh` |
 | 一键发布 Docker Hub | `./bin/quick/release.sh` |
-| Docker 一键启动 | `docker run -d --name openreach --restart unless-stopped -p 8080:8080 -v /data/openreach/logs:/app/logs --log-driver json-file --log-opt max-size=20m --log-opt max-file=3 codercl/openreach:latest` |
+| Docker 一键启动 | `docker run -d --name openreach --restart unless-stopped -p 8080:8080 -v /data/openreach/data:/app/data -v /data/openreach/logs:/app/logs --log-driver json-file --log-opt max-size=20m --log-opt max-file=3 codercl/openreach:latest` |
 | Docker Compose 启动（可选） | `docker compose up -d` |
 | Docker Compose 停止 | `docker compose down` |
 
@@ -615,6 +641,41 @@ v0.1.2
 ├── Image 可下载强校验                ✅
 ├── 三 API + 官网静态资源安全白名单     ✅
 └── 路由 / Provider / 安全 / 回归测试扩增 ✅
+```
+
+### v0.1.3 内部监控后台
+
+启动后直接访问：`http://localhost:8080/monitor`。默认用户名 / 密码均为 `openreach`。生产环境建议通过 `OPENREACH_MONITOR_USERNAME`、`OPENREACH_MONITOR_PASSWORD` 覆盖默认凭据。 监控总览支持“今日 / 近 7 日 / 自定义日期范围”，选择自定义范围后总览、趋势、接口分布与请求明细会同步切换统计区间。点击“调用失败”会自动筛选失败请求，并在请求记录右侧提供“导出失败请求”，按当前日期 / Endpoint / Keyword 条件调用后端导出接口，下载全部匹配失败请求的 UTF-8 `.log` 诊断日志（含完整入参和返回值）。
+
+> v0.1.3 已接入真实请求采集与 SQLite + WAL 持久化。`/app/data` 是稳定持久化契约，宿主机推荐映射 `/data/openreach/data`；删除并重建容器时只要继续挂载同一 data 目录，请求监控历史会继续保留。完整 Schema、Migration 与未来 MySQL / PostgreSQL 演进见 `docs/设计方案/v0.1.3设计方案文档.md`。
+
+```bash
+OPENREACH_MONITOR_USERNAME=admin \
+OPENREACH_MONITOR_PASSWORD='change-me' \
+OPENREACH_IMAGE=codercl/openreach:0.1.3 \
+  docker compose up -d --force-recreate
+```
+
+```text
+v0.1.3
+├── /monitor 独立内部监控入口          ✅
+├── 默认账号密码 openreach/openreach   ✅
+├── 服务端 Session 登录保护            ✅
+├── 官网 / 文档不展示监控入口          ✅
+├── 今日 / 近 7 日 / 自定义日期总览    ✅
+├── 自定义范围联动总览 / 趋势 / 明细     ✅
+├── 成功 / 失败趋势与接口分布          ✅
+├── 失败请求一键下钻                   ✅
+├── 请求明细 / 详情抽屉（真实 API）      ✅
+├── SQLite + WAL 持久化                ✅
+├── 元数据 / Payload 分表              ✅
+├── 异步队列 + Single Writer          ✅
+├── Schema Migration V2              ✅
+├── 独立 IP 统计                      ✅
+├── 中文 Payload UTF-8 修复           ✅
+├── 失败请求筛选 / 后端日志导出         ✅
+├── Docker 启动账号密码可配置           ✅
+└── /app/data 容器重建数据保留          ✅
 
 Next
 ├── Provider Health / Circuit Breaker
@@ -633,7 +694,7 @@ OpenReach 的目标不是自研 Google SERP 反爬平台。
 
 当前免费 Provider 通过多渠道容错降低单一上游 DOM 改版、限流、网络出口变化带来的影响，但仍属于 **best-effort** 能力。
 
-v0.1.2 默认链严格坚持 **零 API Key / 零账号依赖**。未来如果某个部署方自行需要商业 SLA，可以通过 `SearchProvider` SPI 以可选扩展接入，但不会改变 OpenReach 默认免费开箱路径；项目也不会建设账号池、Cookie 池、住宅代理池或 CAPTCHA 绕过体系。
+v0.1.3 默认链继续严格坚持 **零 API Key / 零账号依赖**。未来如果某个部署方自行需要商业 SLA，可以通过 `SearchProvider` SPI 以可选扩展接入，但不会改变 OpenReach 默认免费开箱路径；项目也不会建设账号池、Cookie 池、住宅代理池或 CAPTCHA 绕过体系。
 
 ---
 
@@ -672,7 +733,7 @@ read(url)
 Quick start with Docker:
 
 ```bash
-docker run -d --name openreach --restart unless-stopped -p 8080:8080 -e OPENREACH_LOG_PATH=/app/logs -v /data/openreach/logs:/app/logs --log-driver json-file --log-opt max-size=20m --log-opt max-file=3 codercl/openreach:latest
+docker run -d --name openreach --restart unless-stopped -p 8080:8080 -e OPENREACH_LOG_PATH=/app/logs -v /data/openreach/data:/app/data -v /data/openreach/logs:/app/logs --log-driver json-file --log-opt max-size=20m --log-opt max-file=3 codercl/openreach:latest
 ```
 
 For local development:

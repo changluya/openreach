@@ -1,6 +1,6 @@
 # OpenReach 接口文档
 
-> 适用版本：**v0.1.2** · 本机直接运行示例：`http://localhost:8080`；AgentHub / Tool Runner 必须配置其运行环境真实可达的 `BASE_URL`
+> 适用版本：**v0.1.3** · 本机直接运行示例：`http://localhost:8080`；AgentHub / Tool Runner 必须配置其运行环境真实可达的 `BASE_URL`
 
 本文档基于当前工程源码（`io.github.changlu.openreach`）维护 OpenReach 对外 HTTP 接口的完整说明，面向 Agent 集成方、HTTP 插件开发者和 API 调用方。
 
@@ -374,7 +374,7 @@ Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `time
 | Openverse | `openverse` | 4 | 2 | 公开图片 API | 否 |
 | Wikimedia Commons | `wikimedia` | - | 3 | MediaWiki Action API | 否 |
 
-> v0.1.2 默认链严格限定为无需 API Key / 无需注册账号的免费能力。公开 SERP Provider 仍属于 **best-effort**，可能受 DOM 改版、限流、CAPTCHA、网络出口影响，不承诺商业 SLA。
+> v0.1.3 默认链继续严格限定为无需 API Key / 无需注册账号的免费能力。公开 SERP Provider 仍属于 **best-effort**，可能受 DOM 改版、限流、CAPTCHA、网络出口影响，不承诺商业 SLA。
 
 ---
 
@@ -405,7 +405,7 @@ Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `time
 | `openreach.web.image-search.global-provider-order` | `bing,openverse,wikimedia` | GLOBAL Image Chain |
 | `openreach.web.image-search.bing-global-url` | `https://www.bing.com/images/async` | GLOBAL Bing Images |
 | `openreach.web.image-search.wikimedia-url` | `https://commons.wikimedia.org/w/api.php` | Wikimedia Action API |
-| `openreach.web.image-search.wikimedia-user-agent` | `OpenReach/0.1.2 (...)` | Wikimedia 可识别 UA |
+| `openreach.web.image-search.wikimedia-user-agent` | `OpenReach/0.1.3 (...)` | Wikimedia 可识别 UA |
 | `openreach.web.image-search.timeout-ms` | `8000` | 单渠道图片搜索超时 |
 | `openreach.web.image-search.max-results` | `30` | Image Search 最大结果数 |
 | `openreach.web.image-search.max-response-bytes` | `4194304` | 单个图片 Provider 上游响应硬上限（4 MiB） |

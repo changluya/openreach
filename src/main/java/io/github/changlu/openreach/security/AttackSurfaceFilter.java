@@ -46,10 +46,21 @@ public class AttackSurfaceFilter extends OncePerRequestFilter {
             "/downloads/openreach-skill.zip"
     );
 
-    private final WebCapabilityProperties properties;
+    private static final Set<String> MONITOR_PROTECTED_PATHS = Set.of(
+            "/monitor", "/monitor/", "/monitor.html",
+            "/assets/monitor.css", "/assets/monitor.js"
+    );
+    private static final Set<String> MONITOR_LOGIN_PATHS = Set.of(
+            "/monitor/login", "/monitor/login/", "/monitor-login.html",
+            "/assets/monitor-login.css", "/assets/monitor-login.js"
+    );
 
-    public AttackSurfaceFilter(WebCapabilityProperties properties) {
+    private final WebCapabilityProperties properties;
+    private final MonitorAuthService monitorAuthService;
+
+    public AttackSurfaceFilter(WebCapabilityProperties properties, MonitorAuthService monitorAuthService) {
         this.properties = properties;
+        this.monitorAuthService = monitorAuthService;
     }
 
     @Override
@@ -68,6 +79,21 @@ public class AttackSurfaceFilter extends OncePerRequestFilter {
             return;
         }
 
+        if (isMonitorApiPath(path)) {
+            handleMonitorApiRequest(request, response, filterChain);
+            return;
+        }
+
+        if (MONITOR_PROTECTED_PATHS.contains(path)) {
+            handleProtectedMonitorRequest(request, response, filterChain);
+            return;
+        }
+
+        if (MONITOR_LOGIN_PATHS.contains(path) || "/monitor/logout".equals(path)) {
+            handleMonitorAuthRequest(request, response, filterChain, path);
+            return;
+        }
+
         if (isStaticPath(path)) {
             if (!isMethod(request, "GET") && !isMethod(request, "HEAD")) {
                 reject(response, HttpServletResponse.SC_METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", "Only GET/HEAD are allowed for static resources");
@@ -80,6 +106,82 @@ public class AttackSurfaceFilter extends OncePerRequestFilter {
         // Deliberately hide all other framework/application endpoints, including
         // upload-like paths, actuator/debug/error handlers and accidental controllers.
         reject(response, HttpServletResponse.SC_NOT_FOUND, "NOT_FOUND", "Resource not found");
+    }
+
+
+    private void handleMonitorApiRequest(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws IOException, ServletException {
+        applyMonitorBrowserPolicy(response);
+        response.setHeader("Cache-Control", "no-store");
+        if (!isMethod(request, "GET")) {
+            reject(response, HttpServletResponse.SC_METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED",
+                    "Monitor API only accepts GET requests");
+            return;
+        }
+        if (!monitorAuthService.isAuthenticated(request)) {
+            reject(response, HttpServletResponse.SC_UNAUTHORIZED, "MONITOR_AUTH_REQUIRED",
+                    "Monitor authentication required");
+            return;
+        }
+        filterChain.doFilter(request, response);
+    }
+
+    private boolean isMonitorApiPath(String path) {
+        return "/api/monitor/status".equals(path)
+                || "/api/monitor/overview".equals(path)
+                || "/api/monitor/trend".equals(path)
+                || "/api/monitor/distribution".equals(path)
+                || "/api/monitor/records".equals(path)
+                || path.startsWith("/api/monitor/records/");
+    }
+
+    private void handleProtectedMonitorRequest(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws IOException, ServletException {
+        applyMonitorBrowserPolicy(response);
+        if (!isMethod(request, "GET") && !isMethod(request, "HEAD")) {
+            reject(response, HttpServletResponse.SC_METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED",
+                    "Only GET/HEAD are allowed for the monitor console");
+            return;
+        }
+        response.setHeader("Cache-Control", "no-store");
+        if (!monitorAuthService.isAuthenticated(request)) {
+            response.sendRedirect("/monitor/login");
+            return;
+        }
+        filterChain.doFilter(request, response);
+    }
+
+    private void handleMonitorAuthRequest(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, String path)
+            throws IOException, ServletException {
+        applyMonitorBrowserPolicy(response);
+        response.setHeader("Cache-Control", "no-store");
+
+        if (path.startsWith("/assets/") || "/monitor-login.html".equals(path) || "/monitor/login".equals(path) || "/monitor/login/".equals(path)) {
+            if (isMethod(request, "GET") || isMethod(request, "HEAD")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+        }
+
+        if (("/monitor/login".equals(path) || "/monitor/logout".equals(path)) && isMethod(request, "POST")) {
+            String contentType = request.getContentType();
+            if (contentType != null && !contentType.toLowerCase(Locale.ROOT).startsWith("application/x-www-form-urlencoded")) {
+                reject(response, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE",
+                        "Monitor login only accepts form submissions");
+                return;
+            }
+            long declared = request.getContentLengthLong();
+            if (declared > 4096) {
+                reject(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "PAYLOAD_TOO_LARGE",
+                        "Monitor form body exceeds configured limit");
+                return;
+            }
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        reject(response, HttpServletResponse.SC_METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED",
+                "Unsupported monitor authentication request");
     }
 
     private void handleApiRequest(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -177,6 +279,14 @@ public class AttackSurfaceFilter extends OncePerRequestFilter {
                 "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
                         + "img-src 'self' data:; font-src 'self'; connect-src 'none'; media-src 'none'; "
                         + "object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    }
+
+    private void applyMonitorBrowserPolicy(HttpServletResponse response) {
+        response.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+        response.setHeader("Content-Security-Policy",
+                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+                        + "img-src 'self' data:; font-src 'self'; connect-src 'self'; media-src 'none'; "
+                        + "object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
     }
 
     private void reject(HttpServletResponse response, int status, String code, String message) throws IOException {

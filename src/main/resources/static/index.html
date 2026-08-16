@@ -18,6 +18,7 @@
       <a class="nav-section-link" href="#usecases">场景</a>
       <a class="nav-section-link" href="#providers">Provider</a>
       <a class="docs-only" href="/docs/">文档</a>
+
       <a class="nav-changelog" href="/changelog">更新日志</a><a class="nav-github" href="https://github.com/changluya/openreach" target="_blank" rel="noopener noreferrer" aria-label="OpenReach GitHub">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.3 11.3 0 0 0-3.57 22c.57.1.77-.25.77-.55v-2.16c-3.16.69-3.83-1.34-3.83-1.34-.51-1.31-1.26-1.66-1.26-1.66-1.03-.7.08-.69.08-.69 1.14.08 1.74 1.17 1.74 1.17 1.01 1.74 2.66 1.24 3.31.95.1-.74.4-1.24.72-1.52-2.52-.29-5.18-1.26-5.18-5.6 0-1.24.44-2.25 1.17-3.04-.12-.29-.51-1.44.11-3 0 0 .95-.3 3.11 1.16A10.8 10.8 0 0 1 12 6.05c.96 0 1.92.13 2.83.38 2.16-1.47 3.11-1.16 3.11-1.16.62 1.56.23 2.71.11 3 .73.79 1.17 1.8 1.17 3.04 0 4.35-2.66 5.31-5.19 5.6.41.35.77 1.04.77 2.1v3.14c0 .3.21.66.78.55A11.3 11.3 0 0 0 12 .7Z"/></svg>
         <span>GitHub</span>
@@ -38,7 +39,7 @@
   <section class="hero">
     <div class="container">
       <div class="eyebrow"><span class="dot"></span> Open-source · Self-hosted · Agent Ready</div>
-      <a class="release-link" href="/changelog"><span>v0.1.2</span> CN / GLOBAL 路由、timeRange、可下载图片与安全加固 <b>查看更新 →</b></a>
+      <a class="release-link" href="/changelog"><span>v0.1.3</span> 内部监控、持久化与运维能力增强 <b>查看更新 →</b></a>
       <h1><span class="gradient-text">让 AI Agent 更简单地触达开放 Web</span></h1>
       <p>OpenReach 是面向 AI Agent 的开源 Web 访问基础设施。用统一接口完成网页搜索、文搜图和正文读取，并通过多 Provider 自动降级减少对单一搜索厂商的绑定。</p>
       <div class="hero-actions">
@@ -89,14 +90,15 @@
           <p>无需 Clone 工程、无需准备 Compose 文件，准备日志目录后执行 <strong>docker run</strong> 即可启动。源码开发场景再使用 Maven。服务启动后访问 <strong>http://localhost:8080</strong> 即可看到当前官网。</p>
           <div class="hero-actions" style="justify-content:flex-start;margin-top:22px"><a class="btn" href="/docs/">打开快速启动文档</a></div>
         </div>
-        <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#docker-code">复制</button><pre id="docker-code">sudo mkdir -p /data/openreach/logs
-sudo chown -R 10001:10001 /data/openreach/logs
+        <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#docker-code">复制</button><pre id="docker-code">sudo mkdir -p /data/openreach/data /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach
 
 docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
   -e OPENREACH_LOG_PATH=/app/logs \
+  -v /data/openreach/data:/app/data \
   -v /data/openreach/logs:/app/logs \
   --log-driver json-file \
   --log-opt max-size=20m \
@@ -137,7 +139,7 @@ python3 scripts/openreach.py search "AI Agent" \
 
   <section id="providers" class="section">
     <div class="container">
-      <div class="section-head"><div class="kicker">Provider routing</div><h2>免费渠道优先，多路自动降级</h2><p>v0.1.2 通过 region 自动选择 CN / GLOBAL 零 Key Provider Chain；免费 Provider 属于 best-effort，默认路径不依赖商业 Search Key。</p></div>
+      <div class="section-head"><div class="kicker">Provider routing</div><h2>免费渠道优先，多路自动降级</h2><p>v0.1.3 延续通过 region 自动选择 CN / GLOBAL 零 Key Provider Chain；免费 Provider 属于 best-effort，默认路径不依赖商业 Search Key。</p></div>
       <h3>Web Search</h3>
       <div class="provider-row"><span class="pill">CN: Bing</span><span class="pill">百度</span><span class="pill">搜狗</span><span class="pill">360</span><span class="pill">DDG</span></div><div class="provider-row"><span class="pill">GLOBAL: Brave</span><span class="pill">DuckDuckGo</span><span class="pill">Bing Global</span></div>
       <h3 style="margin-top:26px">Image Search</h3>

@@ -100,7 +100,7 @@ python3 scripts/openreach.py search "Spring Boot AI Agent" \
   --limit 5
 ```
 
-`region` **始终建议显式展示**。默认值为 `auto`；v0.1.2 中 `auto` 默认进入 CN Route。`CN / zh-CN` 等中国 alias 走国内免费链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 免费链；之后 `region` 继续作为 Provider 的 locale/country Hint。它不是商业级精确 Geo，但已是核心 Route 参数。
+`region` **始终建议显式展示**。默认值为 `auto`；v0.1.3 中 `auto` 默认进入 CN Route。`CN / zh-CN` 等中国 alias 走国内免费链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 免费链；之后 `region` 继续作为 Provider 的 locale/country Hint。它不是商业级精确 Geo，但已是核心 Route 参数。
 
 `time-range` 对应 HTTP `timeRange`，支持 `any/day/week/month/year`，默认 `any`。需要“最近一天/一周/一月/一年”的最新性约束时应显式传入；`provider=auto` 会自动跳过不能真实执行时间过滤的 Provider，不能把该参数仅当作提示词。
 

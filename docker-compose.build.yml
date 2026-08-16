@@ -1,4 +1,24 @@
 services:
+  openreach-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "${OPENREACH_LOCAL_IMAGE:-openreach:local}"
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["mkdir -p /app/data/monitor /app/logs && chown -R 10001:10001 /app/data /app/logs"]
+    volumes:
+      - "${OPENREACH_DATA_DIR:-./data}:/app/data"
+      - "${OPENREACH_LOG_DIR:-./logs}:/app/logs"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+    restart: "no"
+
   openreach:
     build:
       context: .
@@ -6,13 +26,22 @@ services:
     image: "${OPENREACH_LOCAL_IMAGE:-openreach:local}"
     container_name: openreach
     restart: unless-stopped
+    depends_on:
+      openreach-init:
+        condition: service_completed_successfully
     ports:
       - "${APP_PORT:-8080}:8080"
     environment:
       JAVA_OPTS: "${JAVA_OPTS:--Xms128m -Xmx512m}"
       SERVER_PORT: "8080"
       OPENREACH_LOG_PATH: "/app/logs"
+      OPENREACH_MONITOR_USERNAME: "${OPENREACH_MONITOR_USERNAME:-openreach}"
+      OPENREACH_MONITOR_PASSWORD: "${OPENREACH_MONITOR_PASSWORD:-openreach}"
+      OPENREACH_MONITOR_STORAGE: "${OPENREACH_MONITOR_STORAGE:-sqlite}"
+      OPENREACH_MONITOR_DATA_DIR: "/app/data/monitor"
+      OPENREACH_MONITOR_PERSISTENCE_ENABLED: "${OPENREACH_MONITOR_PERSISTENCE_ENABLED:-true}"
     volumes:
+      - "${OPENREACH_DATA_DIR:-./data}:/app/data"
       - "${OPENREACH_LOG_DIR:-./logs}:/app/logs"
     read_only: true
     tmpfs:

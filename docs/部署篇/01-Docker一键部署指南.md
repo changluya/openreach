@@ -5,7 +5,7 @@
 1. **普通用户部署：直接拉取 Docker Hub 已发布镜像，不需要源码、不需要 JDK、不需要 Maven。**
 2. **开发者本地构建：从当前源码构建镜像，构建阶段自动执行 Maven 测试。**
 
-当前服务本身不依赖数据库、Redis、Python、SearXNG 或商业 Search API，因此 V1 只需要一个 Java 应用容器。
+当前服务不依赖外置数据库、Redis、Python、SearXNG 或商业 Search API。v0.1.3 的内部监控使用进程内 SQLite，因此普通用户仍只需要 OpenReach Java 应用；Compose 额外包含一个一次性 init 容器用于修正 Host Bind 权限，执行完成即退出。
 
 ---
 
@@ -14,14 +14,17 @@
 正式镜像发布到 Docker Hub 后，推荐：
 
 ```bash
-sudo mkdir -p /data/openreach/logs
-sudo chown -R 10001:10001 /data/openreach/logs
+sudo mkdir -p /data/openreach/data /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach
 
 docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
   -e OPENREACH_LOG_PATH=/app/logs \
+  -e OPENREACH_MONITOR_USERNAME=openreach \
+  -e OPENREACH_MONITOR_PASSWORD=openreach \
+  -v /data/openreach/data:/app/data \
   -v /data/openreach/logs:/app/logs \
   --log-driver json-file \
   --log-opt max-size=20m \
@@ -37,11 +40,14 @@ docker run -d \
   --restart unless-stopped \
   -p 8080:8080 \
   -e OPENREACH_LOG_PATH=/app/logs \
+  -e OPENREACH_MONITOR_USERNAME=openreach \
+  -e OPENREACH_MONITOR_PASSWORD=openreach \
+  -v /data/openreach/data:/app/data \
   -v /data/openreach/logs:/app/logs \
   --log-driver json-file \
   --log-opt max-size=20m \
   --log-opt max-file=3 \
-  codercl/openreach:0.1.2
+  codercl/openreach:0.1.3
 ```
 
 Docker 会根据客户机器自动选择：
@@ -76,7 +82,7 @@ docker compose up -d
 固定版本：
 
 ```bash
-OPENREACH_IMAGE=codercl/openreach:0.1.2 docker compose up -d
+OPENREACH_IMAGE=codercl/openreach:0.1.3 docker compose up -d
 ```
 
 修改宿主机端口：
@@ -85,6 +91,17 @@ OPENREACH_IMAGE=codercl/openreach:0.1.2 docker compose up -d
 APP_PORT=18080 docker compose up -d
 ```
 
+启动或升级时指定内部监控账号密码：
+
+```bash
+OPENREACH_MONITOR_USERNAME=admin \
+OPENREACH_MONITOR_PASSWORD='change-me' \
+OPENREACH_IMAGE=codercl/openreach:0.1.3 \
+  docker compose up -d --force-recreate
+```
+
+也可以复制根目录 `.env.example` 为 `.env`，Compose 会自动加载。用户名 / 密码是**容器运行配置**，不会写入 SQLite；因此销毁旧容器后重建时，只要继续传入同一组环境变量即可保持原登录凭据。若不传，默认仍为 `openreach / openreach`。
+
 然后访问：
 
 ```text
@@ -92,6 +109,47 @@ http://localhost:18080
 ```
 
 ---
+
+
+## 2.1 v0.1.3 监控数据持久化与容器升级
+
+`/app/data` 是 OpenReach 的稳定持久化目录。默认 SQLite 文件位于：
+
+```text
+/app/data/monitor/openreach-monitor.db
+```
+
+因此标准升级原则是：**容器可以删除，宿主机 data 目录不能删除。**
+
+Docker Run 使用相同 Host Bind 重建即可：
+
+```bash
+docker pull codercl/openreach:0.1.3
+docker rm -f openreach
+
+docker run -d \
+  --name openreach \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -e OPENREACH_MONITOR_DATA_DIR=/app/data/monitor \
+  -e OPENREACH_LOG_PATH=/app/logs \
+  -e OPENREACH_MONITOR_USERNAME=openreach \
+  -e OPENREACH_MONITOR_PASSWORD=openreach \
+  -v /data/openreach/data:/app/data \
+  -v /data/openreach/logs:/app/logs \
+  codercl/openreach:0.1.3
+```
+
+Compose 已内置 `openreach-init`，会在主服务启动前以最小 `CAP_CHOWN` 修正 `/app/data`、`/app/logs` 的 UID 10001 权限；正式 OpenReach 容器仍以非 root 用户运行。
+
+升级时推荐：
+
+```bash
+docker compose pull
+docker compose up -d --force-recreate
+```
+
+不要把 `docker compose down -v`、删除 `${OPENREACH_DATA_DIR}` 或 `rm -rf /data/openreach/data` 作为升级步骤。未来 Monitor Schema 有增量变更时，新镜像会读取旧数据库并按 Schema Version 执行 forward migration。
 
 ## 3. 开发者：从源码构建
 
@@ -193,13 +251,13 @@ docker login
 然后推荐直接使用项目脚本：
 
 ```bash
-./bin/quick/release.sh 0.1.2
+./bin/quick/release.sh 0.1.3
 ```
 
 脚本会构建并推送：
 
 ```text
-codercl/openreach:0.1.2
+codercl/openreach:0.1.3
 codercl/openreach:latest
 ```
 
@@ -217,7 +275,7 @@ linux/arm64
 
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t codercl/openreach:0.1.2 \
+  -t codercl/openreach:0.1.3 \
   -t codercl/openreach:latest \
   --push \
   .
@@ -236,7 +294,7 @@ docker buildx build \
 发布后：
 
 ```bash
-docker buildx imagetools inspect codercl/openreach:0.1.2
+docker buildx imagetools inspect codercl/openreach:0.1.3
 ```
 
 至少应确认：
@@ -318,6 +376,9 @@ docker run -d \
   -p 8080:8080 \
   -e 'JAVA_OPTS=-Xms256m -Xmx1024m' \
   -e OPENREACH_LOG_PATH=/app/logs \
+  -e OPENREACH_MONITOR_USERNAME=openreach \
+  -e OPENREACH_MONITOR_PASSWORD=openreach \
+  -v /data/openreach/data:/app/data \
   -v /data/openreach/logs:/app/logs \
   --log-driver json-file \
   --log-opt max-size=20m \
@@ -394,10 +455,10 @@ docker compose logs -f openreach
 docker compose down
 
 # 一键发布 0.1.2 多架构镜像
-./bin/quick/release.sh 0.1.2
+./bin/quick/release.sh 0.1.3
 
 # 检查远程 manifest
-docker buildx imagetools inspect codercl/openreach:0.1.2
+docker buildx imagetools inspect codercl/openreach:0.1.3
 ```
 
 ---

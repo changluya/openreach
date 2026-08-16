@@ -9,11 +9,12 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WebCapabilityPropertiesTest {
 
     @Test
-    void v102DefaultsKeepCnCompatibilityAndProvideGlobalChains() {
+    void currentDefaultsKeepCnCompatibilityAndProvideGlobalChains() {
         WebCapabilityProperties props = new WebCapabilityProperties();
 
         assertEquals("cn", props.getRouting().getDefaultRoute());
@@ -31,6 +32,32 @@ class WebCapabilityPropertiesTest {
         assertEquals(4 * 1024 * 1024, props.getImageSearch().getMaxResponseBytes());
         assertEquals(6, props.getImageSearch().getDownloadValidationConcurrency());
         assertEquals(48, props.getImageSearch().getDownloadValidationQueueCapacity());
+        assertEquals("OpenReach/0.1.3 (+https://github.com/changluya/openreach)", props.getImageSearch().getWikimediaUserAgent());
+    }
+
+    @Test
+    void monitorDefaultsAreAvailableForZeroConfigurationStartup() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        assertEquals("openreach", props.getMonitor().getUsername());
+        assertEquals("openreach", props.getMonitor().getPassword());
+        assertEquals(7200, props.getMonitor().getSessionTimeoutSeconds());
+        assertEquals("sqlite", props.getMonitor().getStorage());
+        assertEquals("./data/monitor", props.getMonitor().getDataDir());
+        assertEquals("openreach-monitor.db", props.getMonitor().getSqliteFile());
+        assertEquals(10_000, props.getMonitor().getQueueCapacity());
+        assertEquals(100, props.getMonitor().getBatchSize());
+        assertEquals(30, props.getMonitor().getMetadataRetentionDays());
+        assertEquals(7, props.getMonitor().getPayloadRetentionDays());
+
+        String yaml;
+        try (var stream = WebCapabilityPropertiesTest.class.getClassLoader().getResourceAsStream("application.yml")) {
+            assertNotNull(stream);
+            yaml = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        assertTrue(yaml.contains("${OPENREACH_MONITOR_USERNAME:openreach}"));
+        assertTrue(yaml.contains("${OPENREACH_MONITOR_PASSWORD:openreach}"));
     }
 
     @Test

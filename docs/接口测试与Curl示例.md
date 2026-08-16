@@ -1,6 +1,6 @@
 # 接口测试与 Curl 示例
 
-> 适用版本：**OpenReach v0.1.2**
+> 适用版本：**OpenReach v0.1.3**
 >
 > 默认服务地址：`http://localhost:8080`
 
@@ -39,7 +39,7 @@ docker run -d --name openreach -p 8080:8080 -e OPENREACH_LOG_PATH=/app/logs -v /
 
 ## 2. 服务连通性 / 公网攻击面
 
-OpenReach v0.1.2 不再暴露独立 Health API。Skill `doctor` 使用只读官网根路径：
+OpenReach v0.1.3 继续不暴露独立 Health API。Skill `doctor` 使用只读官网根路径：
 
 ```bash
 curl -fsSI 'http://localhost:8080/'
@@ -182,7 +182,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/search' \
   }'
 ```
 
-v0.1.2 使用 HTML no-JS POST Form。若检测到 bot challenge，会返回 Provider 失败；`provider=auto` 时继续下一个渠道。
+v0.1.3 继续使用 HTML no-JS POST Form。若检测到 bot challenge，会返回 Provider 失败；`provider=auto` 时继续下一个渠道。
 
 ### 3.8 显式 Bing Global
 

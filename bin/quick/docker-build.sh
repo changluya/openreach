@@ -81,4 +81,4 @@ fi
 
 echo
 echo "Build completed: $IMAGE"
-echo "Run: docker run -d --name openreach -p 8080:8080 $IMAGE"
+echo "Run: docker run -d --name openreach -p 8080:8080 -e OPENREACH_MONITOR_USERNAME=openreach -e OPENREACH_MONITOR_PASSWORD=openreach $IMAGE"

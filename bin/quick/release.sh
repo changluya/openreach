@@ -23,7 +23,7 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 if [[ -z "$VERSION" ]]; then
-  echo "ERROR: version is empty; pass it explicitly: $0 0.1.2" >&2
+  echo "ERROR: version is empty; pass it explicitly: $0 0.1.3" >&2
   exit 1
 fi
 

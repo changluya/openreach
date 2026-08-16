@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="OpenReach 调用监控 - 查看今日与近 7 日接口调用、成功失败、耗时和请求明细。" />
+  <title>调用监控 · OpenReach</title>
+  <link rel="icon" href="/assets/logo-mark.png" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <link rel="stylesheet" href="/assets/monitor.css" />
+  <script src="/assets/theme-init.js"></script>
+</head>
+<body class="monitor-body">
+<header class="monitor-admin-header">
+  <div class="container monitor-admin-nav">
+    <div class="monitor-admin-brand"><img src="/assets/logo-mark.png" alt="" /><span>OpenReach Monitor</span><em>Internal</em></div>
+    <div class="monitor-admin-actions">
+      <span>v0.1.3</span>
+      <form method="post" action="/monitor/logout">
+        <button class="monitor-logout" type="submit">退出登录</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<main class="monitor-main">
+  <section class="monitor-hero">
+    <div class="container monitor-hero-inner">
+      <div>
+        <div class="monitor-eyebrow"><span class="live-dot"></span> OpenReach Monitor <span class="mock-tag">v0.1.3 · SQLite</span></div>
+        <h1>接口调用监控</h1>
+        <p>集中查看 Search、Image Search、Read 的真实调用量、成功失败、耗时与请求明细。数据由服务端异步采集并持久化到本机 SQLite，容器重建后通过挂载的 data 目录继续保留。</p>
+      </div>
+      <div class="monitor-meta">
+        <span>后台状态</span>
+        <strong id="monitor-storage-status">Authenticated · Loading storage…</strong>
+        <small>最近刷新：<span id="last-refresh">--</span></small>
+      </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="monitor-error" id="monitor-error" hidden></div></div>
+
+  <section class="monitor-section monitor-section-first">
+    <div class="container">
+      <div class="section-toolbar">
+        <div>
+          <div class="kicker">Overview</div>
+          <h2>数据总览</h2>
+          <p id="period-description">今天 00:00 至当前时间的接口调用情况</p>
+        </div>
+        <div class="overview-period-controls">
+          <div class="period-tabs" role="tablist" aria-label="统计周期">
+            <button class="period-tab active" type="button" data-period="today" role="tab" aria-selected="true">今日</button>
+            <button class="period-tab" type="button" data-period="7d" role="tab" aria-selected="false">近 7 日</button>
+          </div>
+          <div class="date-range-picker" id="date-range-picker">
+            <button class="date-range-trigger" id="date-range-trigger" type="button" aria-haspopup="dialog" aria-expanded="false">
+              <span class="date-range-icon" aria-hidden="true">▣</span>
+              <span>自定义日期</span>
+              <strong id="date-range-value">选择范围</strong>
+              <span class="date-range-caret" aria-hidden="true">⌄</span>
+            </button>
+            <div class="date-range-popover" id="date-range-popover" role="dialog" aria-label="自定义日期范围" hidden>
+              <div class="date-range-title">自定义统计范围</div>
+              <div class="date-range-fields">
+                <label><span>开始日期</span><input id="range-start" type="date" /></label>
+                <span class="date-range-separator">至</span>
+                <label><span>结束日期</span><input id="range-end" type="date" /></label>
+              </div>
+              <div class="date-range-hint">选择后将同步刷新总览、趋势、接口分布和请求记录。</div>
+              <div class="date-range-error" id="date-range-error" hidden></div>
+              <div class="date-range-actions">
+                <button class="date-range-cancel" id="date-range-cancel" type="button">取消</button>
+                <button class="date-range-apply" id="date-range-apply" type="button">应用范围</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="metric-grid" aria-live="polite">
+        <article class="metric-card metric-primary">
+          <div class="metric-top"><span>调用次数</span><span class="metric-icon">↗</span></div>
+          <div class="metric-value" id="metric-total">0</div>
+          <div class="metric-foot"><span id="metric-total-note">全部接口请求</span></div>
+        </article>
+        <article class="metric-card metric-success">
+          <div class="metric-top"><span>调用成功</span><span class="status-dot success"></span></div>
+          <div class="metric-value" id="metric-success">0</div>
+          <div class="metric-foot"><span id="metric-success-rate">成功率 0%</span></div>
+        </article>
+        <button class="metric-card metric-failure metric-clickable" id="failure-card" type="button" aria-label="查看失败请求">
+          <div class="metric-top"><span>调用失败</span><span class="status-dot failure"></span></div>
+          <div class="metric-value" id="metric-failure">0</div>
+          <div class="metric-foot"><span>点击查看失败调用</span><span class="metric-arrow">→</span></div>
+        </button>
+        <article class="metric-card metric-ip">
+          <div class="metric-top"><span>独立 IP</span><span class="metric-icon">◎</span></div>
+          <div class="metric-value" id="metric-unique-ip">0</div>
+          <div class="metric-foot"><span>统计周期内客户端 IP 去重</span></div>
+        </article>
+        <article class="metric-card">
+          <div class="metric-top"><span>平均耗时</span><span class="metric-icon">◷</span></div>
+          <div class="metric-value"><span id="metric-latency">0</span><em>ms</em></div>
+          <div class="metric-foot"><span>P95 <b id="metric-p95">0 ms</b></span></div>
+        </article>
+      </div>
+
+      <div class="overview-grid">
+        <article class="panel trend-panel">
+          <div class="panel-head">
+            <div><h3 id="trend-title">调用趋势</h3><p id="trend-period-label">按天统计成功 / 失败请求量</p></div>
+            <div class="legend"><span><i class="legend-success"></i>成功</span><span><i class="legend-failure"></i>失败</span></div>
+          </div>
+          <div class="trend-chart" id="trend-chart" aria-label="调用趋势图"></div>
+        </article>
+
+        <article class="panel endpoint-panel">
+          <div class="panel-head">
+            <div><h3>接口调用分布</h3><p id="endpoint-period-label">当前统计周期</p></div>
+          </div>
+          <div class="endpoint-list" id="endpoint-list"></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="monitor-section" id="request-records">
+    <div class="container">
+      <div class="section-toolbar records-heading">
+        <div>
+          <div class="kicker">Request records</div>
+          <h2>请求记录监控</h2>
+          <p>记录请求时间、IP、输入参数、接口、输出参数、状态与耗时；点击“详情”查看完整调用。</p>
+        </div>
+        <div class="records-heading-actions">
+          <div class="record-count">共 <strong id="record-count">0</strong> 条</div>
+          <button class="export-failure-button" id="export-failure-records" type="button" hidden>
+            <span aria-hidden="true">↓</span> 导出失败请求
+          </button>
+        </div>
+      </div>
+
+      <div class="filters panel">
+        <label class="search-box">
+          <span class="search-icon">⌕</span>
+          <input id="keyword-filter" type="search" placeholder="搜索 IP、Trace ID、输入参数…" autocomplete="off" />
+        </label>
+        <select id="status-filter" aria-label="请求状态筛选">
+          <option value="all">全部状态</option>
+          <option value="success">成功</option>
+          <option value="failure">失败</option>
+        </select>
+        <select id="endpoint-filter" aria-label="请求接口筛选">
+          <option value="all">全部接口</option>
+          <option value="/api/web/search">Web Search</option>
+          <option value="/api/web/image-search">Image Search</option>
+          <option value="/api/web/read">Web Read</option>
+        </select>
+        <button class="filter-reset" id="reset-filters" type="button">重置筛选</button>
+      </div>
+
+      <div class="request-table-wrap panel">
+        <table class="request-table">
+          <thead>
+          <tr>
+            <th>请求时间</th>
+            <th>IP 地址</th>
+            <th>请求接口</th>
+            <th>输入参数</th>
+            <th>输出参数</th>
+            <th>请求状态</th>
+            <th class="latency-col">耗时</th>
+            <th class="action-col">操作</th>
+          </tr>
+          </thead>
+          <tbody id="request-table-body"></tbody>
+        </table>
+        <div class="empty-state" id="empty-state" hidden>
+          <div class="empty-icon">⌕</div>
+          <strong>没有匹配的请求记录</strong>
+          <span>尝试调整筛选条件后重新查看。</span>
+        </div>
+      </div>
+      <div class="table-pagination" id="table-pagination">
+        <span id="page-summary">第 1 / 1 页</span>
+        <div><button id="page-prev" type="button">上一页</button><button id="page-next" type="button">下一页</button></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+<aside class="request-drawer" id="request-drawer" aria-hidden="true" aria-labelledby="drawer-title">
+  <div class="drawer-head">
+    <div>
+      <span class="drawer-kicker">REQUEST DETAIL</span>
+      <h2 id="drawer-title">调用详情</h2>
+    </div>
+    <button class="drawer-close" id="drawer-close" type="button" aria-label="关闭详情">×</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+
+<script src="/assets/site.js"></script>
+<script src="/assets/monitor.js"></script>
+</body>
+</html>

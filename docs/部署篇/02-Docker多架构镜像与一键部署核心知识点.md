@@ -56,7 +56,7 @@ linux/arm64
 普通情况下执行：
 
 ```bash
-docker build -t codercl/openreach:0.1.2 .
+docker build -t codercl/openreach:0.1.3 .
 ```
 
 构建出来的镜像通常对应当前构建机器的架构。
@@ -96,13 +96,13 @@ Dockerfile 是否能构建多架构，只是前提。
 用户看到的镜像名称可能只有一个：
 
 ```text
-codercl/openreach:0.1.2
+codercl/openreach:0.1.3
 ```
 
 但它背后可以同时包含多个架构版本：
 
 ```text
-codercl/openreach:0.1.2
+codercl/openreach:0.1.3
         │
         ▼
    Manifest List
@@ -137,7 +137,7 @@ codercl/openreach:arm64
 更标准的方式是：
 
 ```text
-codercl/openreach:0.1.2
+codercl/openreach:0.1.3
 ```
 
 一个 Tag 自动适配多个架构。
@@ -298,7 +298,7 @@ Buildx 可以：
 OpenReach 发布正式镜像时推荐：
 
 ```bash
-docker buildx build   --platform linux/amd64,linux/arm64   -t codercl/openreach:0.1.2   -t codercl/openreach:latest   --push   .
+docker buildx build   --platform linux/amd64,linux/arm64   -t codercl/openreach:0.1.3   -t codercl/openreach:latest   --push   .
 ```
 
 这里：
@@ -527,7 +527,7 @@ x86_64 / amd64
 发布完后建议执行：
 
 ```bash
-docker buildx imagetools inspect codercl/openreach:0.1.2
+docker buildx imagetools inspect codercl/openreach:0.1.3
 ```
 
 理想情况下应该看到：
@@ -625,7 +625,7 @@ Docker Hub Account
 完整镜像名称：
 
 ```text
-codercl/openreach:0.1.2
+codercl/openreach:0.1.3
 ```
 
 拆解：
@@ -667,7 +667,7 @@ latest
 可以同时推：
 
 ```text
-codercl/openreach:0.1.2
+codercl/openreach:0.1.3
 codercl/openreach:latest
 ```
 
@@ -708,7 +708,7 @@ docker run codercl/openreach:latest
 生产环境：
 
 ```bash
-docker run codercl/openreach:0.1.2
+docker run codercl/openreach:0.1.3
 ```
 
 原因是生产环境更希望：
@@ -997,7 +997,7 @@ Docker Hub
 对应命令：
 
 ```bash
-docker buildx build   --platform linux/amd64,linux/arm64   -t codercl/openreach:0.1.2   -t codercl/openreach:latest   --push   .
+docker buildx build   --platform linux/amd64,linux/arm64   -t codercl/openreach:0.1.3   -t codercl/openreach:latest   --push   .
 ```
 
 ---

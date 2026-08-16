@@ -58,6 +58,7 @@ Desktop.ini
 $RECYCLE.BIN/
 
 # ---------- Logs / runtime files ----------
+data/
 logs/
 log/
 *.log

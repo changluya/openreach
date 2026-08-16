@@ -12,12 +12,14 @@ public class WebCapabilityProperties {
     private final ImageSearch imageSearch = new ImageSearch();
     private final Read read = new Read();
     private final Security security = new Security();
+    private final Monitor monitor = new Monitor();
 
     public Routing getRouting() { return routing; }
     public Search getSearch() { return search; }
     public ImageSearch getImageSearch() { return imageSearch; }
     public Read getRead() { return read; }
     public Security getSecurity() { return security; }
+    public Monitor getMonitor() { return monitor; }
 
     /**
      * Cross-capability routing options.  The external API keeps using the existing
@@ -130,7 +132,7 @@ public class WebCapabilityProperties {
         private String sogouUrl = "https://pic.sogou.com/pics";
         private String openverseUrl = "https://api.openverse.org/v1/images/";
         private String wikimediaUrl = "https://commons.wikimedia.org/w/api.php";
-        private String wikimediaUserAgent = "OpenReach/0.1.2 (+https://github.com/changluya/openreach)";
+        private String wikimediaUserAgent = "OpenReach/0.1.3 (+https://github.com/changluya/openreach)";
         // Image results are only returned after a bounded secure download probe.
         private int downloadCandidateMultiplier = 3;
         private int downloadMaxCandidates = 60;
@@ -237,6 +239,66 @@ public class WebCapabilityProperties {
         public String getAcceptLanguage() { return acceptLanguage; }
         public void setAcceptLanguage(String acceptLanguage) { this.acceptLanguage = acceptLanguage; }
     }
+    public static class Monitor {
+        // Internal monitor console credentials. Override these defaults in real deployments.
+        private String username = "openreach";
+        private String password = "openreach";
+        private int sessionTimeoutSeconds = 7200;
+
+        // Storage SPI. v0.1.3 ships sqlite; mysql/postgresql can be added behind MonitorRecordStore later.
+        private String storage = "sqlite";
+        private String dataDir = "./data/monitor";
+        private String sqliteFile = "openreach-monitor.db";
+        private int sqliteBusyTimeoutMs = 5000;
+
+        // Capture/write isolation. Monitor failure must never fail the three public Web APIs.
+        private boolean persistenceEnabled = true;
+        private int maxPayloadBytes = 65536;
+        private int queueCapacity = 10000;
+        private int batchSize = 100;
+        private long flushIntervalMs = 200L;
+        private int metadataRetentionDays = 30;
+        private int payloadRetentionDays = 7;
+        private int cleanupIntervalMinutes = 60;
+        private int backupRetentionCount = 5;
+        private boolean trustProxyHeaders = false;
+
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+        public int getSessionTimeoutSeconds() { return sessionTimeoutSeconds; }
+        public void setSessionTimeoutSeconds(int sessionTimeoutSeconds) { this.sessionTimeoutSeconds = sessionTimeoutSeconds; }
+        public String getStorage() { return storage; }
+        public void setStorage(String storage) { this.storage = storage; }
+        public String getDataDir() { return dataDir; }
+        public void setDataDir(String dataDir) { this.dataDir = dataDir; }
+        public String getSqliteFile() { return sqliteFile; }
+        public void setSqliteFile(String sqliteFile) { this.sqliteFile = sqliteFile; }
+        public int getSqliteBusyTimeoutMs() { return sqliteBusyTimeoutMs; }
+        public void setSqliteBusyTimeoutMs(int sqliteBusyTimeoutMs) { this.sqliteBusyTimeoutMs = sqliteBusyTimeoutMs; }
+        public boolean isPersistenceEnabled() { return persistenceEnabled; }
+        public void setPersistenceEnabled(boolean persistenceEnabled) { this.persistenceEnabled = persistenceEnabled; }
+        public int getMaxPayloadBytes() { return maxPayloadBytes; }
+        public void setMaxPayloadBytes(int maxPayloadBytes) { this.maxPayloadBytes = maxPayloadBytes; }
+        public int getQueueCapacity() { return queueCapacity; }
+        public void setQueueCapacity(int queueCapacity) { this.queueCapacity = queueCapacity; }
+        public int getBatchSize() { return batchSize; }
+        public void setBatchSize(int batchSize) { this.batchSize = batchSize; }
+        public long getFlushIntervalMs() { return flushIntervalMs; }
+        public void setFlushIntervalMs(long flushIntervalMs) { this.flushIntervalMs = flushIntervalMs; }
+        public int getMetadataRetentionDays() { return metadataRetentionDays; }
+        public void setMetadataRetentionDays(int metadataRetentionDays) { this.metadataRetentionDays = metadataRetentionDays; }
+        public int getPayloadRetentionDays() { return payloadRetentionDays; }
+        public void setPayloadRetentionDays(int payloadRetentionDays) { this.payloadRetentionDays = payloadRetentionDays; }
+        public int getCleanupIntervalMinutes() { return cleanupIntervalMinutes; }
+        public void setCleanupIntervalMinutes(int cleanupIntervalMinutes) { this.cleanupIntervalMinutes = cleanupIntervalMinutes; }
+        public int getBackupRetentionCount() { return backupRetentionCount; }
+        public void setBackupRetentionCount(int backupRetentionCount) { this.backupRetentionCount = backupRetentionCount; }
+        public boolean isTrustProxyHeaders() { return trustProxyHeaders; }
+        public void setTrustProxyHeaders(boolean trustProxyHeaders) { this.trustProxyHeaders = trustProxyHeaders; }
+    }
+
     public static class Security {
         // All public JSON APIs are tiny control payloads; reject oversized/chunked abuse early.
         private int maxApiBodyBytes = 64 * 1024;

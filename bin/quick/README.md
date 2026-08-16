@@ -1,6 +1,6 @@
 # OpenReach 快捷命令
 
-`bin/quick/` 维护 OpenReach 的打包、测试、Docker 本地构建、镜像验收和 Docker Hub 发布命令。v0.1.2 起 `check-project.sh` / `package.sh` 会同时执行 Java JUnit 与 OpenReach Skill Python Test。
+`bin/quick/` 维护 OpenReach 的打包、测试、Docker 本地构建、镜像验收和 Docker Hub 发布命令。当前 v0.1.3 的 `check-project.sh` / `package.sh` 会同时执行 Java JUnit 与 OpenReach Skill Python Test。
 
 ## 推荐链路
 
@@ -48,14 +48,14 @@ docker login
 显式指定版本：
 
 ```bash
-./bin/quick/release.sh 0.1.2
+./bin/quick/release.sh 0.1.3
 ```
 
 国内网络需要本地代理时（推荐）：
 
 ```bash
 OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
-./bin/quick/release.sh 0.1.2
+./bin/quick/release.sh 0.1.3
 ```
 
 这一条命令内部完成：
@@ -73,28 +73,32 @@ mvn clean package + 全量单测
 
 - `OPENREACH_BUILD_PROXY` 只负责 Maven / Docker 构建网络代理，不会跳过测试；
 - 任意 Java / Skill 单测失败都会在 Docker Push 前立即停止；
-- `release.sh` 会校验传入版本与 `pom.xml` 版本一致，`v0.1.2` 与 `0.1.2` 均可；
+- `release.sh` 会校验传入版本与 `pom.xml` 版本一致，`v0.1.3` 与 `0.1.3` 均可；
 - 如果 Maven 已进入 `TESTS` 阶段后失败，优先处理具体失败用例，而不是继续排查代理。
+- v0.1.3 的 `RequestTraceFilterTest` 已按真实 `@RequestBody` 生命周期消费请求流，避免 `ContentCachingRequestWrapper` 因 Mock 链未读取 body 而产生请求 Payload 空值的误报。
 
 ### 1.3 发布后验证
 
 确认远程镜像两个架构都在：
 
 ```bash
-docker buildx imagetools inspect codercl/openreach:0.1.2
+docker buildx imagetools inspect codercl/openreach:0.1.3
 ```
 
 普通用户部署（无需 Maven/JDK/源码）：
 
 ```bash
-sudo mkdir -p /data/openreach/logs
-sudo chown -R 10001:10001 /data/openreach/logs
+sudo mkdir -p /data/openreach/data /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach
 
 docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
   -e OPENREACH_LOG_PATH=/app/logs \
+  -e OPENREACH_MONITOR_USERNAME=openreach \
+  -e OPENREACH_MONITOR_PASSWORD=openreach \
+  -v /data/openreach/data:/app/data \
   -v /data/openreach/logs:/app/logs \
   --log-driver json-file \
   --log-opt max-size=20m \
@@ -216,20 +220,20 @@ BASE_URL=http://127.0.0.1:8080 ./bin/quick/smoke-test.sh
 正常情况下直接使用 `release.sh` 即可。如果需要自定义 Docker Namespace / Repository：
 
 ```bash
-./bin/quick/docker-publish.sh 0.1.2 codercl openreach
+./bin/quick/docker-publish.sh 0.1.3 codercl openreach
 ```
 
 代理环境：
 
 ```bash
 OPENREACH_BUILD_PROXY=http://127.0.0.1:7891 \
-./bin/quick/docker-publish.sh 0.1.2 codercl openreach
+./bin/quick/docker-publish.sh 0.1.3 codercl openreach
 ```
 
 发布后验证：
 
 ```bash
-docker buildx imagetools inspect codercl/openreach:0.1.2
+docker buildx imagetools inspect codercl/openreach:0.1.3
 ```
 
 应同时看到：
@@ -246,14 +250,17 @@ linux/arm64
 镜像发布完成后，普通用户无需 Maven/JDK/源码：
 
 ```bash
-sudo mkdir -p /data/openreach/logs
-sudo chown -R 10001:10001 /data/openreach/logs
+sudo mkdir -p /data/openreach/data /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach
 
 docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
   -e OPENREACH_LOG_PATH=/app/logs \
+  -e OPENREACH_MONITOR_USERNAME=openreach \
+  -e OPENREACH_MONITOR_PASSWORD=openreach \
+  -v /data/openreach/data:/app/data \
   -v /data/openreach/logs:/app/logs \
   --log-driver json-file \
   --log-opt max-size=20m \
@@ -279,7 +286,7 @@ Docker 会根据宿主机 CPU 自动选择 `linux/amd64` 或 `linux/arm64`。
 | Tool Runner -> OpenReach 连接诊断 | `BASE_URL=<reachable-url> ./bin/quick/connectivity-test.sh` |
 | 应用自身 QPS 基准 | `./bin/quick/qps-unit-test.sh` |
 | 真实上游 QPS 压测 | `./bin/quick/qps-test.sh` |
-| 查看远程架构 | `docker buildx imagetools inspect codercl/openreach:0.1.2` |
+| 查看远程架构 | `docker buildx imagetools inspect codercl/openreach:0.1.3` |
 | 查看 API 日志 | `OPENREACH_LOG_DIR=/data/openreach/logs ./bin/quick/logs.sh api` |
 | 按 Trace 排障 | `OPENREACH_LOG_DIR=/data/openreach/logs ./bin/quick/logs.sh trace <traceId>` |
 
@@ -292,19 +299,22 @@ Docker 会根据宿主机 CPU 自动选择 `linux/amd64` 或 `linux/arm64`。
 推荐线上固定宿主机目录：
 
 ```bash
-sudo mkdir -p /data/openreach/logs
-sudo chown -R 10001:10001 /data/openreach/logs
+sudo mkdir -p /data/openreach/data /data/openreach/logs
+sudo chown -R 10001:10001 /data/openreach
 
 docker run -d \
   --name openreach \
   --restart unless-stopped \
   -p 8080:8080 \
   -e OPENREACH_LOG_PATH=/app/logs \
+  -e OPENREACH_MONITOR_USERNAME=openreach \
+  -e OPENREACH_MONITOR_PASSWORD=openreach \
+  -v /data/openreach/data:/app/data \
   -v /data/openreach/logs:/app/logs \
   --log-driver json-file \
   --log-opt max-size=20m \
   --log-opt max-file=3 \
-  codercl/openreach:0.1.2
+  codercl/openreach:0.1.3
 ```
 
 日志文件：
@@ -334,7 +344,7 @@ docs/设计方案/v0.1.2请求异常诊断与日志可观测优化方案.md
 
 ## 快速打 Tag + 推送远程仓库
 
-以发布 `v0.1.2` 为例，在确认当前分支代码已经提交后执行：
+以发布 `v0.1.3` 为例，在确认当前分支代码已经提交后执行：
 
 ```bash
 # 1. 确认工作区与当前分支
@@ -342,13 +352,13 @@ git status
 git branch --show-current
 
 # 2. 创建带说明的 Release Tag
-git tag -a v0.1.2 -m "OpenReach v0.1.2"
+git tag -a v0.1.3 -m "OpenReach v0.1.3"
 
 # 3. 推送当前分支到 origin
 git push origin HEAD
 
 # 4. 推送 Tag 到远程仓库
-git push origin v0.1.2
+git push origin v0.1.3
 ```
 
 也可以在 Tag 已创建后一次推送当前分支及其关联 Tag：
@@ -357,7 +367,7 @@ git push origin v0.1.2
 git push origin HEAD --follow-tags
 ```
 
-> 发布新版本时只需把 `v0.1.2` 替换成目标版本号。若 Tag 已存在，先确认远端是否已经发布，不建议直接强制覆盖 Release Tag。
+> 发布新版本时只需把 `v0.1.3` 替换成目标版本号。若 Tag 已存在，先确认远端是否已经发布，不建议直接强制覆盖 Release Tag。
 
 ---
 

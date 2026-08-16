@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <title>监控后台登录 · OpenReach</title>
+  <link rel="icon" href="/assets/logo-mark.png" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <link rel="stylesheet" href="/assets/monitor-login.css" />
+  <script src="/assets/theme-init.js"></script>
+</head>
+<body class="monitor-login-body">
+  <main class="monitor-login-shell">
+    <section class="monitor-login-card" aria-labelledby="login-title">
+      <div class="monitor-login-brand">
+        <img src="/assets/logo-mark.png" alt="" />
+        <div><strong>OpenReach</strong><span>Monitor Console</span></div>
+      </div>
+      <div class="monitor-login-copy">
+        <span class="monitor-login-kicker">INTERNAL ACCESS</span>
+        <h1 id="login-title">进入调用监控后台</h1>
+        <p>查看今日 / 近 7 日调用统计、失败请求以及接口调用明细。</p>
+      </div>
+      <div class="monitor-login-alert error" id="login-error" hidden>用户名或密码错误，请重新输入。</div>
+      <div class="monitor-login-alert success" id="logout-message" hidden>已安全退出监控后台。</div>
+      <form class="monitor-login-form" method="post" action="/monitor/login" autocomplete="on">
+        <label>
+          <span>用户名</span>
+          <input type="text" name="username" autocomplete="username" required autofocus placeholder="请输入用户名" />
+        </label>
+        <label>
+          <span>密码</span>
+          <input type="password" name="password" autocomplete="current-password" required placeholder="请输入密码" />
+        </label>
+        <button type="submit">登录监控后台</button>
+      </form>
+      <div class="monitor-login-foot"><span></span>Protected by server-side session authentication<span></span></div>
+    </section>
+  </main>
+  <script src="/assets/monitor-login.js"></script>
+</body>
+</html>

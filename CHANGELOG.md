@@ -4,9 +4,47 @@ OpenReach 的版本更新记录。
 
 本文件从 **v1.0.1** 开始作为正式维护基线，后续版本按 `Added / Changed / Fixed / Security / Known Limitations / Roadmap` 持续记录，避免能力演进只散落在 README、设计文档或提交记录中。
 
-> 版本说明：正式维护口径从 **v1.0.1** 起记录；v0.1.2 已同步 Maven Artifact、README、运行文档与部署示例。`docs/设计方案/v1.0.1设计访问文档.md` 统一收敛首个正式基线设计、渠道与验收口径；早期市场调研继续保留历史语境。
+> 版本说明：正式维护口径从 **v1.0.1** 起记录；v0.1.3 已同步 Maven Artifact、README 与官网版本入口；v0.1.2 的路由、安全与部署能力继续作为当前运行基线。`docs/设计方案/v1.0.1设计访问文档.md` 统一收敛首个正式基线设计、渠道与验收口径；早期市场调研继续保留历史语境。
 
 ---
+
+## [v0.1.3] - 2026-08-16
+
+### 版本定位
+
+v0.1.3 将独立内部调用监控从前端原型升级为**真实请求采集 + SQLite 持久化 + 可升级存储抽象**。监控入口仍不加入官网 / 文档导航，核心 Search / Image Search / Read 不依赖监控存储可用性。
+
+### Added
+
+- 独立 `/monitor` 后台与服务端 Session 登录保护，默认账号密码 `openreach / openreach`；Docker Run / Compose 均支持通过 `OPENREACH_MONITOR_USERNAME`、`OPENREACH_MONITOR_PASSWORD` 在首次启动或升级重建时显式指定凭据；
+- 今日 / 近 7 日 / 自定义日期范围统计，数据总览新增独立 IP 数（按统计周期对 `client_ip` 去重），总览、趋势、接口分布、失败下钻和请求明细统一使用真实监控 API；
+- 新增 `/api/monitor/status|overview|trend|distribution|records` 查询接口，并新增 `/api/monitor/records/export` 流式 UTF-8 失败诊断日志导出接口；所有 Monitor API 仅登录后的监控 Session 可访问；
+- `RequestTraceFilter` 对三个公开 Web API 真实采集请求时间、IP、输入参数、输出参数、HTTP 状态、成功/失败、耗时、Trace ID、Provider 和错误信息；
+- 新增 `MonitorRecordStore` 存储 SPI，Controller / Service / Filter 不感知具体数据库；v0.1.3 默认实现 `SqliteMonitorRecordStore`，为后续 MySQL / PostgreSQL 实现保留稳定边界；
+- SQLite 使用 WAL、busy timeout、`quick_check`、独立 Schema Version 和顺序 Migration；Schema V1 拆分 `monitor_request_record` 元数据表与 `monitor_request_payload` Payload 表；
+- 监控写入使用有界队列 + 独立单 Writer，存储不可用、队列满或写入异常均不影响三个核心 Web API；
+- 默认元数据保留 30 天、Payload 保留 7 天，并支持环境变量调整；请求/响应 Payload 默认最多持久化 64 KiB并执行敏感字段脱敏；
+- Compose 新增一次性 `openreach-init`，在 Linux Host Bind 场景自动修正 `/app/data` 与 `/app/logs` 的 UID 10001 权限；主服务仍保持非 root、`read_only` 与 `cap_drop: ALL`；
+- `/app/data` 正式成为持久化契约；SQLite 默认位于 `/app/data/monitor/openreach-monitor.db`，销毁 / 重建容器时宿主机 data 目录继续复用；
+- 已有数据库发生未来 Schema 升级前会使用 SQLite `VACUUM INTO` 生成一致性快照，并按配置保留最近若干份；
+- 配置了当前镜像尚未实现的存储类型时，监控子系统降级为不可用而不是阻止 OpenReach 核心服务启动。
+
+### Fixed
+
+- 修复 `release.sh 0.1.3` 发布门禁中的 `RequestTraceFilterTest` 回归：`ContentCachingRequestWrapper` 仅在下游读取请求体后缓存内容，原测试的 Mock FilterChain 未消费 body，导致请求脱敏与 UTF-8 请求体断言误报失败；测试现模拟真实 Spring MVC `@RequestBody` 生命周期读取请求流，不修改生产 Filter 的请求消费语义；
+- 修复 `MonitorController` 失败请求流式导出编译错误：日志写入辅助方法由宽泛的 `throws Exception` 收窄为 `throws IOException`，与 Spring `StreamingResponseBody` 的输出契约保持一致，避免 `java.lang.Exception` 未捕获导致 Maven 编译失败；
+- 修复“导出失败请求”按钮无效：前端 URL 构造函数此前发生递归调用，点击时会直接触发栈溢出；现改为 `buildApiUrl` + `fetch` 后端导出接口 + Blob 下载，并补充 401 / 非 2xx 错误提示；后端导出改为 UTF-8 `.log` 诊断文件，按当前日期范围 / Endpoint / Keyword / failure 条件导出全部匹配记录，包含完整入参、返回值、Trace ID、IP、错误信息、状态码与耗时；
+- 修复监控响应 Payload 中文乱码：JSON 响应未显式声明 charset 时不再误用 Servlet 默认 ISO-8859-1，而按 UTF-8 解码；Schema V2 会在升级前快照后尝试修复历史可识别 mojibake Payload；
+- 失败数量卡片下钻后，请求记录区右侧显示“导出失败请求”，导出复用当前日期范围 / Endpoint / Keyword / failure 状态筛选，并流式输出全部匹配记录的完整入参、返回值、错误信息与 Trace ID，不受列表分页限制；
+- 请求记录表“操作”列改为右侧 Sticky 固定列，解决窄视口、浏览器缩放或横向滚动时详情入口被遮挡的问题；
+- 自定义日期范围选择器与真实 API 查询链路打通，不再依赖前端 90 天 Mock 数据。
+
+### Compatibility / Upgrade
+
+- 推荐宿主机固定映射 `/data/openreach/data:/app/data`；标准升级只替换镜像 / 容器，不删除宿主机 data；
+- Monitor 用户名 / 密码是容器运行配置，不写入 SQLite；升级重建时继续传入同一环境变量即可保持凭据，也可以在不迁移数据库的情况下直接更换；
+- App Version 与 Monitor Schema Version 解耦，未来可跨应用版本按 Schema Version 顺序执行 migration；
+- MySQL / PostgreSQL 尚未在 v0.1.3 提供具体实现，但存储 SPI、DTO、Service 与 API 已隔离，后续迁移无需重写监控业务层。
 
 ## [v0.1.2] - 2026-08-15
 

@@ -18,7 +18,13 @@ class StaticWebsiteResourceTest {
         assertNotNull(loader.getResource("static/docs/index.html"));
         assertNotNull(loader.getResource("static/docs/api.html"));
         assertNotNull(loader.getResource("static/changelog.html"));
+        assertNotNull(loader.getResource("static/monitor.html"));
+        assertNotNull(loader.getResource("static/monitor-login.html"));
         assertNotNull(loader.getResource("static/assets/site.css"));
+        assertNotNull(loader.getResource("static/assets/monitor.css"));
+        assertNotNull(loader.getResource("static/assets/monitor.js"));
+        assertNotNull(loader.getResource("static/assets/monitor-login.css"));
+        assertNotNull(loader.getResource("static/assets/monitor-login.js"));
         assertNotNull(loader.getResource("static/assets/logo.png"));
         assertNotNull(loader.getResource("static/assets/logo-mark.png"));
         assertNotNull(loader.getResource("static/assets/site.js"));
@@ -26,6 +32,7 @@ class StaticWebsiteResourceTest {
         assertNotNull(loader.getResource("static/assets/wechat-group.png"));
         assertNotNull(loader.getResource("static/downloads/openreach-skill.zip"));
         assertNotNull(loader.getResource("logback-spring.xml"));
+        assertNotNull(loader.getResource("db/monitor/sqlite/V001__init.sql"));
     }
 
     @Test
@@ -57,14 +64,18 @@ class StaticWebsiteResourceTest {
         String quickStart = read("static/docs/index.html");
         String api = read("static/docs/api.html");
         String changelog = read("static/changelog.html");
+        String monitor = read("static/monitor.html");
         assertTrue(home.contains("/assets/theme-init.js"));
         assertTrue(quickStart.contains("/assets/theme-init.js"));
         assertTrue(api.contains("/assets/theme-init.js"));
         assertTrue(changelog.contains("/assets/theme-init.js"));
+        assertTrue(monitor.contains("/assets/theme-init.js"));
+        assertTrue(monitor.contains("/assets/monitor.js"));
         org.junit.jupiter.api.Assertions.assertFalse(home.contains("<script>"));
         org.junit.jupiter.api.Assertions.assertFalse(quickStart.contains("<script>"));
         org.junit.jupiter.api.Assertions.assertFalse(api.contains("<script>"));
         org.junit.jupiter.api.Assertions.assertFalse(changelog.contains("<script>"));
+        org.junit.jupiter.api.Assertions.assertFalse(monitor.contains("<script>"));
         org.junit.jupiter.api.Assertions.assertFalse(quickStart.contains("/api/web/health"));
         org.junit.jupiter.api.Assertions.assertFalse(api.contains("/api/web/health"));
     }
@@ -99,6 +110,49 @@ class StaticWebsiteResourceTest {
     }
 
     @Test
+    void monitorDashboardUsesRealApiAndExposesFailureDrilldownAndRequestDetails() throws IOException {
+        String monitor = read("static/monitor.html");
+        String login = read("static/monitor-login.html");
+        String script = read("static/assets/monitor.js");
+        assertTrue(monitor.contains("/monitor/logout"));
+        assertTrue(login.contains("action=\"/monitor/login\""));
+        assertTrue(login.contains("name=\"username\""));
+        assertTrue(login.contains("name=\"password\""));
+        assertTrue(monitor.contains("data-period=\"today\""));
+        assertTrue(monitor.contains("data-period=\"7d\""));
+        assertTrue(monitor.contains("id=\"date-range-trigger\""));
+        assertTrue(monitor.contains("id=\"range-start\""));
+        assertTrue(monitor.contains("id=\"range-end\""));
+        assertTrue(monitor.contains("应用范围"));
+        assertTrue(monitor.contains("调用失败"));
+        assertTrue(monitor.contains("id=\"export-failure-records\""));
+        assertTrue(monitor.contains("导出失败请求"));
+        assertTrue(monitor.contains("输入参数"));
+        assertTrue(monitor.contains("输出参数"));
+        assertTrue(monitor.contains("IP 地址"));
+        assertTrue(monitor.contains("请求状态"));
+        assertTrue(monitor.contains("耗时"));
+        assertTrue(script.contains("failureCard.addEventListener"));
+        assertTrue(script.contains("applyCustomRange"));
+        assertTrue(script.contains("boundsForPeriod"));
+        assertTrue(script.contains("openDetail"));
+        assertTrue(script.contains("/api/monitor/overview"));
+        assertTrue(script.contains("/api/monitor/trend"));
+        assertTrue(script.contains("/api/monitor/distribution"));
+        assertTrue(script.contains("/api/monitor/records"));
+        assertTrue(script.contains("/api/monitor/records/export"));
+        assertTrue(script.contains("exportFailureRecords"));
+        assertTrue(script.contains("buildApiUrl"));
+        assertTrue(script.contains("response.blob()"));
+        assertTrue(script.contains("credentials: 'same-origin'"));
+        assertTrue(script.contains("openreach-failed-requests-"));
+        org.junit.jupiter.api.Assertions.assertFalse(script.contains("const url = apiUrl(path, params)"));
+        org.junit.jupiter.api.Assertions.assertFalse(script.contains("createMockRecords"));
+        assertTrue(monitor.contains("SQLite"));
+        assertTrue(script.contains("Trace ID"));
+    }
+
+    @Test
     void websiteExposesLatestChangelogNavigation() throws IOException {
         String home = read("static/index.html");
         String docs = read("static/docs/index.html");
@@ -107,10 +161,18 @@ class StaticWebsiteResourceTest {
         assertChangelogNavigation(home, "static/index.html");
         assertChangelogNavigation(docs, "static/docs/index.html");
         assertChangelogNavigation(api, "static/docs/api.html");
+        assertNoMonitorNavigation(home, "static/index.html");
+        assertNoMonitorNavigation(docs, "static/docs/index.html");
+        assertNoMonitorNavigation(api, "static/docs/api.html");
+        assertNoMonitorNavigation(changelog, "static/changelog.html");
+        assertTrue(changelog.contains("v0.1.3"));
         assertTrue(changelog.contains("v0.1.2"));
         assertTrue(changelog.contains("timeRange"));
         assertTrue(changelog.contains("只返回可下载原图"));
         assertTrue(changelog.contains("公网攻击面 Allowlist"));
+        assertTrue(changelog.contains("SQLite + WAL"));
+        assertTrue(changelog.contains("失败请求后端导出"));
+        assertTrue(changelog.contains("Schema V2"));
     }
 
     private void assertChangelogNavigation(String html, String resource) {
@@ -119,6 +181,14 @@ class StaticWebsiteResourceTest {
                 java.util.regex.Pattern.CASE_INSENSITIVE
         );
         assertTrue(pattern.matcher(html).find(), resource + " should expose /changelog navigation");
+    }
+
+    private void assertNoMonitorNavigation(String html, String resource) {
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                "<a\\b[^>]*href=\"/monitor\"",
+                java.util.regex.Pattern.CASE_INSENSITIVE
+        );
+        org.junit.jupiter.api.Assertions.assertFalse(pattern.matcher(html).find(), resource + " must not expose /monitor navigation");
     }
 
     private String read(String resource) throws IOException {

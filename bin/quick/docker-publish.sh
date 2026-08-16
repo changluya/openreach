@@ -124,4 +124,4 @@ fi
 
 echo
 echo "Publish completed."
-echo "Run: docker run -d --name openreach --restart unless-stopped -p 8080:8080 ${IMAGE}:latest"
+echo "Run: docker run -d --name openreach --restart unless-stopped -p 8080:8080 -e OPENREACH_MONITOR_USERNAME=openreach -e OPENREACH_MONITOR_PASSWORD=openreach ${IMAGE}:latest"

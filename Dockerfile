@@ -13,7 +13,7 @@ WORKDIR /app
 # Numeric non-root UID/GID keeps the image runtime-only: no apt, groupadd or
 # useradd step is required for either target architecture.
 COPY --chown=10001:10001 target/openreach-*.jar /app/app.jar
-RUN mkdir -p /app/logs && chown -R 10001:10001 /app/logs
+RUN mkdir -p /app/logs /app/data && chown -R 10001:10001 /app/logs /app/data
 
 USER 10001:10001
 EXPOSE 8080

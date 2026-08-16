@@ -1,7 +1,7 @@
 # WebSearch 核心流程设计
 
 > 接口：`POST /api/web/search`
-> 当前版本：**OpenReach v0.1.2**
+> 当前版本：**OpenReach v0.1.3**
 
 ---
 

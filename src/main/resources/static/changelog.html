@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="OpenReach 更新日志：查看 v0.1.2、v1.0.1 的新增能力、修复、安全加固与测试变化。" />
+  <meta name="description" content="OpenReach 更新日志：查看 v0.1.3、v0.1.2、v1.0.1 的新增能力、修复、安全加固与测试变化。" />
   <title>更新日志 · OpenReach</title>
   <link rel="icon" href="/assets/logo-mark.png" />
   <link rel="stylesheet" href="/assets/site.css" />
@@ -22,7 +22,8 @@
     <a class="active" href="/changelog">3. 更新日志</a>
     <div class="sidebar-project">
       <div class="label">版本</div>
-      <a href="#v1-0-2">v0.1.2 · 最新</a>
+      <a href="#v0-1-3">v0.1.3 · 最新</a>
+      <a href="#v1-0-2">v0.1.2</a>
       <a href="#v1-0-1">v1.0.1 · 基线</a>
       <a class="sidebar-github" href="https://github.com/changluya/openreach/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md ↗</a>
     </div>
@@ -34,8 +35,35 @@
     <h1>更新日志</h1>
     <p class="lead">OpenReach 从 <strong>v1.0.1</strong> 开始正式维护版本记录。这里按当前工程 <code>CHANGELOG.md</code> 展示用户真正需要关注的能力变化、安全边界和兼容信息。</p>
 
+    <section class="release-hero" id="v0-1-3">
+      <div class="release-hero-top"><div><span class="release-version">v0.1.3</span><span class="release-latest">Latest</span></div><time datetime="2026-08-16">2026-08-16</time></div>
+      <h2>内部调用监控、SQLite 持久化与运维闭环</h2>
+      <p>v0.1.3 在不改变 Search、Image Search、Read 三个公开 API 的前提下，新增受保护的内部调用监控能力，支持真实请求采集、日期总览、失败下钻、独立 IP、请求详情和失败诊断日志导出；监控数据默认使用 SQLite + WAL 持久化，并为未来 MySQL / PostgreSQL 迁移保留存储 SPI。</p>
+      <div class="release-metrics"><div><b>3</b><span>公开核心 API</span></div><div><b>SQLite</b><span>默认持久化</span></div><div><b>V2</b><span>Monitor Schema</span></div><div><b>0</b><span>新增公开监控入口</span></div></div>
+    </section>
+
+    <div class="release-highlights">
+      <article><span>Monitor</span><h3>真实请求调用监控</h3><p>支持今日、近 7 日和自定义日期范围，总览调用量、成功/失败、独立 IP、耗时、趋势与接口分布，并可下钻单次调用详情。</p></article>
+      <article><span>Persistence</span><h3>SQLite + WAL 持久化</h3><p>请求元数据与 Payload 分表，异步 Single Writer 写入；数据目录独立挂载，容器销毁重建后仍可复用历史数据。</p></article>
+      <article><span>Diagnostics</span><h3>失败请求后端导出</h3><p>失败筛选可复用当前日期、接口与关键词条件，由服务端流式导出全部匹配记录的 UTF-8 诊断日志，不受列表分页限制。</p></article>
+      <article><span>Upgrade</span><h3>Schema V2 与可迁移存储层</h3><p>Schema Version 与应用版本解耦，升级前自动快照；存储访问统一通过 SPI，后续可扩展 MySQL / PostgreSQL。</p></article>
+    </div>
+
+    <section class="release-section">
+      <h2>v0.1.3 新增与修复</h2>
+      <ul>
+        <li><strong>监控总览：</strong>支持调用次数、成功/失败、独立 IP、平均耗时、P95、趋势和接口分布。</li>
+        <li><strong>请求明细：</strong>记录请求时间、客户端 IP、接口、输入/输出、HTTP 状态、耗时、Trace ID、Provider 与错误信息。</li>
+        <li><strong>失败诊断：</strong>点击失败指标自动筛选失败记录；服务端按当前筛选条件流式生成 UTF-8 详细日志文件。</li>
+        <li><strong>中文编码：</strong>修复 JSON 响应在监控采集时被 Servlet 默认 ISO-8859-1 错误解码的问题，并通过 V2 Migration 修复可安全识别的历史乱码 Payload。</li>
+        <li><strong>容器升级：</strong><code>/app/data</code> 作为稳定持久化目录，容器可销毁重建；Compose init 容器负责处理 Host Bind 的运行用户权限。</li>
+        <li><strong>登录配置：</strong>内部监控登录凭据支持通过 Docker 环境变量覆盖，首次部署与升级重建均可重新指定。</li>
+        <li><strong>兼容性：</strong>三个公开 Web API 路径与主要协议保持不变，监控存储异常不会阻断核心 API。</li>
+      </ul>
+    </section>
+
     <section class="release-hero" id="v1-0-2">
-      <div class="release-hero-top"><div><span class="release-version">v0.1.2</span><span class="release-latest">Latest</span></div><time datetime="2026-08-15">2026-08-15</time></div>
+      <div class="release-hero-top"><div><span class="release-version">v0.1.2</span><span class="release-baseline">Previous</span></div><time datetime="2026-08-15">2026-08-15</time></div>
       <h2>从国内优先链升级为 CN / GLOBAL Web Access Router</h2>
       <p>在 v1.0.1 免费国内链基础上，v0.1.2 增加地区路由、真实时间范围过滤、图片原图可下载门禁，并进一步收敛公网攻击面。默认 Provider Chain 继续坚持零 API Key、零账号依赖、零商业 Search 调用费。</p>
       <div class="release-metrics"><div><b>3</b><span>核心 HTTP API</span></div><div><b>2</b><span>CN / GLOBAL Route</span></div><div><b>150</b><span>声明测试 Case</span></div><div><b>0</b><span>默认 Search API Key</span></div></div>

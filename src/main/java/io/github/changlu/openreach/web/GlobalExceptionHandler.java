@@ -3,6 +3,7 @@ package io.github.changlu.openreach.web;
 import io.github.changlu.openreach.common.BadRequestException;
 import io.github.changlu.openreach.common.UpstreamException;
 import io.github.changlu.openreach.observability.TraceContext;
+import io.github.changlu.openreach.monitor.MonitorStorageUnavailableException;
 import io.github.changlu.openreach.observability.UpstreamFailureClassifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,12 @@ public class GlobalExceptionHandler {
         apiLog.error("[OPENREACH-API] request_failed code=UPSTREAM_ERROR type={} message={}",
                 UpstreamFailureClassifier.classify(ex), safeClientMessage(ex.getMessage(), "Upstream request failed"));
         return response(HttpStatus.BAD_GATEWAY, "UPSTREAM_ERROR", safeClientMessage(ex.getMessage(), "Upstream request failed"));
+    }
+
+    @ExceptionHandler(MonitorStorageUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> monitorUnavailable(MonitorStorageUnavailableException ex) {
+        log.warn("Monitor storage unavailable: {}", safeClientMessage(ex.getMessage(), "Monitor storage unavailable"));
+        return response(HttpStatus.SERVICE_UNAVAILABLE, "MONITOR_STORAGE_UNAVAILABLE", "Monitor storage is temporarily unavailable");
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
