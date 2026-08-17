@@ -1,0 +1,58 @@
+CHANGELOG.md
+  h_415c008e101ba5 32-37,40-44
+bin/quick/README.md
+  h_415c008e101ba5 427-428,431-442
+bin/quick/qps-unit-test.sh
+  h_415c008e101ba5 9,24,29,35-44,50-57,61-66
+docs/设计方案/v0.1.2并发QPS压测与容量评估方案.md
+  h_415c008e101ba5 142-143,146-147
+docs/设计方案/v0.1.3三方渠道失败请求深度分析与兼容优化.md
+  h_415c008e101ba5 1-152
+src/main/java/io/github/changlu/openreach/config/WebCapabilityProperties.java
+  h_415c008e101ba5 53,66,83-84
+src/main/java/io/github/changlu/openreach/observability/UpstreamFailureClassifier.java
+  h_415c008e101ba5 20-23,26-27,37-50
+src/main/java/io/github/changlu/openreach/read/reader/SafeHttpFetcher.java
+  h_415c008e101ba5 49-55,136-150
+src/main/java/io/github/changlu/openreach/search/provider/BaiduSearchProvider.java
+  h_415c008e101ba5 15-16,18,98-143
+src/main/java/io/github/changlu/openreach/search/provider/SearchHttpClient.java
+  h_415c008e101ba5 7,10,14,26,37,39,42,44-46,48-53,80-84,87,89-144,146-175,178-217,252-256
+src/main/java/io/github/changlu/openreach/search/provider/So360SearchProvider.java
+  h_415c008e101ba5 14,30-31,37-42
+src/main/java/io/github/changlu/openreach/search/provider/SogouSearchProvider.java
+  h_415c008e101ba5 14,30-31,37-42
+src/main/resources/application.yml
+  h_415c008e101ba5 63-64,78
+src/test/java/io/github/changlu/openreach/config/WebCapabilityPropertiesTest.java
+  h_415c008e101ba5 28-29
+src/test/java/io/github/changlu/openreach/observability/UpstreamFailureClassifierTest.java
+  h_415c008e101ba5 11-13
+src/test/java/io/github/changlu/openreach/performance/OpenReachApiQpsBenchmarkTest.java
+  h_415c008e101ba5 80,82,90,96-97,100,168,196-198,201-202,206,210-212,216-229
+src/test/java/io/github/changlu/openreach/performance/QpsReportRenderer.java
+  h_415c008e101ba5 1-282
+src/test/java/io/github/changlu/openreach/performance/QpsReportRendererTest.java
+  h_415c008e101ba5 1-74
+src/test/java/io/github/changlu/openreach/read/reader/SafeHttpFetcherTest.java
+  h_415c008e101ba5 22,52-71
+src/test/java/io/github/changlu/openreach/search/provider/BaiduSearchProviderTest.java
+  h_415c008e101ba5 18,33-56
+src/test/java/io/github/changlu/openreach/search/provider/SearchHttpClientTest.java
+  h_415c008e101ba5 1-119
+src/test/java/io/github/changlu/openreach/search/provider/So360SearchProviderTest.java
+  h_415c008e101ba5 8-10,25-35
+src/test/java/io/github/changlu/openreach/search/provider/SogouSearchProviderTest.java
+  h_415c008e101ba5 9-10,25-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "84b9915bfbfe7d2bee86fd47a9973628ffdc5bc6",
+  "prompts": {},
+  "humans": {
+    "h_415c008e101ba5": {
+      "author": "changlu <939974883@qq.com>"
+    }
+  }
+}
