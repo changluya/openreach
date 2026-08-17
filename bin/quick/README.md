@@ -424,9 +424,21 @@ CONCURRENCY_LEVELS=1,8,16,32,64 \
 报告输出：
 
 ```text
-target/qps/openreach-qps-report.md
-target/qps/openreach-qps-report.csv
+target/qps/openreach-qps-report.md   # 中文可读性能分析报告
+target/qps/openreach-qps-report.csv  # 原始指标数据，保留英文表头便于脚本/CI处理
 ```
+
+其中 Markdown 报告会自动给出：
+
+- **核心结论**：总请求数、成功率、峰值 QPS、峰值并发、P95/P99；
+- **测试范围与环境**：明确本次是应用链路 benchmark，不访问真实三方 Provider；
+- **各并发档详细结果**：QPS、平均延迟、P50/P95/P99/Max、HTTP 状态；
+- **吞吐与延迟趋势**：自动计算相邻并发档 QPS / P95 的变化百分比；
+- **拐点/容量信号**：识别吞吐回落、收益趋缓或延迟明显上升；
+- **验收结果**：零失败检查以及可选的 `MIN_PEAK_QPS` 峰值门槛判断；
+- **边界说明**：避免把应用自身 QPS 误认为 Bing/Baidu/Brave/DuckDuckGo 等公网渠道能力。
+
+容量评估建议优先看 **QPS + P95 + P99 + 成功率**，不要只看峰值 QPS。
 
 压测期间的 Logback 文件默认单独写入：
 

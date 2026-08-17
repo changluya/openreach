@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BaiduSearchProviderTest {
     @Test
-    void parsesOrganicResultAndKeepsBaiduRedirect() {
+    void parsesOrganicResultAndKeepsHttpsBaiduRedirectWhenNoLandingUrlExists() {
         String html = """
                 <div id="content_left">
                   <div class="result c-container"><h3><a href="/link?url=abc123">Spring Boot 中文资料</a></h3>
@@ -28,6 +28,30 @@ class BaiduSearchProviderTest {
         assertEquals("Spring Boot 中文资料", items.get(0).title());
         assertTrue(items.get(0).url().startsWith("https://www.baidu.com/link?url="));
         assertEquals("baidu", items.get(0).source());
+    }
+
+
+    @Test
+    void prefersRealLandingUrlFromBaiduResultMetadata() {
+        String html = """
+                <div id="content_left">
+                  <div class="result c-container" mu="https://example.com/article?id=1">
+                    <h3><a href="/link?url=opaque">真实落地页</a></h3>
+                    <div class="c-abstract">摘要</div>
+                  </div>
+                </div>
+                """;
+        var provider = new BaiduSearchProvider(null, new WebCapabilityProperties());
+        var items = provider.parseResults(Jsoup.parse(html), 5);
+        assertEquals(1, items.size());
+        assertEquals("https://example.com/article?id=1", items.get(0).url());
+    }
+
+    @Test
+    void upgradesLegacyHttpBaiduRedirectToHttps() {
+        var provider = new BaiduSearchProvider(null, new WebCapabilityProperties());
+        assertEquals("https://www.baidu.com/link?url=abc",
+                provider.normalizeBaiduResultUrl("http://www.baidu.com/link?url=abc"));
     }
 
     @Test

@@ -11,6 +11,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class SogouSearchProvider implements SearchProvider {
@@ -26,11 +27,17 @@ public class SogouSearchProvider implements SearchProvider {
 
     @Override
     public List<SearchItem> search(String query, int limit, String region) {
-        URI uri = URI.create(properties.getSearch().getSogouUrl() + "?query=" + encode(query));
-        Document doc = http.get(name(), uri);
+        URI uri = buildUri(query);
+        Document doc = http.get(name(), uri, Map.of("Referer", "https://www.sogou.com/"));
         List<SearchItem> items = parseResults(doc, limit);
         if (items.isEmpty()) throw new UpstreamException("sogou returned no parsable results");
         return items;
+    }
+
+    URI buildUri(String query) {
+        String separator = properties.getSearch().getSogouUrl().contains("?") ? "&" : "?";
+        return URI.create(properties.getSearch().getSogouUrl()
+                + separator + "query=" + encode(query) + "&ie=utf8");
     }
 
     List<SearchItem> parseResults(Document doc, int limit) {

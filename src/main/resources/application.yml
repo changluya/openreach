@@ -60,6 +60,8 @@ openreach:
         - duckduckgo
         - baidu
       timeout-ms: 6000
+      # 搜索站偶发 30x（含 HTTPS -> HTTP Location），由客户端受控跟随并保持 HTTPS。
+      max-redirects: 5
       # 免费 SERP 命中 429 / CAPTCHA / 403 后短期冷却，避免同一出口连续撞限流。
       rate-limit-cooldown-ms: 60000
       bot-challenge-cooldown-ms: 60000
@@ -73,7 +75,7 @@ openreach:
       brave-url: https://search.brave.com/search
       baidu-url: https://www.baidu.com/s
       sogou-url: https://www.sogou.com/web
-      so360-url: https://www.so.com/s
+      so360-url: https://www.so.com/index.php
       duckduckgo-url: https://html.duckduckgo.com/html/
     image-search:
       provider: auto

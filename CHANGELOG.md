@@ -29,8 +29,19 @@ v0.1.3 将独立内部调用监控从前端原型升级为**真实请求采集 +
 - 已有数据库发生未来 Schema 升级前会使用 SQLite `VACUUM INTO` 生成一致性快照，并按配置保留最近若干份；
 - 配置了当前镜像尚未实现的存储类型时，监控子系统降级为不可用而不是阻止 OpenReach 核心服务启动。
 
+### Changed
+
+- `./bin/quick/qps-unit-test.sh` 与 `target/qps/openreach-qps-report.md` 全面中文化；Markdown 报告从“原始指标表”升级为“核心结论 / 测试范围与环境 / 各并发档结果 / 吞吐与延迟趋势 / 拐点容量信号 / 验收结果 / 指标说明 / 边界与下一步”的决策型性能报告；
+- QPS 报告自动计算总成功率、峰值 QPS/并发、峰值 P95/P99、相邻并发档 QPS/P95 变化、吞吐回落或收益趋缓信号，并结合 `MIN_PEAK_QPS` 给出明确通过/未通过结论；
+- `openreach-qps-report.csv` 继续保留原英文列名，确保已有脚本、Excel 和 CI 数据解析兼容；新增 `QpsReportRendererTest` 覆盖中文报告结构、峰值结论、失败判定和 CSV 兼容性。
+
 ### Fixed
 
+- 修复 `bin/quick/qps-unit-test.sh` 在部分 macOS Bash/Locale/解压链路下出现 `MIN_PEAK_QPS�: unbound variable`：所有 QPS 环境变量引用统一改为 `${VAR}` 显式边界，`MIN_PEAK_QPS` 后的全角括号改为 ASCII 括号，并对 `bin/` 脚本执行 UTF-8 / BOM / 零宽字符 / replacement character 扫描；默认参数与自定义 `MIN_PEAK_QPS=123.45` 均完成 Shell 冒烟验证。
+- 深度复盘 2026-08-17 导出的 23 条失败请求：Sogou/360 原始 HTTP 302 与百度 legacy `http://www.baidu.com/link?...` Read 521 确认为可修复的兼容缺口；Brave 429、Baidu/DDG bot challenge、目标站 403、TLS SAN mismatch 保持真实上游失败语义，不通过关闭 TLS、破解挑战页或盲目重试掩盖；
+- `SearchHttpClient` 新增受控 301/302/303/307/308 跟随、Provider 域名族 allowlist、重定向上限和 HTTPS 防降级；Sogou/360 增强 UTF-8/Referer，360 默认入口更新为 `https://www.so.com/index.php`；
+- `BaiduSearchProvider` 优先提取 `data-landurl/data-url/mu` 真实落地地址；百度 legacy HTTP `/link` wrapper 在 Search 输出和 Read 入口均安全升级为 HTTPS，并继续经过 SSRF Guard 校验；
+- `UpstreamFailureClassifier` 新增 `TLS_CERTIFICATE / HTTP_REDIRECT / HTTP_5XX` 精细分类，并补齐 Sogou/360 重定向、百度落地 URL、Read wrapper 规范化、TLS/521/302 以及配置默认值回归测试；详细分析见 `docs/设计方案/v0.1.3三方渠道失败请求深度分析与兼容优化.md`；
 - 修复 `release.sh 0.1.3` 发布门禁中的 `RequestTraceFilterTest` 回归：`ContentCachingRequestWrapper` 仅在下游读取请求体后缓存内容，原测试的 Mock FilterChain 未消费 body，导致请求脱敏与 UTF-8 请求体断言误报失败；测试现模拟真实 Spring MVC `@RequestBody` 生命周期读取请求流，不修改生产 Filter 的请求消费语义；
 - 修复 `MonitorController` 失败请求流式导出编译错误：日志写入辅助方法由宽泛的 `throws Exception` 收窄为 `throws IOException`，与 Spring `StreamingResponseBody` 的输出契约保持一致，避免 `java.lang.Exception` 未捕获导致 Maven 编译失败；
 - 修复“导出失败请求”按钮无效：前端 URL 构造函数此前发生递归调用，点击时会直接触发栈溢出；现改为 `buildApiUrl` + `fetch` 后端导出接口 + Blob 下载，并补充 401 / 非 2xx 错误提示；后端导出改为 UTF-8 `.log` 诊断文件，按当前日期范围 / Endpoint / Keyword / failure 条件导出全部匹配记录，包含完整入参、返回值、Trace ID、IP、错误信息、状态码与耗时；

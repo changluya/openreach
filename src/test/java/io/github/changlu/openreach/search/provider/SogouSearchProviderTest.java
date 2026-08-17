@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 class SogouSearchProviderTest {
     @Test
@@ -19,5 +21,15 @@ class SogouSearchProviderTest {
         assertEquals(1, items.size());
         assertTrue(items.get(0).url().startsWith("https://www.sogou.com/link"));
         assertEquals("sogou", items.get(0).source());
+    }
+
+    @Test
+    void buildsUtf8SearchUrlWithoutChangingConfiguredEndpoint() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        var provider = new SogouSearchProvider(null, props);
+        var uri = provider.buildUri("长安的荔枝 电影");
+        assertEquals("www.sogou.com", uri.getHost());
+        assertTrue(uri.getRawQuery().contains("ie=utf8"));
+        assertTrue(URLDecoder.decode(uri.getRawQuery(), StandardCharsets.UTF_8).contains("长安的荔枝 电影"));
     }
 }

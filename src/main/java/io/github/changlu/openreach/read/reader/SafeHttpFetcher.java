@@ -46,7 +46,13 @@ public class SafeHttpFetcher {
     }
 
     public FetchedPage fetch(String rawUrl) {
-        URI current = safetyGuard.validate(rawUrl);
+        URI validated = safetyGuard.validate(rawUrl);
+        URI current = normalizeKnownRedirector(validated);
+        if (!current.equals(validated)) {
+            current = safetyGuard.validate(current.toString());
+            upstreamLog.info("[OPENREACH-UPSTREAM] normalize_redirector provider=read from={} to={}",
+                    validated, current);
+        }
         int redirects = 0;
 
         while (true) {
@@ -124,6 +130,21 @@ public class SafeHttpFetcher {
             // The loop can only fall through when maxAttempts was misconfigured to <= 0,
             // but effectiveMaxAttempts() clamps it to at least one. Keep an explicit guard.
             throw new UpstreamException("Failed to read URL: no HTTP attempt was executed");
+        }
+    }
+
+
+    URI normalizeKnownRedirector(URI uri) {
+        if (uri == null || uri.getHost() == null) return uri;
+        String host = uri.getHost().toLowerCase(java.util.Locale.ROOT);
+        boolean baiduLink = (host.equals("baidu.com") || host.endsWith(".baidu.com"))
+                && "/link".equals(uri.getPath());
+        if (!baiduLink || !"http".equalsIgnoreCase(uri.getScheme())) return uri;
+        try {
+            return new URI("https", null, uri.getHost(), uri.getPort() == 80 ? -1 : uri.getPort(),
+                    uri.getPath(), uri.getQuery(), uri.getFragment());
+        } catch (Exception ex) {
+            return uri;
         }
     }
 

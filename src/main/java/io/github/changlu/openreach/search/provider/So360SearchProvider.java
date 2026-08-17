@@ -11,6 +11,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class So360SearchProvider implements SearchProvider {
@@ -26,11 +27,17 @@ public class So360SearchProvider implements SearchProvider {
 
     @Override
     public List<SearchItem> search(String query, int limit, String region) {
-        URI uri = URI.create(properties.getSearch().getSo360Url() + "?q=" + encode(query));
-        Document doc = http.get(name(), uri);
+        URI uri = buildUri(query);
+        Document doc = http.get(name(), uri, Map.of("Referer", "https://www.so.com/"));
         List<SearchItem> items = parseResults(doc, limit);
         if (items.isEmpty()) throw new UpstreamException("so360 returned no parsable results");
         return items;
+    }
+
+    URI buildUri(String query) {
+        String separator = properties.getSearch().getSo360Url().contains("?") ? "&" : "?";
+        return URI.create(properties.getSearch().getSo360Url()
+                + separator + "ie=utf-8&q=" + encode(query));
     }
 
     List<SearchItem> parseResults(Document doc, int limit) {

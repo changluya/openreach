@@ -77,9 +77,9 @@ class OpenReachApiQpsBenchmarkTest {
 
         warmup(client, endpoint, warmupRequests);
 
-        List<BenchmarkResult> results = new ArrayList<>();
+        List<QpsReportRenderer.Result> results = new ArrayList<>();
         for (int concurrency : concurrencyLevels) {
-            BenchmarkResult result = runBenchmark(client, endpoint, requestsPerLevel, concurrency);
+            QpsReportRenderer.Result result = runBenchmark(client, endpoint, requestsPerLevel, concurrency);
             results.add(result);
             assertEquals(requestsPerLevel, result.successes(),
                     "Every benchmark request must succeed; inspect logs/trace IDs when failures occur");
@@ -87,17 +87,17 @@ class OpenReachApiQpsBenchmarkTest {
             assertTrue(result.qps() > 0.0, "Measured QPS must be positive");
         }
 
-        BenchmarkResult peak = results.stream().max(java.util.Comparator.comparingDouble(BenchmarkResult::qps)).orElseThrow();
+        QpsReportRenderer.Result peak = results.stream().max(java.util.Comparator.comparingDouble(QpsReportRenderer.Result::qps)).orElseThrow();
         if (minPeakQps > 0.0) {
             assertTrue(peak.qps() >= minPeakQps,
                     "Peak QPS regression: expected >= " + minPeakQps + ", actual=" + format(peak.qps()));
         }
 
-        writeReport(results, requestsPerLevel, warmupRequests);
-        printReport(results, requestsPerLevel, warmupRequests);
+        writeReport(results, requestsPerLevel, warmupRequests, minPeakQps);
+        printReport(results, requestsPerLevel, warmupRequests, minPeakQps);
     }
 
-    private BenchmarkResult runBenchmark(HttpClient client, URI endpoint, int totalRequests, int concurrency)
+    private QpsReportRenderer.Result runBenchmark(HttpClient client, URI endpoint, int totalRequests, int concurrency)
             throws InterruptedException {
         int workers = Math.min(concurrency, totalRequests);
         ExecutorService executor = Executors.newFixedThreadPool(workers);
@@ -165,7 +165,7 @@ class OpenReachApiQpsBenchmarkTest {
         statuses.entrySet().stream().sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> immutableStatuses.put(entry.getKey(), entry.getValue().get()));
 
-        return new BenchmarkResult(
+        return new QpsReportRenderer.Result(
                 concurrency,
                 totalRequests,
                 successes.get(),
@@ -193,76 +193,40 @@ class OpenReachApiQpsBenchmarkTest {
         }
     }
 
-    private void printReport(List<BenchmarkResult> results, int requestsPerLevel, int warmupRequests) {
-        String report = renderReport(results, requestsPerLevel, warmupRequests);
-        System.out.println(report);
+    private void printReport(List<QpsReportRenderer.Result> results, int requestsPerLevel, int warmupRequests,
+                             double minPeakQps) {
+        System.out.println(renderReport(results, requestsPerLevel, warmupRequests, minPeakQps));
     }
 
-    private void writeReport(List<BenchmarkResult> results, int requestsPerLevel, int warmupRequests) throws IOException {
+    private void writeReport(List<QpsReportRenderer.Result> results, int requestsPerLevel, int warmupRequests,
+                             double minPeakQps) throws IOException {
         Path reportDir = Path.of("target", "qps");
         Files.createDirectories(reportDir);
         Files.writeString(reportDir.resolve("openreach-qps-report.md"),
-                renderReport(results, requestsPerLevel, warmupRequests),
+                renderReport(results, requestsPerLevel, warmupRequests, minPeakQps),
                 StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
-        StringBuilder csv = new StringBuilder("concurrency,requests,successes,failures,duration_ms,qps,avg_ms,p50_ms,p95_ms,p99_ms,max_ms,statuses\n");
-        for (BenchmarkResult result : results) {
-            csv.append(result.concurrency()).append(',')
-                    .append(result.requests()).append(',')
-                    .append(result.successes()).append(',')
-                    .append(result.failures()).append(',')
-                    .append(format(result.durationMs())).append(',')
-                    .append(format(result.qps())).append(',')
-                    .append(format(result.averageMs())).append(',')
-                    .append(format(result.p50Ms())).append(',')
-                    .append(format(result.p95Ms())).append(',')
-                    .append(format(result.p99Ms())).append(',')
-                    .append(format(result.maxMs())).append(',')
-                    .append('"').append(result.statuses()).append('"').append('\n');
-        }
-        Files.writeString(reportDir.resolve("openreach-qps-report.csv"), csv.toString(), StandardCharsets.UTF_8,
+        Files.writeString(reportDir.resolve("openreach-qps-report.csv"),
+                QpsReportRenderer.renderCsv(results),
+                StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
     }
 
-    private String renderReport(List<BenchmarkResult> results, int requestsPerLevel, int warmupRequests) {
-        BenchmarkResult peak = results.stream().max(java.util.Comparator.comparingDouble(BenchmarkResult::qps)).orElse(null);
-        StringBuilder out = new StringBuilder();
-        out.append("# OpenReach HTTP QPS Benchmark\n\n")
-                .append("- Generated: ").append(Instant.now()).append("\n")
-                .append("- Endpoint: `POST /api/web/search`\n")
-                .append("- Provider: in-memory `benchmark` provider (no public upstream network)\n")
-                .append("- Requests per concurrency level: ").append(requestsPerLevel).append("\n")
-                .append("- Warm-up requests: ").append(warmupRequests).append("\n")
-                .append("- Available processors: ").append(Runtime.getRuntime().availableProcessors()).append("\n")
-                .append("- Java: ").append(System.getProperty("java.version")).append("\n")
-                .append("- Simulated provider delay: ").append(QpsBenchmarkConfiguration.providerDelayMs()).append(" ms\n")
-                .append("- Logging: current application Logback configuration is kept enabled unless overridden with JVM/Spring logging properties.\n");
-        if (peak != null) {
-            out.append("- Peak measured QPS: **").append(format(peak.qps())).append("** @ concurrency **")
-                    .append(peak.concurrency()).append("**\n");
-        }
-        out.append("\n")
-                .append("| Concurrency | Requests | Success | Fail | Duration ms | QPS | Avg ms | P50 ms | P95 ms | P99 ms | Max ms | HTTP status |\n")
-                .append("|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|\n");
-        for (BenchmarkResult result : results) {
-            out.append('|').append(result.concurrency())
-                    .append('|').append(result.requests())
-                    .append('|').append(result.successes())
-                    .append('|').append(result.failures())
-                    .append('|').append(format(result.durationMs()))
-                    .append('|').append(format(result.qps()))
-                    .append('|').append(format(result.averageMs()))
-                    .append('|').append(format(result.p50Ms()))
-                    .append('|').append(format(result.p95Ms()))
-                    .append('|').append(format(result.p99Ms()))
-                    .append('|').append(format(result.maxMs()))
-                    .append('|').append(result.statuses())
-                    .append("|\n");
-        }
-        out.append("\n> This is an OpenReach application-path benchmark, not a claim about Bing/Baidu/Brave/DuckDuckGo throughput. "
-                + "Real provider QPS is additionally constrained by upstream latency, rate limits, anti-bot controls, egress IP reputation and network quality.\n");
-        return out.toString();
+    private String renderReport(List<QpsReportRenderer.Result> results, int requestsPerLevel, int warmupRequests,
+                                double minPeakQps) {
+        QpsReportRenderer.Config config = new QpsReportRenderer.Config(
+                Instant.now(),
+                requestsPerLevel,
+                warmupRequests,
+                Runtime.getRuntime().availableProcessors(),
+                System.getProperty("java.version"),
+                QpsBenchmarkConfiguration.providerDelayMs(),
+                System.getProperty("logging.level.OPENREACH.API", "INFO"),
+                System.getProperty("logging.level.OPENREACH.UPSTREAM", "INFO"),
+                minPeakQps
+        );
+        return QpsReportRenderer.renderMarkdown(results, config);
     }
 
     private static double percentileMs(List<Long> sortedNanos, double percentile) {
@@ -323,21 +287,6 @@ class OpenReachApiQpsBenchmarkTest {
                 .distinct()
                 .toList();
     }
-
-    record BenchmarkResult(
-            int concurrency,
-            int requests,
-            int successes,
-            int failures,
-            double durationMs,
-            double qps,
-            double averageMs,
-            double p50Ms,
-            double p95Ms,
-            double p99Ms,
-            double maxMs,
-            Map<Integer, Integer> statuses
-    ) {}
 
     @TestConfiguration(proxyBeanMethods = false)
     static class QpsBenchmarkConfiguration {

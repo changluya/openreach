@@ -12,7 +12,10 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class BaiduSearchProvider implements SearchProvider {
@@ -92,13 +95,52 @@ public class BaiduSearchProvider implements SearchProvider {
     }
 
     List<SearchItem> parseResults(Document doc, int limit) {
-        return SearchProviderSupport.parseBlocks(
-                doc.select("#content_left .result, #content_left .c-container, #content_left .result-op, .result.c-container"),
-                "h3 a, .t a",
-                ".c-abstract, .c-span-last, .content-right_8Zs40, .c-font-normal, .abstract",
-                name(), limit,
-                href -> SearchProviderSupport.absolute("https://www.baidu.com", href)
-        );
+        List<SearchItem> items = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        for (var block : doc.select("#content_left .result, #content_left .c-container, #content_left .result-op, .result.c-container")) {
+            var link = block.selectFirst("h3 a, .t a");
+            if (link == null) continue;
+            String title = SearchProviderSupport.clean(link.text());
+            String url = preferredResultUrl(block, link);
+            if (title.isBlank() || url.isBlank() || !SearchProviderSupport.isHttp(url) || !seen.add(url)) continue;
+            var snippetEl = block.selectFirst(".c-abstract, .c-span-last, .content-right_8Zs40, .c-font-normal, .abstract");
+            String snippet = snippetEl == null ? "" : SearchProviderSupport.clean(snippetEl.text());
+            items.add(new SearchItem(items.size() + 1, title, url, snippet, name()));
+            if (items.size() >= limit) break;
+        }
+        return items;
+    }
+
+    String preferredResultUrl(org.jsoup.nodes.Element block, org.jsoup.nodes.Element link) {
+        String[] candidates = {
+                link.attr("data-landurl"),
+                link.attr("data-url"),
+                block.attr("mu"),
+                block.attr("data-url"),
+                link.attr("href")
+        };
+        for (String candidate : candidates) {
+            String normalized = normalizeBaiduResultUrl(candidate);
+            if (!normalized.isBlank() && SearchProviderSupport.isHttp(normalized)) return normalized;
+        }
+        return "";
+    }
+
+    String normalizeBaiduResultUrl(String raw) {
+        String absolute = SearchProviderSupport.absolute("https://www.baidu.com", raw);
+        if (absolute.isBlank()) return "";
+        try {
+            URI uri = URI.create(absolute);
+            String host = uri.getHost();
+            if (host != null && (host.equalsIgnoreCase("baidu.com") || host.toLowerCase().endsWith(".baidu.com"))
+                    && "/link".equals(uri.getPath()) && "http".equalsIgnoreCase(uri.getScheme())) {
+                return new URI("https", null, uri.getHost(), uri.getPort() == 80 ? -1 : uri.getPort(),
+                        uri.getPath(), uri.getQuery(), uri.getFragment()).toString();
+            }
+            return absolute;
+        } catch (Exception ignored) {
+            return "";
+        }
     }
 
     private String encode(String value) { return URLEncoder.encode(value, StandardCharsets.UTF_8); }

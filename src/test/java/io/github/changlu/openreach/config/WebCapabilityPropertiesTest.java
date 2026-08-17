@@ -25,6 +25,8 @@ class WebCapabilityPropertiesTest {
         assertEquals(List.of("baidu", "bing", "duckduckgo", "brave"), props.getSearch().getCnTimeRangeProviderOrder());
         assertEquals(List.of("bing", "brave", "duckduckgo", "baidu"), props.getSearch().getGlobalTimeRangeProviderOrder());
         assertEquals(2 * 1024 * 1024, props.getSearch().getMaxResponseBytes());
+        assertEquals(5, props.getSearch().getMaxRedirects());
+        assertEquals("https://www.so.com/index.php", props.getSearch().getSo360Url());
         assertEquals(List.of("bing", "baidu", "sogou", "openverse"),
                 props.getImageSearch().effectiveCnProviderOrder());
         assertEquals(List.of("bing", "openverse", "wikimedia"),

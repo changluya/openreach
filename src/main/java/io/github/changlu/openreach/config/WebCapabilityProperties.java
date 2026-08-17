@@ -50,6 +50,7 @@ public class WebCapabilityProperties {
         private List<String> globalTimeRangeProviderOrder = new ArrayList<>(List.of("bing", "brave", "duckduckgo", "baidu"));
 
         private int timeoutMs = 6000;
+        private int maxRedirects = 5;
         // Respect upstream throttling/challenge signals instead of hammering the same free SERP repeatedly.
         private long rateLimitCooldownMs = 60_000L;
         private long botChallengeCooldownMs = 60_000L;
@@ -62,7 +63,7 @@ public class WebCapabilityProperties {
         private String braveUrl = "https://search.brave.com/search";
         private String baiduUrl = "https://www.baidu.com/s";
         private String sogouUrl = "https://www.sogou.com/web";
-        private String so360Url = "https://www.so.com/s";
+        private String so360Url = "https://www.so.com/index.php";
         private String duckduckgoUrl = "https://html.duckduckgo.com/html/";
 
         public String getProvider() { return provider; }
@@ -79,6 +80,8 @@ public class WebCapabilityProperties {
         public void setGlobalTimeRangeProviderOrder(List<String> value) { this.globalTimeRangeProviderOrder = safeList(value); }
         public int getTimeoutMs() { return timeoutMs; }
         public void setTimeoutMs(int timeoutMs) { this.timeoutMs = timeoutMs; }
+        public int getMaxRedirects() { return maxRedirects; }
+        public void setMaxRedirects(int maxRedirects) { this.maxRedirects = maxRedirects; }
         public long getRateLimitCooldownMs() { return rateLimitCooldownMs; }
         public void setRateLimitCooldownMs(long rateLimitCooldownMs) { this.rateLimitCooldownMs = rateLimitCooldownMs; }
         public long getBotChallengeCooldownMs() { return botChallengeCooldownMs; }

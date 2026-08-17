@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -46,6 +47,26 @@ class SafeHttpFetcherTest {
         assertEquals(2, calls.get());
         assertEquals("https://www.qbitai.com/2026/08/473866.html", page.finalUrl());
         assertTrue(new String(page.body(), StandardCharsets.UTF_8).contains("qbitai ok"));
+    }
+
+
+    @Test
+    void upgradesLegacyHttpBaiduRedirectorBeforeFetching() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getRead().setMaxAttempts(1);
+        AtomicReference<URI> requested = new AtomicReference<>();
+
+        SafeHttpFetcher.HttpSender sender = request -> {
+            requested.set(request.uri());
+            return response(request, 200, "text/html", "<html><body>ok</body></html>");
+        };
+
+        SafeHttpFetcher fetcher = new SafeHttpFetcher(passThroughGuard(), props, sender);
+        var page = fetcher.fetch("http://www.baidu.com/link?url=opaque");
+
+        assertEquals("https", requested.get().getScheme());
+        assertEquals("www.baidu.com", requested.get().getHost());
+        assertEquals("https://www.baidu.com/link?url=opaque", page.finalUrl());
     }
 
     @Test

@@ -5,6 +5,9 @@ import org.jsoup.Jsoup;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 class So360SearchProviderTest {
     @Test
@@ -18,5 +21,16 @@ class So360SearchProviderTest {
         assertEquals(1, items.size());
         assertEquals("https://example.com/spring", items.get(0).url());
         assertEquals("so360", items.get(0).source());
+    }
+
+    @Test
+    void usesStableIndexEntryAndUtf8Parameter() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        var provider = new So360SearchProvider(null, props);
+        var uri = provider.buildUri("长安的荔枝 网盘");
+        assertEquals("/index.php", uri.getPath());
+        String query = URLDecoder.decode(uri.getRawQuery(), StandardCharsets.UTF_8);
+        assertTrue(query.contains("ie=utf-8"));
+        assertTrue(query.contains("q=长安的荔枝 网盘"));
     }
 }
