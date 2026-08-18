@@ -205,5 +205,27 @@ class OpenReachClientTest(unittest.TestCase):
         self.assertEqual(Handler.received[-1][1]["maxChars"], 20000)
 
 
+    def test_read_rejects_private_attachment_url_before_network(self):
+        Handler.received.clear()
+        with self.assertRaises(openreach.OpenReachError) as ctx:
+            self.client.read("http://172.16.114.23:8999/images/chat/example.png")
+        self.assertIn("READ_TARGET_PRIVATE", str(ctx.exception))
+        self.assertEqual(Handler.received, [])
+
+    def test_read_rejects_non_standard_public_port_before_network(self):
+        Handler.received.clear()
+        with self.assertRaises(openreach.OpenReachError) as ctx:
+            self.client.read("https://example.com:8443/article")
+        self.assertIn("READ_TARGET_PORT", str(ctx.exception))
+        self.assertEqual(Handler.received, [])
+
+    def test_read_rejects_binary_image_url_before_network(self):
+        Handler.received.clear()
+        with self.assertRaises(openreach.OpenReachError) as ctx:
+            self.client.read("https://example.com/assets/photo.png")
+        self.assertIn("READ_TARGET_BINARY", str(ctx.exception))
+        self.assertEqual(Handler.received, [])
+
+
 if __name__ == "__main__":
     unittest.main()

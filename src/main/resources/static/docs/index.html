@@ -150,10 +150,10 @@ mvn spring-boot:run</pre></div>
 python3 skills/openreach/scripts/openreach.py search "AI Agent" --region US --provider auto --time-range month --limit 5
 python3 skills/openreach/scripts/openreach.py image-search "杭州西湖" --region auto --provider auto --limit 8
 python3 skills/openreach/scripts/openreach.py read "https://spring.io/projects/spring-boot/" --max-chars 20000</pre></div>
-    <p>推荐 Agent 调用顺序：<code>search(query)</code> 发现可信来源 → 对候选 URL 使用 <code>read(url)</code> → 再由模型总结、对比或引用。</p>
+    <p>推荐 Agent 调用顺序：<code>search(query)</code> 发现可信来源 → 仅对<strong>公网 80/443 的 HTML/XHTML/纯文本页面</strong>使用 <code>read(url)</code> → 再由模型总结、对比或引用。AgentHub/沙箱生成的私网附件 URL、图片二进制和非标准端口资源应由调用方自己的文件/图片能力处理，不应转交 OpenReach Read。</p>
 
     <h2>6. 当前边界</h2>
-    <ul><li>免费搜索 Provider 属于 best-effort，不承诺商业 SLA。</li><li>微信公众号仅支持公开可访问页面；搜索可发现性依赖搜索引擎是否已收录。</li><li>当前 Read 聚焦 HTML / SSR 页面，不保证强 JavaScript、登录、验证码或严格反爬页面可完整读取。</li><li>v0.1.3 默认链无需 API Key；免费 SERP 不承诺商业级精确 Geo 或高 QPS SLA。</li></ul>
+    <ul><li>免费搜索 Provider 属于 best-effort，不承诺商业 SLA。</li><li>微信公众号仅支持公开可访问页面；搜索可发现性依赖搜索引擎是否已收录。</li><li>当前 Read 聚焦公网 HTML/XHTML/纯文本页面，只允许 HTTP/HTTPS 80/443；私网/本机/内部附件与图片二进制不属于 Read 能力边界。</li><li>强 JavaScript、登录、验证码、HTTP 403/412 等访问策略页面不保证可读；此类明确拒绝不应对同一 URL 机械重试，应换公开来源或退回搜索摘要。</li><li>v0.1.3 默认链无需 API Key；免费 SERP 不承诺商业级精确 Geo 或高 QPS SLA。</li></ul>
 
     
     <h2 id="skill">下载并初始化 OpenReach Skill</h2>

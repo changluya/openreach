@@ -50,6 +50,8 @@ class WebCapabilityPropertiesTest {
         assertEquals(100, props.getMonitor().getBatchSize());
         assertEquals(30, props.getMonitor().getMetadataRetentionDays());
         assertEquals(7, props.getMonitor().getPayloadRetentionDays());
+        assertTrue(props.getMonitor().isTrustProxyHeaders());
+        assertEquals(List.of("127.0.0.1/32", "::1/128", "172.16.0.0/12"), props.getMonitor().getTrustedProxyCidrs());
 
         String yaml;
         try (var stream = WebCapabilityPropertiesTest.class.getClassLoader().getResourceAsStream("application.yml")) {
@@ -60,6 +62,8 @@ class WebCapabilityPropertiesTest {
         }
         assertTrue(yaml.contains("${OPENREACH_MONITOR_USERNAME:openreach}"));
         assertTrue(yaml.contains("${OPENREACH_MONITOR_PASSWORD:openreach}"));
+        assertTrue(yaml.contains("${OPENREACH_MONITOR_TRUST_PROXY_HEADERS:true}"));
+        assertTrue(yaml.contains("${OPENREACH_MONITOR_TRUSTED_PROXY_CIDRS:127.0.0.1/32,::1/128,172.16.0.0/12}"));
     }
 
     @Test

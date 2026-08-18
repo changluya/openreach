@@ -264,7 +264,10 @@ public class WebCapabilityProperties {
         private int payloadRetentionDays = 7;
         private int cleanupIntervalMinutes = 60;
         private int backupRetentionCount = 5;
-        private boolean trustProxyHeaders = false;
+        private boolean trustProxyHeaders = true;
+        private List<String> trustedProxyCidrs = new ArrayList<>(List.of(
+                "127.0.0.1/32", "::1/128", "172.16.0.0/12"
+        ));
 
         public String getUsername() { return username; }
         public void setUsername(String username) { this.username = username; }
@@ -300,6 +303,10 @@ public class WebCapabilityProperties {
         public void setBackupRetentionCount(int backupRetentionCount) { this.backupRetentionCount = backupRetentionCount; }
         public boolean isTrustProxyHeaders() { return trustProxyHeaders; }
         public void setTrustProxyHeaders(boolean trustProxyHeaders) { this.trustProxyHeaders = trustProxyHeaders; }
+        public List<String> getTrustedProxyCidrs() { return trustedProxyCidrs; }
+        public void setTrustedProxyCidrs(List<String> trustedProxyCidrs) {
+            this.trustedProxyCidrs = trustedProxyCidrs == null ? new ArrayList<>() : new ArrayList<>(trustedProxyCidrs);
+        }
     }
 
     public static class Security {

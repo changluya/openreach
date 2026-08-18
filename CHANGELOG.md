@@ -14,6 +14,11 @@ OpenReach 的版本更新记录。
 
 v0.1.3 将独立内部调用监控从前端原型升级为**真实请求采集 + SQLite 持久化 + 可升级存储抽象**。监控入口仍不加入官网 / 文档导航，核心 Search / Image Search / Read 不依赖监控存储可用性。
 
+### Build / Test Fix
+
+- 修复 `RequestTraceFilterTest` 两处 testCompile 失败：`FilterChain` 回调参数为 `ServletResponse`，不应直接调用 `setStatus(int)`。
+- 删除与真实 IP 断言无关的显式 `setStatus(200)`，保持测试聚焦真实客户端 IP 解析，同时兼容标准 Servlet API 类型。
+
 ### Added
 
 - 独立 `/monitor` 后台与服务端 Session 登录保护，默认账号密码 `openreach / openreach`；Docker Run / Compose 均支持通过 `OPENREACH_MONITOR_USERNAME`、`OPENREACH_MONITOR_PASSWORD` 在首次启动或升级重建时显式指定凭据；
@@ -31,13 +36,23 @@ v0.1.3 将独立内部调用监控从前端原型升级为**真实请求采集 +
 
 ### Changed
 
+- 监控页面“请求记录监控”新增独立请求时间筛选，支持精确到分钟的开始/结束时间；默认未设置时继续继承顶部“今日 / 近 7 日 / 自定义日期”统计周期，应用后仅影响请求记录和失败请求导出，不改变总览、趋势与接口分布。后端 `/api/monitor/records`、`/api/monitor/records/export` 新增可选 `requestStartTimeMs/requestEndTimeMs` 成对覆盖参数，旧调用不传新参数时保持原行为；新增 Controller 与前端契约单测覆盖默认兼容、范围覆盖、缺失单端、非法区间及导出透传。
 - `./bin/quick/qps-unit-test.sh` 与 `target/qps/openreach-qps-report.md` 全面中文化；Markdown 报告从“原始指标表”升级为“核心结论 / 测试范围与环境 / 各并发档结果 / 吞吐与延迟趋势 / 拐点容量信号 / 验收结果 / 指标说明 / 边界与下一步”的决策型性能报告；
 - QPS 报告自动计算总成功率、峰值 QPS/并发、峰值 P95/P99、相邻并发档 QPS/P95 变化、吞吐回落或收益趋缓信号，并结合 `MIN_PEAK_QPS` 给出明确通过/未通过结论；
 - `openreach-qps-report.csv` 继续保留原英文列名，确保已有脚本、Excel 和 CI 数据解析兼容；新增 `QpsReportRendererTest` 覆盖中文报告结构、峰值结论、失败判定和 CSV 兼容性。
 
+### Read 失败请求归因与调用规范增强（2026-08-18）
+
+- 复盘监控导出的 15 条 Read 失败：其中 10 条为调用方把 `172.16.114.23:8999` 内部附件/图片/日志 URL 交给公网 Read，确认属于调用方误用；SSRF 与 80/443 安全边界保持不变，不通过放开私网修复。
+- Skill `read()` 增加调用前 fail-fast：明显私网/localhost、非 80/443、图片/压缩包二进制 URL 在客户端直接返回 `READ_TARGET_*`，避免产生无意义的后端 400 失败记录；AgentHub HTTP 插件同步补充同一调用边界与降级规则。
+- `SafeHttpFetcher` 增加无 Cookie/无 Authorization 的浏览器导航兼容 Header；对 `408/425/500/502/503/504/520~524` 等幂等 GET 瞬时故障执行最多一次有界重试，`403/412/429` 等访问策略/限流状态不机械重试。
+- 新增结构化 `UpstreamHttpException`：对 Read 上游 HTTP 错误继续保持 `502 + code=UPSTREAM_ERROR` 兼容，同时返回 `failureType/upstreamStatus/retryable`，Agent 可直接判断“换来源”还是“瞬时故障”。
+- 新增对应 Java/Skill 回归测试；详细归因见 `docs/设计方案/v0.1.3-Read失败请求归因与调用规范优化.md`。
+
 ### Fixed
 
-- 修复 `bin/quick/qps-unit-test.sh` 在部分 macOS Bash/Locale/解压链路下出现 `MIN_PEAK_QPS�: unbound variable`：所有 QPS 环境变量引用统一改为 `${VAR}` 显式边界，`MIN_PEAK_QPS` 后的全角括号改为 ASCII 括号，并对 `bin/` 脚本执行 UTF-8 / BOM / 零宽字符 / replacement character 扫描；默认参数与自定义 `MIN_PEAK_QPS=123.45` 均完成 Shell 冒烟验证。
+- 修复 Nginx + Docker 部署下监控“IP 地址”长期显示 `172.17.0.1`：原实现默认关闭代理头解析，即使 Nginx 正确透传真实来源也只会记录 Docker Bridge；现默认启用代理头解析，但仅信任 `127.0.0.1/32`、`::1/128`、`172.16.0.0/12` 等显式可信代理来源，并从 `X-Forwarded-For` 右向左剥离可信代理节点后得到真实客户端 IP。新增 `OPENREACH_MONITOR_TRUSTED_PROXY_CIDRS` 配置、Compose/.env 示例、Nginx 标准透传配置及真实 IP / 伪造 XFF / 多级代理 / IPv6 回归测试；历史 SQLite 记录不回填，仅新请求生效。
+- 修复 `bin/quick/qps-unit-test.sh` 在部分 macOS Bash/Locale/解压链路下出现 `MIN_PEAK_QPS<乱码字符>: unbound variable`：所有 QPS 环境变量引用统一改为 `${VAR}` 显式边界，`MIN_PEAK_QPS` 后的全角括号改为 ASCII 括号，并对 `bin/` 脚本执行 UTF-8 / BOM / 零宽字符 / replacement character 扫描；默认参数与自定义 `MIN_PEAK_QPS=123.45` 均完成 Shell 冒烟验证。
 - 深度复盘 2026-08-17 导出的 23 条失败请求：Sogou/360 原始 HTTP 302 与百度 legacy `http://www.baidu.com/link?...` Read 521 确认为可修复的兼容缺口；Brave 429、Baidu/DDG bot challenge、目标站 403、TLS SAN mismatch 保持真实上游失败语义，不通过关闭 TLS、破解挑战页或盲目重试掩盖；
 - `SearchHttpClient` 新增受控 301/302/303/307/308 跟随、Provider 域名族 allowlist、重定向上限和 HTTPS 防降级；Sogou/360 增强 UTF-8/Referer，360 默认入口更新为 `https://www.so.com/index.php`；
 - `BaiduSearchProvider` 优先提取 `data-landurl/data-url/mu` 真实落地地址；百度 legacy HTTP `/link` wrapper 在 Search 输出和 Read 入口均安全升级为 HTTPS，并继续经过 SSRF Guard 校验；

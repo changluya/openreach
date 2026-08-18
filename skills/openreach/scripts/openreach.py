@@ -9,6 +9,7 @@ read-only: config existence + exactly one no-upstream API probe.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import os
 import sys
@@ -38,6 +39,64 @@ def _normalize_base_url(value: str) -> str:
     if not parsed.hostname:
         raise ValueError("Invalid OpenReach server address")
     return value
+
+
+
+
+def _validate_read_target(url: str) -> None:
+    """Fail fast for obvious caller-side misuse before creating a failed OpenReach request.
+
+    This deliberately performs no DNS lookup: the server remains the source of truth for
+    DNS rebinding/private-address protection. The Skill only catches literal/private and
+    non-Web targets that an Agent can recognize locally.
+    """
+    if not isinstance(url, str) or not url.strip():
+        raise OpenReachError("READ_TARGET_INVALID: url is required")
+    try:
+        parsed = urllib.parse.urlsplit(url.strip())
+    except ValueError as exc:
+        raise OpenReachError("READ_TARGET_INVALID: malformed URL") from exc
+    if parsed.scheme.lower() not in {"http", "https"}:
+        raise OpenReachError("READ_TARGET_INVALID: OpenReach read only accepts public HTTP/HTTPS web pages")
+    if not parsed.hostname:
+        raise OpenReachError("READ_TARGET_INVALID: URL host is required")
+    if parsed.username is not None or parsed.password is not None:
+        raise OpenReachError("READ_TARGET_INVALID: URLs containing user-info are not supported")
+
+    host = parsed.hostname.lower().rstrip(".")
+    if host == "localhost" or host.endswith((".localhost", ".local", ".internal")):
+        raise OpenReachError(
+            "READ_TARGET_PRIVATE: OpenReach read is for public web pages, not localhost/internal resources. "
+            "Use the caller's local file/image/resource capability instead."
+        )
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+    if literal is not None and not literal.is_global:
+        raise OpenReachError(
+            "READ_TARGET_PRIVATE: OpenReach read is for public web pages and rejects private/local/reserved IPs. "
+            "Do not send internal attachment/file URLs to read; use the caller's local file/image/resource capability instead."
+        )
+
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise OpenReachError("READ_TARGET_INVALID: invalid URL port") from exc
+    effective_port = port or (443 if parsed.scheme.lower() == "https" else 80)
+    if effective_port not in {80, 443}:
+        raise OpenReachError(
+            "READ_TARGET_PORT: OpenReach read only accepts public Web ports 80/443. "
+            "Non-standard service/attachment ports must be handled by the caller, not proxied through OpenReach."
+        )
+
+    lower_path = parsed.path.lower()
+    binary_suffixes = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico", ".avif", ".heic", ".zip", ".tar", ".gz", ".7z")
+    if lower_path.endswith(binary_suffixes):
+        raise OpenReachError(
+            "READ_TARGET_BINARY: OpenReach read extracts HTML/XHTML/plain-text pages and is not a binary/image downloader. "
+            "Use image-search or the caller's direct file/image capability for this URL."
+        )
 
 
 def build_base_url(host: str, port: int = 8080, https: bool = False) -> str:
@@ -112,7 +171,18 @@ class OpenReachClient:
                 detail = json.loads(raw)
                 message = detail.get("message") or raw
                 code = detail.get("code") or f"HTTP_{exc.code}"
-                raise OpenReachError(f"{code}: {message}") from exc
+                failure_type = detail.get("failureType")
+                upstream_status = detail.get("upstreamStatus")
+                retryable = detail.get("retryable")
+                context = []
+                if failure_type:
+                    context.append(f"failureType={failure_type}")
+                if upstream_status is not None:
+                    context.append(f"upstreamStatus={upstream_status}")
+                if retryable is not None:
+                    context.append(f"retryable={str(bool(retryable)).lower()}")
+                suffix = f" ({', '.join(context)})" if context else ""
+                raise OpenReachError(f"{code}: {message}{suffix}") from exc
             except json.JSONDecodeError:
                 raise OpenReachError(f"HTTP {exc.code}: {raw or exc.reason}") from exc
         except urllib.error.URLError as exc:
@@ -129,7 +199,7 @@ class OpenReachClient:
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "User-Agent": "openreach-skill/0.1.2",
+                "User-Agent": "openreach-skill/0.1.3",
             },
         )
         return self._request_json(request)
@@ -137,14 +207,14 @@ class OpenReachClient:
     def health(self) -> dict[str, Any]:
         """Check service reachability through the public static homepage.
 
-        OpenReach v0.1.2 intentionally exposes only three JSON APIs; no separate
+        OpenReach v0.1.3 intentionally exposes only three JSON APIs; no separate
         health/debug API is public. A successful GET / is therefore the zero-upstream
         connectivity check used by the Skill.
         """
         request = urllib.request.Request(
             f"{self.base_url}/",
             method="GET",
-            headers={"Accept": "text/html", "User-Agent": "openreach-skill/0.1.2"},
+            headers={"Accept": "text/html", "User-Agent": "openreach-skill/0.1.3"},
         )
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
@@ -168,6 +238,7 @@ class OpenReachClient:
         return self._post("/api/web/image-search", {"query": query, "limit": limit, "region": region, "provider": provider})
 
     def read(self, url: str, *, max_chars: int = 50000) -> dict[str, Any]:
+        _validate_read_target(url)
         return self._post("/api/web/read", {"url": url, "maxChars": max_chars})
 
 
@@ -244,7 +315,7 @@ def check_initialized(config_path: Path | None = None, timeout: float = DEFAULT_
         headers={
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "User-Agent": "openreach-skill/0.1.2",
+            "User-Agent": "openreach-skill/0.1.3",
         },
     )
     try:

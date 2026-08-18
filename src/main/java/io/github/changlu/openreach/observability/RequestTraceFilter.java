@@ -187,22 +187,12 @@ public class RequestTraceFilter extends OncePerRequestFilter {
     }
 
     private String clientIp(HttpServletRequest request) {
-        if (properties.getMonitor().isTrustProxyHeaders()) {
-            String forwarded = request.getHeader("X-Forwarded-For");
-            if (forwarded != null && !forwarded.isBlank()) {
-                int comma = forwarded.indexOf(',');
-                return cleanIp(comma >= 0 ? forwarded.substring(0, comma) : forwarded);
-            }
-            String realIp = request.getHeader("X-Real-IP");
-            if (realIp != null && !realIp.isBlank()) return cleanIp(realIp);
-        }
-        return cleanIp(request.getRemoteAddr());
-    }
-
-    private String cleanIp(String value) {
-        if (value == null) return "-";
-        String cleaned = value.replaceAll("[\\r\\n\\t]", "").trim();
-        return cleaned.length() <= 64 ? cleaned : cleaned.substring(0, 64);
+        return ClientIpResolver.resolve(
+                request.getRemoteAddr(),
+                request.getHeader("X-Forwarded-For"),
+                request.getHeader("X-Real-IP"),
+                properties.getMonitor().isTrustProxyHeaders(),
+                properties.getMonitor().getTrustedProxyCidrs());
     }
 
     @Override

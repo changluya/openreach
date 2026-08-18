@@ -278,11 +278,42 @@ read:
 避免下载大型二进制文件
 ```
 
-对于 `HTTP connect timed out`、连接重置等幂等 GET 网络 IO，默认允许 **1 次有界重试（总 2 次）**；`403/404/429/5xx` 等已经收到 HTTP 响应的场景不自动盲目重试，避免扩大上游压力。每次尝试都会在 upstream 日志记录 `attempt/maxAttempts`。
+对于 `HTTP connect timed out`、连接重置等幂等 GET 网络 IO，默认允许 **1 次有界重试（总 2 次）**。对明确属于瞬时网关/源站故障的 `408/425/500/502/503/504/520~524`，同样复用 `max-attempts` 做有界 GET 重试；`401/403/412/429` 不自动重试，避免把访问控制、前置条件或限流误当成瞬时故障。每次尝试都会在 upstream 日志记录 `attempt/maxAttempts`。
 
 ---
 
-## 8. 正文提取为什么使用“候选评分”
+## 8. 失败语义与调用方边界（v0.1.3 增强）
+
+Read 当前明确区分三类失败：
+
+```text
+调用方目标错误
+  -> 私网 / localhost / 非 80/443 / 二进制附件
+  -> 400 BAD_REQUEST（Skill 会先本地 fail-fast）
+
+目标站访问策略
+  -> 403 / 412 等
+  -> 502 UPSTREAM_ERROR
+  -> failureType=HTTP_403/HTTP_412
+  -> upstreamStatus=403/412
+  -> retryable=false
+
+瞬时上游故障
+  -> 500/502/503/504/520~524 等
+  -> GET 有界重试后仍失败
+  -> 502 UPSTREAM_ERROR + retryable=true
+```
+
+核心原则：
+
+1. **不要通过放开 SSRF 去兼容内网附件 URL**。OpenReach Read 是公网网页读取器，不是内部 HTTP 代理。
+2. **403/412 不对同一 URL 机械重试**。Agent 应换公开来源，或退回 Search 结果并明确正文未成功读取。
+3. **521 等 5xx 只做服务端有界重试**，避免 Agent 与服务端叠加重试形成请求风暴。
+4. Read GET 增加无 Cookie/无 Authorization 的浏览器导航兼容 Header，用于提高普通公开网页兼容性，但不绕过登录、验证码、Cookie 会话或 WAF 挑战。
+
+---
+
+## 9. 正文提取为什么使用“候选评分”
 
 早期最简单策略：
 
@@ -339,7 +370,7 @@ article > main > body
 
 ---
 
-## 9. HTML 清洗边界
+## 10. HTML 清洗边界
 
 正文提取前会去除典型噪音：
 
@@ -379,7 +410,7 @@ JS 组件状态
 
 ---
 
-## 10. Charset 处理
+## 11. Charset 处理
 
 国内网页仍可能出现：
 
@@ -403,7 +434,7 @@ HTML meta charset
 
 ---
 
-## 11. 当前 Read 的核心输出为什么包含 Links
+## 12. 当前 Read 的核心输出为什么包含 Links
 
 除了正文外，当前还返回部分页面链接。
 
@@ -429,7 +460,7 @@ read 不会自动无限跟踪所有 links
 
 ---
 
-## 12. 当前不支持的网页类型
+## 13. 当前不支持的网页类型
 
 ### JS-only / SPA
 
@@ -472,7 +503,7 @@ V1 不做登录 Session、账号池或 Cookie farming。
 
 ---
 
-## 13. 后续 Reader Router 设计
+## 14. 后续 Reader Router 设计
 
 当前：
 
@@ -515,7 +546,7 @@ Agent 的 `read(url)` 接口保持不变。
 
 ---
 
-## 14. Read Quality Gate 建议
+## 15. Read Quality Gate 建议
 
 未来增加 Playwright 时，不建议所有请求直接启动浏览器。
 
@@ -542,7 +573,7 @@ script 比例
 
 ---
 
-## 15. V1 验收关注点
+## 16. V1 验收关注点
 
 Read 测试必须覆盖：
 
@@ -577,6 +608,6 @@ mvn clean test
 
 ---
 
-## 16. 一句话总结
+## 17. 一句话总结
 
 > **Read 是安全网页读取层：V1 用 `SafeHttpFetcher + UrlSafetyGuard + Jsoup + 正文候选评分` 把指定公网 URL 转换为 Agent 可消费内容；未来 Playwright、PDF、Firecrawl 等都应通过 `PageReader/ReaderRouter` 扩展，而不改变 Agent 的 `read(url)` 契约。**

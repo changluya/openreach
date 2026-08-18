@@ -15,6 +15,7 @@
     records: [],
     total: 0,
     totalPages: 0,
+    requestRange: null,
     exportingFailures: false
   };
 
@@ -37,6 +38,12 @@
     keyword: document.getElementById('keyword-filter'),
     status: document.getElementById('status-filter'),
     endpoint: document.getElementById('endpoint-filter'),
+    requestTimeStart: document.getElementById('request-time-start'),
+    requestTimeEnd: document.getElementById('request-time-end'),
+    requestTimeApply: document.getElementById('request-time-apply'),
+    requestTimeClear: document.getElementById('request-time-clear'),
+    requestTimeHint: document.getElementById('request-time-hint'),
+    requestTimeError: document.getElementById('request-time-error'),
     reset: document.getElementById('reset-filters'),
     exportFailure: document.getElementById('export-failure-records'),
     failureCard: document.getElementById('failure-card'),
@@ -71,6 +78,14 @@
   function startOfDay(date) { const value = new Date(date); value.setHours(0, 0, 0, 0); return value; }
   function endOfDay(date) { const value = new Date(date); value.setHours(23, 59, 59, 999); return value; }
   function parseDateInput(value) { if (!value) return null; const parts = value.split('-').map(Number); if (parts.length !== 3 || parts.some(Number.isNaN)) return null; return new Date(parts[0], parts[1] - 1, parts[2]); }
+  function parseDateTimeLocal(value) {
+    if (!value) return null;
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (!match) return null;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]), Number(match[6] || 0), 0);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  function formatDateTimeLocal(date) { return `${dateKey(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}`; }
   function formatRangeLabel(start, end) { return `${dateKey(start)} ~ ${dateKey(end)}`; }
   function escapeHtml(value) { return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;'); }
   function preview(value, maxLength = 70) { const text = String(value ?? ''); return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text; }
@@ -103,6 +118,15 @@
   function apiParams(extra = {}) {
     const { start, end } = boundsForPeriod(state.activePeriod);
     return { startTimeMs: start.getTime(), endTimeMs: end.getTime(), ...extra };
+  }
+
+  function recordApiParams(extra = {}) {
+    const params = apiParams(extra);
+    if (state.requestRange) {
+      params.requestStartTimeMs = state.requestRange.startTimeMs;
+      params.requestEndTimeMs = state.requestRange.endTimeMs;
+    }
+    return params;
   }
 
   function buildApiUrl(path, params = {}) {
@@ -228,7 +252,7 @@
     syncFailureExportButton();
     clearError();
     try {
-      const url = buildApiUrl('/api/monitor/records/export', apiParams({
+      const url = buildApiUrl('/api/monitor/records/export', recordApiParams({
         status: 'failure',
         endpoint: els.endpoint.value,
         keyword: els.keyword.value.trim()
@@ -340,7 +364,7 @@
   }
 
   async function refreshRecords() {
-    const page = await apiGet('/api/monitor/records', apiParams({
+    const page = await apiGet('/api/monitor/records', recordApiParams({
       page: state.page,
       pageSize: state.pageSize,
       status: els.status.value,
@@ -396,10 +420,70 @@
     els.dateRangeValue.textContent = formatRangeLabel(start, end); setQuickPeriodState('custom'); closeRangePicker(); refreshAll();
   }
 
+  function refreshRequestTimeMax() {
+    const max = formatDateTimeLocal(new Date());
+    els.requestTimeStart.max = max;
+    els.requestTimeEnd.max = max;
+  }
+
+  function syncRequestTimeFilter() {
+    if (!state.requestRange) {
+      els.requestTimeHint.textContent = '未单独设置时，请求记录时间默认跟随顶部统计周期。';
+      els.requestTimeClear.disabled = true;
+      return;
+    }
+    const start = new Date(state.requestRange.startTimeMs);
+    const end = new Date(state.requestRange.endTimeMs);
+    els.requestTimeHint.textContent = `已独立筛选：${formatDateTime(start)} ~ ${formatDateTime(end)}`;
+    els.requestTimeClear.disabled = false;
+  }
+
+  function applyRequestTimeRange() {
+    refreshRequestTimeMax();
+    const start = parseDateTimeLocal(els.requestTimeStart.value);
+    const end = parseDateTimeLocal(els.requestTimeEnd.value);
+    const now = new Date();
+    let message = '';
+    if (!start || !end) message = '请选择完整的请求开始时间和结束时间。';
+    else if (start > end) message = '请求开始时间不能晚于结束时间。';
+    else if (end > now) message = '请求结束时间不能晚于当前时间。';
+    else if (end.getTime() - start.getTime() > 366 * 86400000) message = '单次请求时间筛选不能超过 366 天。';
+    if (message) {
+      els.requestTimeError.textContent = message;
+      els.requestTimeError.hidden = false;
+      return;
+    }
+    state.requestRange = { startTimeMs: start.getTime(), endTimeMs: end.getTime() };
+    state.page = 1;
+    els.requestTimeError.hidden = true;
+    syncRequestTimeFilter();
+    refreshRecords().catch(showError);
+  }
+
+  function clearRequestTimeRange(refresh = true) {
+    state.requestRange = null;
+    state.page = 1;
+    els.requestTimeStart.value = '';
+    els.requestTimeEnd.value = '';
+    els.requestTimeError.hidden = true;
+    syncRequestTimeFilter();
+    if (refresh) refreshRecords().catch(showError);
+  }
+
   let keywordTimer;
   els.keyword.addEventListener('input', () => { clearTimeout(keywordTimer); keywordTimer = setTimeout(() => { state.page = 1; refreshRecords().catch(showError); }, 300); });
   [els.status, els.endpoint].forEach(control => control.addEventListener('change', () => { state.page = 1; refreshRecords().catch(showError); }));
-  els.reset.addEventListener('click', () => { els.keyword.value = ''; els.status.value = 'all'; els.endpoint.value = 'all'; state.page = 1; refreshRecords().catch(showError); });
+  els.requestTimeApply.addEventListener('click', applyRequestTimeRange);
+  [els.requestTimeStart, els.requestTimeEnd].forEach(control => control.addEventListener('focus', refreshRequestTimeMax));
+  els.requestTimeClear.addEventListener('click', () => clearRequestTimeRange(true));
+  els.reset.addEventListener('click', () => {
+    els.keyword.value = '';
+    els.status.value = 'all';
+    els.endpoint.value = 'all';
+    clearRequestTimeRange(false);
+    state.page = 1;
+    refreshRecords().catch(showError);
+  });
   els.exportFailure.addEventListener('click', exportFailureRecords);
   els.failureCard.addEventListener('click', () => { els.status.value = 'failure'; state.page = 1; refreshRecords().then(() => document.getElementById('request-records').scrollIntoView({ behavior: 'smooth', block: 'start' })).catch(showError); });
   els.pagePrev.addEventListener('click', () => { if (state.page > 1) { state.page -= 1; refreshRecords().catch(showError); } });
@@ -416,6 +500,8 @@
 
   const initialBounds = boundsForPeriod('7d');
   els.dateRangeValue.textContent = formatRangeLabel(initialBounds.start, initialBounds.end);
+  refreshRequestTimeMax();
+  syncRequestTimeFilter();
   refreshStatus().catch(showError);
   refreshAll();
 })();

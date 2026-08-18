@@ -54,10 +54,13 @@
       <ul>
         <li><strong>监控总览：</strong>支持调用次数、成功/失败、独立 IP、平均耗时、P95、趋势和接口分布。</li>
         <li><strong>请求明细：</strong>记录请求时间、客户端 IP、接口、输入/输出、HTTP 状态、耗时、Trace ID、Provider 与错误信息。</li>
+        <li><strong>请求时间筛选：</strong>请求记录支持独立的开始/结束时间筛选（精确到分钟）；未设置时继承顶部统计周期，设置后仅影响明细列表与失败日志导出，后端新增兼容式 <code>requestStartTimeMs/requestEndTimeMs</code> 可选参数。</li>
         <li><strong>失败诊断：</strong>点击失败指标自动筛选失败记录；服务端按当前筛选条件流式生成 UTF-8 详细日志文件。</li>
         <li><strong>中文编码：</strong>修复 JSON 响应在监控采集时被 Servlet 默认 ISO-8859-1 错误解码的问题，并通过 V2 Migration 修复可安全识别的历史乱码 Payload。</li>
         <li><strong>容器升级：</strong><code>/app/data</code> 作为稳定持久化目录，容器可销毁重建；Compose init 容器负责处理 Host Bind 的运行用户权限。</li>
         <li><strong>登录配置：</strong>内部监控登录凭据支持通过 Docker 环境变量覆盖，首次部署与升级重建均可重新指定。</li>
+        <li><strong>Read 失败治理：</strong>基于真实失败日志区分调用方误用与公网目标站拒绝；Skill/AgentHub 插件在调用前拦截私网附件、非 80/443 与明显图片二进制 URL。Read 对 408/425/500/502/503/504/520–524 做配置范围内有界重试，对 403/412 等明确拒绝不机械重试。</li>
+        <li><strong>Read 错误语义：</strong>新增 <code>failureType/upstreamStatus/retryable</code> 结构化字段，同时保留 502 + <code>UPSTREAM_ERROR</code> 兼容；请求兼容性头不携带 Cookie/Authorization，不绕过登录、验证码或 WAF。</li>
         <li><strong>兼容性：</strong>三个公开 Web API 路径与主要协议保持不变，监控存储异常不会阻断核心 API。</li>
       </ul>
     </section>

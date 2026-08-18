@@ -586,6 +586,7 @@ openreach/
 - [v0.1.2 请求异常诊断与日志可观测优化方案](docs/设计方案/v0.1.2请求异常诊断与日志可观测优化方案.md)
 - [v0.1.2 并发 QPS 压测与容量评估方案](docs/设计方案/v0.1.2并发QPS压测与容量评估方案.md)
 - [v0.1.2 连接失败与 Tool Runner 网络诊断方案](docs/设计方案/v0.1.2连接失败与ToolRunner网络诊断方案.md)
+- [v0.1.3 Read 失败请求归因与调用规范优化](docs/设计方案/v0.1.3-Read失败请求归因与调用规范优化.md)
 - [接口测试与 Curl 示例](docs/接口测试与Curl示例.md)
 
 ### 部署与发布
@@ -648,6 +649,28 @@ v0.1.2
 启动后直接访问：`http://localhost:8080/monitor`。默认用户名 / 密码均为 `openreach`。生产环境建议通过 `OPENREACH_MONITOR_USERNAME`、`OPENREACH_MONITOR_PASSWORD` 覆盖默认凭据。 监控总览支持“今日 / 近 7 日 / 自定义日期范围”，选择自定义范围后总览、趋势、接口分布与请求明细会同步切换统计区间。点击“调用失败”会自动筛选失败请求，并在请求记录右侧提供“导出失败请求”，按当前日期 / Endpoint / Keyword 条件调用后端导出接口，下载全部匹配失败请求的 UTF-8 `.log` 诊断日志（含完整入参和返回值）。
 
 > v0.1.3 已接入真实请求采集与 SQLite + WAL 持久化。`/app/data` 是稳定持久化契约，宿主机推荐映射 `/data/openreach/data`；删除并重建容器时只要继续挂载同一 data 目录，请求监控历史会继续保留。完整 Schema、Migration 与未来 MySQL / PostgreSQL 演进见 `docs/设计方案/v0.1.3设计方案文档.md`。
+
+#### Nginx / Docker 后获取真实调用 IP
+
+如果 OpenReach 前面有 Nginx，应用直接看到的 TCP 来源通常是 Docker 网桥（例如 `172.17.0.1`），因此 Nginx 必须覆盖并透传真实来源头：
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+OpenReach 默认开启 `OPENREACH_MONITOR_TRUST_PROXY_HEADERS=true`，但**只在直连来源属于可信代理网段时**解析 `X-Forwarded-For/X-Real-IP`。默认可信代理为 `127.0.0.1/32,::1/128,172.16.0.0/12`，覆盖宿主机 Nginx 与常见 Docker Bridge 场景；公网客户端直连时伪造这些 Header 不会生效。自定义代理网络时可设置：
+
+```bash
+OPENREACH_MONITOR_TRUSTED_PROXY_CIDRS='127.0.0.1/32,::1/128,172.16.0.0/12,10.10.0.0/16'
+```
+
+解析采用**从右向左剥离可信代理**的方式，不再简单相信 `X-Forwarded-For` 最左值。升级后只影响新产生的监控记录，SQLite 中已经记录为 `172.17.0.1` 的历史数据不会自动改写。
 
 ```bash
 OPENREACH_MONITOR_USERNAME=admin \

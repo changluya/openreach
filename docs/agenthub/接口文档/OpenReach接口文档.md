@@ -234,7 +234,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/image-search' \
 
 | 字段 | 类型 | 必填 | 默认值 | 校验约束 | 说明 |
 |---|---|---|---|---|---|
-| `url` | string | 是 | - | `@NotBlank` `@Size(max=2048)` | 需要读取的公网 HTTP/HTTPS 网页地址，最长 2048 字符 |
+| `url` | string | 是 | - | `@NotBlank` `@Size(max=2048)` | 需要读取的公网 HTTP/HTTPS **文本网页**地址，最长 2048 字符；禁止私网/localhost/内部附件 URL、非 80/443 与图片/压缩包等二进制 URL |
 | `maxChars` / `max_chars` | int | 否 | `50000` | `@Min(1000)` `@Max(200000)` | 两种字段名等价；最多返回的正文字符数；未传使用服务端配置 `read.max-chars`（默认 50000） |
 
 ### 5.2 响应字段
@@ -269,6 +269,8 @@ curl -sS -X POST 'http://localhost:8080/api/web/image-search' \
 - **重定向校验**：每个重定向目标都会重新经过 SSRF 校验，最多跟随 `read.max-redirects`（默认 5）次。
 - **响应体大小限制**：响应体超过 `read.max-bytes`（默认 5 MiB）返回 `400 BAD_REQUEST`。
 - **正文提取**：基于 Jsoup 移除 `script/style/nav/footer/header/aside/form/广告与弹窗` 等噪音节点，对 `article/main/#content/.content` 等候选根节点评分，取最优区域输出可读文本；文本长于 `maxChars` 时截断并置 `truncated=true`。
+- **浏览器兼容 Header**：Read GET 会携带无 Cookie、无 Authorization 的浏览器导航兼容 Header，提升普通公开站点兼容性；不会模拟登录态或绕过验证码/WAF。
+- **有界重试**：网络 I/O 与 `408/425/500/502/503/504/520~524` 等瞬时故障最多按 `read.max-attempts` 尝试；`401/403/412/429` 不自动重试。
 
 ### 5.4 示例
 
@@ -347,6 +349,21 @@ Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `time
 | `415` | `UPLOAD_DISABLED` | 请求使用 `multipart/*`，文件上传被明确关闭 |
 | `415` | `UNSUPPORTED_MEDIA_TYPE` | 三个 API 未使用 `application/json` / `application/*+json` |
 | `502` | `UPSTREAM_ERROR` | 上游全部渠道失败 / 指定渠道无结果 / 无可下载图片 / 读取网页失败 / 重定向过多 / 上游非 2xx |
+
+Read 遇到明确的上游 HTTP 状态时，会在保持 `code=UPSTREAM_ERROR` 兼容的前提下增加：`failureType`、`upstreamStatus`、`retryable`。例如目标站返回 412：
+
+```json
+{
+  "status": 502,
+  "code": "UPSTREAM_ERROR",
+  "message": "Upstream returned HTTP 412",
+  "failureType": "HTTP_412",
+  "upstreamStatus": 412,
+  "retryable": false
+}
+```
+
+调用方约定：`HTTP_403/HTTP_412 + retryable=false` 不应重试同一 URL，应切换公开来源；`HTTP_521` 等瞬时 5xx 由 OpenReach 先做有界 GET 重试。
 | `500` | `INTERNAL_ERROR` | 未预期的服务端异常；客户端只收到固定安全消息，不回显内部堆栈 |
 
 ---
@@ -419,8 +436,8 @@ Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `time
 | `openreach.web.read.timeout-ms` | `10000` | 旧配置兼容的 Read 超时 fallback |
 | `openreach.web.read.connect-timeout-ms` | `7000` | Read TCP/TLS 建连超时；未配置时回退 `timeout-ms` |
 | `openreach.web.read.request-timeout-ms` | `15000` | Read 单次 GET 请求总超时；未配置时回退 `timeout-ms` |
-| `openreach.web.read.max-attempts` | `2` | 网络 IO/连接超时最大尝试次数；HTTP 状态错误不盲目重试 |
-| `openreach.web.read.retry-backoff-ms` | `200` | Read 网络 IO 重试间隔 |
+| `openreach.web.read.max-attempts` | `2` | 网络 IO/连接超时及瞬时 `408/425/500/502/503/504/520~524` 的最大 GET 尝试次数；403/412/429 不重试 |
+| `openreach.web.read.retry-backoff-ms` | `200` | Read 网络 IO / 瞬时 HTTP 状态重试间隔 |
 | `openreach.web.read.max-bytes` | `5242880` | Read 响应体上限（5 MiB） |
 | `openreach.web.read.max-chars` | `50000` | 正文字数上限 |
 | `openreach.web.read.max-redirects` | `5` | 最大重定向次数 |

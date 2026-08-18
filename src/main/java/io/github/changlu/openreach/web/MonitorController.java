@@ -85,12 +85,16 @@ public class MonitorController {
     public MonitorRecordPage records(
             @RequestParam long startTimeMs,
             @RequestParam long endTimeMs,
+            @RequestParam(name = "requestStartTimeMs", required = false) Long requestStartTimeMs,
+            @RequestParam(name = "requestEndTimeMs", required = false) Long requestEndTimeMs,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize,
             @RequestParam(defaultValue = "all") String status,
             @RequestParam(defaultValue = "all") String endpoint,
             @RequestParam(defaultValue = "") String keyword) {
-        return monitorService.records(recordQuery(startTimeMs, endTimeMs, page, pageSize, status, endpoint, keyword));
+        return monitorService.records(recordQuery(
+                startTimeMs, endTimeMs, requestStartTimeMs, requestEndTimeMs,
+                page, pageSize, status, endpoint, keyword));
     }
 
     /**
@@ -101,13 +105,17 @@ public class MonitorController {
     public ResponseEntity<StreamingResponseBody> exportRecords(
             @RequestParam long startTimeMs,
             @RequestParam long endTimeMs,
+            @RequestParam(name = "requestStartTimeMs", required = false) Long requestStartTimeMs,
+            @RequestParam(name = "requestEndTimeMs", required = false) Long requestEndTimeMs,
             @RequestParam(defaultValue = "failure") String status,
             @RequestParam(defaultValue = "all") String endpoint,
             @RequestParam(defaultValue = "") String keyword) {
         if (!"failure".equals(status)) {
             throw new BadRequestException("failure export only supports status=failure");
         }
-        MonitorRecordQuery query = recordQuery(startTimeMs, endTimeMs, 1, 1, status, endpoint, keyword);
+        MonitorRecordQuery query = recordQuery(
+                startTimeMs, endTimeMs, requestStartTimeMs, requestEndTimeMs,
+                1, 1, status, endpoint, keyword);
         long total = monitorService.records(query).total();
         String filename = "openreach-failed-requests-" + EXPORT_TIME.format(Instant.now()) + ".log";
         Instant exportedAt = Instant.now();
@@ -197,9 +205,20 @@ public class MonitorController {
         return value.replace('\r', ' ').replace('\n', ' ');
     }
 
-    private MonitorRecordQuery recordQuery(long startTimeMs, long endTimeMs, int page, int pageSize,
-                                           String status, String endpoint, String keyword) {
+    private MonitorRecordQuery recordQuery(long startTimeMs, long endTimeMs,
+                                           Long requestStartTimeMs, Long requestEndTimeMs,
+                                           int page, int pageSize, String status, String endpoint, String keyword) {
         validateRange(startTimeMs, endTimeMs);
+        long effectiveStartTimeMs = startTimeMs;
+        long effectiveEndTimeMs = endTimeMs;
+        if (requestStartTimeMs != null || requestEndTimeMs != null) {
+            if (requestStartTimeMs == null || requestEndTimeMs == null) {
+                throw new BadRequestException("requestStartTimeMs and requestEndTimeMs must be provided together");
+            }
+            validateRange(requestStartTimeMs, requestEndTimeMs);
+            effectiveStartTimeMs = requestStartTimeMs;
+            effectiveEndTimeMs = requestEndTimeMs;
+        }
         if (page < 1) throw new BadRequestException("page must be >= 1");
         if (pageSize < 1 || pageSize > 100) throw new BadRequestException("pageSize must be between 1 and 100");
         if (!Set.of("all", "success", "failure").contains(status)) {
@@ -210,7 +229,7 @@ public class MonitorController {
         }
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
         if (normalizedKeyword.length() > 200) throw new BadRequestException("keyword is too long");
-        return new MonitorRecordQuery(startTimeMs, endTimeMs, page, pageSize, status, endpoint, normalizedKeyword);
+        return new MonitorRecordQuery(effectiveStartTimeMs, effectiveEndTimeMs, page, pageSize, status, endpoint, normalizedKeyword);
     }
 
     private void validateRange(long startTimeMs, long endTimeMs) {

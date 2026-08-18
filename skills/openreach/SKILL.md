@@ -123,6 +123,18 @@ python3 scripts/openreach.py read \
   --max-chars 20000
 ```
 
+`read` **只用于公开 Web 页面正文**（公网 HTTP/HTTPS 80/443，HTML/XHTML/plain text）。调用前先判断 URL 类型：
+
+```text
+公开网页 https://example.com/article       -> 可以 read
+172.16/10/192.168/localhost/.internal      -> 禁止 read
+http://host:8999/...                       -> 禁止 read
+.../image.png / photo.jpg / archive.zip    -> 禁止 read
+AgentHub/沙箱内部附件 URL                   -> 禁止 read
+```
+
+如果 URL 是当前 Agent/Tool Runner 自己的附件、图片、日志或内部服务资源，**使用调用方已有的文件/图片/资源读取能力**，不要把内部 URL 交给 OpenReach 当代理。Skill 客户端会对明显的私网 IP、非 80/443 和二进制图片 URL 本地 fail-fast，避免制造无意义的 400 失败请求；服务端仍保留完整 SSRF/DNS/Redirect 二次校验。
+
 ## 5. Python Tool 调用
 
 ```python
@@ -255,10 +267,14 @@ Citation
 
 - 免费 Search Provider 属于 best-effort，上游页面改版、限流或网络出口都可能影响结果。
 - `read` 面向公开 HTTP/HTTPS 页面，不用于绕过登录、验证码、访问控制或反爬机制。
+- **不要把私网/localhost/非 80/443、AgentHub/沙箱内部附件 URL、图片/压缩包二进制 URL 传给 `read`**；这是调用方使用错误，不应通过放宽 SSRF 修复。
 - 服务公网只开放三个 JSON POST API 与官网只读静态资源；Skill 不应尝试文件上传、任意 Method、Actuator/debug 等未暴露能力。
 - Read 与图片原图探测只允许公网 HTTP/HTTPS 80/443，并对跳转目标重新做 SSRF 校验。
-- CLI 错误时退出码为 `2`，Agent 应把它视为 Tool 执行失败并进行降级/重试/换 Query，而不是伪造结果。
-
+- `502 UPSTREAM_ERROR` 如果返回 `failureType/upstreamStatus/retryable`：
+  - `HTTP_403 / HTTP_412` 且 `retryable=false`：目标站拒绝当前公开 HTTP 读取，**不要对同一 URL 机械重试**；优先换一手公开来源，其次回退 Search snippet 并明确未成功读取正文。
+  - `HTTP_500/502/503/504/520~524` 等瞬时故障：OpenReach 服务端会按 `max-attempts` 做有界 GET 重试；仍失败后再切换来源。
+  - `All connection attempts failed` 且没有 OpenReach `traceId`：请求根本没到 OpenReach，排查 BASE_URL/容器网络，不要换 query 或 URL。
+- CLI 错误时退出码为 `2`，Agent 应按错误类型降级，而不是伪造结果。
 
 ## 连接失败快速判断
 

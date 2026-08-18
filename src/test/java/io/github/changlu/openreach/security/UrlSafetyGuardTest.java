@@ -4,6 +4,7 @@ import io.github.changlu.openreach.common.BadRequestException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class UrlSafetyGuardTest {
     private final UrlSafetyGuard guard = new UrlSafetyGuard();
@@ -20,6 +21,13 @@ class UrlSafetyGuardTest {
         assertThrows(BadRequestException.class, () -> guard.validate("http://10.0.0.1/test"));
         assertThrows(BadRequestException.class, () -> guard.validate("http://192.168.1.10/test"));
         assertThrows(BadRequestException.class, () -> guard.validate("http://172.16.1.10/test"));
+    }
+
+
+    @Test void privateAttachmentUrlReportsPrivateTargetInsteadOfOnlyPortError() {
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> guard.validate("http://172.16.114.23:8999/images/chat/example.png"));
+        assertTrue(ex.getMessage().contains("Private/local/reserved"));
     }
 
     @Test void rejectsCloudMetadataLinkLocal() {

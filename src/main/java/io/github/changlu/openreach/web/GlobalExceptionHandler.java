@@ -2,6 +2,7 @@ package io.github.changlu.openreach.web;
 
 import io.github.changlu.openreach.common.BadRequestException;
 import io.github.changlu.openreach.common.UpstreamException;
+import io.github.changlu.openreach.common.UpstreamHttpException;
 import io.github.changlu.openreach.observability.TraceContext;
 import io.github.changlu.openreach.monitor.MonitorStorageUnavailableException;
 import io.github.changlu.openreach.observability.UpstreamFailureClassifier;
@@ -48,9 +49,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UpstreamException.class)
     public ResponseEntity<Map<String, Object>> upstream(UpstreamException ex) {
+        String failureType = UpstreamFailureClassifier.classify(ex);
         apiLog.error("[OPENREACH-API] request_failed code=UPSTREAM_ERROR type={} message={}",
-                UpstreamFailureClassifier.classify(ex), safeClientMessage(ex.getMessage(), "Upstream request failed"));
-        return response(HttpStatus.BAD_GATEWAY, "UPSTREAM_ERROR", safeClientMessage(ex.getMessage(), "Upstream request failed"));
+                failureType, safeClientMessage(ex.getMessage(), "Upstream request failed"));
+        Map<String, Object> extra = new LinkedHashMap<>();
+        extra.put("failureType", failureType);
+        if (ex instanceof UpstreamHttpException http) {
+            extra.put("upstreamStatus", http.getStatusCode());
+            extra.put("retryable", http.isRetryable());
+        }
+        return response(HttpStatus.BAD_GATEWAY, "UPSTREAM_ERROR",
+                safeClientMessage(ex.getMessage(), "Upstream request failed"), extra);
     }
 
     @ExceptionHandler(MonitorStorageUnavailableException.class)
@@ -78,12 +87,18 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<Map<String, Object>> response(HttpStatus status, String code, String message) {
+        return response(status, code, message, Map.of());
+    }
+
+    private ResponseEntity<Map<String, Object>> response(HttpStatus status, String code, String message,
+                                                          Map<String, Object> extra) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());
         body.put("status", status.value());
         body.put("code", code);
         body.put("traceId", TraceContext.traceId());
         body.put("message", message == null ? status.getReasonPhrase() : message);
+        if (extra != null && !extra.isEmpty()) body.putAll(extra);
         return ResponseEntity.status(status).body(body);
     }
 }

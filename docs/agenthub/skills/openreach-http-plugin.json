@@ -7,12 +7,12 @@
     "baseUrl": "{{BASE_URL}}",
     "staticHeaders": "{\"Content-Type\":\"application/json\",\"Accept\":\"application/json\"}",
     "maskConfig": "[{\"sourceType\":2,\"key\":\"baseUrl\",\"exportValue\":\"{{BASE_URL}}\"}]",
-    "description": "OpenReach v0.1.2 为 Agent 提供 Web Search、可下载图片搜索与网页读取。region 驱动 CN/GLOBAL 免费 Provider Chain；Search 支持 timeRange；默认无需 API Key。",
-    "installConfig": "{\"installDesc\":\"导入时必须显式配置 BASE_URL，并确保该地址能从 AgentHub/Tool Runner 所在运行环境访问 OpenReach。不要默认使用 localhost：当 Tool Runner 位于容器或沙箱时，localhost 指向 Tool Runner 自身而不是 OpenReach。无需 API Key。\",\"installVersion\":\"v0.1.2\"}",
+    "description": "OpenReach v0.1.3 为 Agent 提供 Web Search、可下载图片搜索与公开网页读取。region 驱动 CN/GLOBAL 免费 Provider Chain；Search 支持 timeRange；默认无需 API Key。Read 仅面向公网 80/443 的 HTML/XHTML/plain-text 页面，不作为内网/附件代理。",
+    "installConfig": "{\"installDesc\":\"导入时必须显式配置 BASE_URL，并确保该地址能从 AgentHub/Tool Runner 所在运行环境访问 OpenReach。不要默认使用 localhost：当 Tool Runner 位于容器或沙箱时，localhost 指向 Tool Runner 自身而不是 OpenReach。无需 API Key。\",\"installVersion\":\"v0.1.3\"}",
     "methods": [
       {
         "methodName": "searchWeb",
-        "methodDescription": "搜索互联网网页并返回标题、URL、摘要、排名和来源。支持 timeRange=any/day/week/month/year；provider=auto 时只选择真正支持该时间过滤的零 Key Provider，避免静默忽略。若工具层返回 All connection attempts failed 且没有 OpenReach traceId，说明调用方未连接到 OpenReach，应停止重复搜索并先检查 BASE_URL/容器网络。",
+        "methodDescription": "搜索互联网网页并返回标题、URL、摘要、排名和来源。支持 timeRange=any/day/week/month/year；provider=auto 时只选择真正支持该时间过滤的零 Key Provider，避免静默忽略。若工具层返回 All connection attempts failed 且没有 OpenReach traceId，说明调用方未连接到 OpenReach，应停止重复搜索并先检查 BASE_URL/容器网络。 Search 命中来源后若 read 返回 HTTP_403/HTTP_412，应选择其他公开来源，不要对同一 URL 机械重试。",
         "httpMethodType": 2,
         "uri": "/api/web/search",
         "status": 1,
@@ -111,14 +111,14 @@
       },
       {
         "methodName": "readWebPage",
-        "methodDescription": "读取指定公网 HTTP/HTTPS 网页并提取主要正文。仅允许公网 80/443，内置 SSRF、每跳重定向复检、响应体与正文长度限制。若不同站点都统一返回 All connection attempts failed 且没有 OpenReach traceId，应停止重复 Read 并先检查 Tool Runner 到 OpenReach 的 BASE_URL/网络。",
+        "methodDescription": "读取指定公网 HTTP/HTTPS 网页并提取主要正文。仅允许公网 80/443 且仅用于 HTML/XHTML/plain-text 页面；不要传 10/172.16-31/192.168、localhost/.internal、非 80/443、AgentHub/沙箱内部附件 URL 或图片二进制 URL。这些属于调用方资源，应使用调用方自己的文件/图片能力。服务端内置 SSRF 与每跳重定向复检。若返回 502 UPSTREAM_ERROR，检查 failureType/upstreamStatus/retryable：HTTP_403/HTTP_412 且 retryable=false 时不要重复同 URL，应换公开来源或退回 Search 结果；HTTP_521 等瞬时 5xx 会由 OpenReach 做有界 GET 重试。若不同站点统一 All connection attempts failed 且没有 OpenReach traceId，则先检查 Tool Runner 到 BASE_URL 的网络。",
         "httpMethodType": 2,
         "uri": "/api/web/read",
         "status": 1,
         "parameters": [
           {
             "methodParamName": "url",
-            "methodParamDescription": "需要读取的公网 HTTP/HTTPS 网页地址",
+            "methodParamDescription": "需要读取的公网 HTTP/HTTPS 文本网页地址，仅限 80/443。禁止私网/localhost/内部附件 URL、非标准端口和图片/压缩包等二进制 URL。",
             "mappedName": "url",
             "useTypeValue": 2,
             "dataTypeValue": 1,

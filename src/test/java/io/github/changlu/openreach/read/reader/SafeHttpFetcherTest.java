@@ -1,6 +1,7 @@
 package io.github.changlu.openreach.read.reader;
 
 import io.github.changlu.openreach.common.UpstreamException;
+import io.github.changlu.openreach.common.UpstreamHttpException;
 import io.github.changlu.openreach.config.WebCapabilityProperties;
 import io.github.changlu.openreach.security.UrlSafetyGuard;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class SafeHttpFetcherTest {
 
@@ -87,6 +89,71 @@ class SafeHttpFetcherTest {
 
         assertEquals(1, calls.get());
         assertTrue(ex.getMessage().contains("HTTP 403"));
+    }
+
+
+    @Test
+    void retriesTransient521OnceThenReturnsSecondResponse() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getRead().setMaxAttempts(2);
+        props.getRead().setRetryBackoffMs(0);
+        AtomicInteger calls = new AtomicInteger();
+
+        SafeHttpFetcher.HttpSender sender = request -> {
+            if (calls.incrementAndGet() == 1) {
+                return response(request, 521, "text/html", "origin down");
+            }
+            return response(request, 200, "text/html", "<html><body>recovered</body></html>");
+        };
+
+        SafeHttpFetcher fetcher = new SafeHttpFetcher(passThroughGuard(), props, sender);
+        var page = fetcher.fetch("https://blog.csdn.net/example/article/details/1");
+
+        assertEquals(2, calls.get());
+        assertTrue(new String(page.body(), StandardCharsets.UTF_8).contains("recovered"));
+    }
+
+    @Test
+    void doesNotRetry412AndExposesStructuredNonRetryableStatus() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getRead().setMaxAttempts(2);
+        props.getRead().setRetryBackoffMs(0);
+        AtomicInteger calls = new AtomicInteger();
+
+        SafeHttpFetcher.HttpSender sender = request -> {
+            calls.incrementAndGet();
+            return response(request, 412, "text/html", "precondition failed");
+        };
+
+        SafeHttpFetcher fetcher = new SafeHttpFetcher(passThroughGuard(), props, sender);
+        UpstreamHttpException ex = assertThrows(UpstreamHttpException.class,
+                () -> fetcher.fetch("https://www.nhc.gov.cn/example.shtml"));
+
+        assertEquals(1, calls.get());
+        assertEquals(412, ex.getStatusCode());
+        assertFalse(ex.isRetryable());
+    }
+
+    @Test
+    void sendsBrowserNavigationCompatibilityHeadersWithoutCookiesOrCredentials() {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        props.getRead().setMaxAttempts(1);
+        AtomicReference<HttpRequest> captured = new AtomicReference<>();
+
+        SafeHttpFetcher.HttpSender sender = request -> {
+            captured.set(request);
+            return response(request, 200, "text/html", "<html><body>ok</body></html>");
+        };
+
+        SafeHttpFetcher fetcher = new SafeHttpFetcher(passThroughGuard(), props, sender);
+        fetcher.fetch("https://example.com/article");
+
+        HttpRequest request = captured.get();
+        assertEquals("navigate", request.headers().firstValue("Sec-Fetch-Mode").orElseThrow());
+        assertEquals("document", request.headers().firstValue("Sec-Fetch-Dest").orElseThrow());
+        assertEquals("1", request.headers().firstValue("Upgrade-Insecure-Requests").orElseThrow());
+        assertTrue(request.headers().firstValue("Cookie").isEmpty());
+        assertTrue(request.headers().firstValue("Authorization").isEmpty());
     }
 
     private UrlSafetyGuard passThroughGuard() {

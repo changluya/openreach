@@ -57,17 +57,31 @@ public class UrlSafetyGuard {
             throw new BadRequestException("Backslashes are not allowed in URL authority");
         }
 
+        String host = uri.getHost().toLowerCase(Locale.ROOT);
+        if (host.equals("localhost") || host.endsWith(".localhost") || host.endsWith(".local")
+                || host.endsWith(".internal") || host.equals("metadata.google.internal")) {
+            throw new BadRequestException("Local/internal hosts are not allowed");
+        }
+
+        // Give literal private-IP misuse a precise error before the non-standard-port check.
+        // This is especially useful for Agent/internal attachment URLs such as 172.16.x.x:8999,
+        // while DNS names are still resolved only after the port allowlist check.
+        if (looksLikeIpLiteral(host)) {
+            try {
+                InetAddress literal = InetAddress.getByName(host);
+                if (isForbidden(literal)) {
+                    throw new BadRequestException("Private/local/reserved target is not allowed");
+                }
+            } catch (UnknownHostException ex) {
+                throw new BadRequestException("URL host cannot be resolved");
+            }
+        }
+
         int effectivePort = uri.getPort() == -1
                 ? ("https".equalsIgnoreCase(scheme) ? 443 : 80)
                 : uri.getPort();
         if (!allowedPorts.contains(effectivePort)) {
             throw new BadRequestException("URL port is not allowed; allowed ports: " + allowedPorts);
-        }
-
-        String host = uri.getHost().toLowerCase(Locale.ROOT);
-        if (host.equals("localhost") || host.endsWith(".localhost") || host.endsWith(".local")
-                || host.endsWith(".internal") || host.equals("metadata.google.internal")) {
-            throw new BadRequestException("Local/internal hosts are not allowed");
         }
 
         try {
@@ -83,6 +97,17 @@ public class UrlSafetyGuard {
         }
 
         return uri;
+    }
+
+
+    private boolean looksLikeIpLiteral(String host) {
+        if (host == null || host.isBlank()) return false;
+        if (host.indexOf(':') >= 0) return true; // IPv6 literal returned without [] by URI#getHost.
+        for (int i = 0; i < host.length(); i++) {
+            char c = host.charAt(i);
+            if ((c < '0' || c > '9') && c != '.') return false;
+        }
+        return true;
     }
 
     private boolean containsControl(String value) {

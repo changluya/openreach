@@ -1,5 +1,7 @@
 package io.github.changlu.openreach.observability;
 
+import io.github.changlu.openreach.common.UpstreamHttpException;
+
 import java.net.SocketTimeoutException;
 import java.net.http.HttpTimeoutException;
 import java.util.Locale;
@@ -9,6 +11,13 @@ public final class UpstreamFailureClassifier {
 
     public static String classify(Throwable error) {
         if (error == null) return "UNKNOWN";
+        Throwable structured = error;
+        while (structured != null) {
+            if (structured instanceof UpstreamHttpException http) {
+                return "HTTP_" + http.getStatusCode();
+            }
+            structured = structured.getCause();
+        }
         StringBuilder messages = new StringBuilder();
         Throwable cursor = error;
         while (cursor != null) {
@@ -22,6 +31,7 @@ public final class UpstreamFailureClassifier {
                 || message.contains("pkix path")
                 || message.contains("sslhandshake")) return "TLS_CERTIFICATE";
         if (message.contains("http 403") || message.contains("http=403")) return "HTTP_403";
+        if (message.contains("http 412") || message.contains("http=412")) return "HTTP_412";
         if (message.contains("http 429") || message.contains("http=429")) return "HTTP_429";
         if (containsHttp5xx(message)) return "HTTP_5XX";
         if (containsHttp3xx(message) || message.contains("redirect limit") || message.contains("too many redirects")) return "HTTP_REDIRECT";

@@ -110,4 +110,48 @@ class RequestTraceFilterTest {
         assertNull(captured.get());
         assertNull(res.getHeader(RequestTraceFilter.TRACE_HEADER));
     }
+    @Test
+    void capturesRealClientIpBehindTrustedDockerNginx() throws Exception {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        AtomicReference<MonitorRequestEvent> captured = new AtomicReference<>();
+        RequestTraceFilter filter = new RequestTraceFilter(captured::set, props, new PayloadRedactor(), JsonMapper.builder().build());
+        MockHttpServletRequest req = new MockHttpServletRequest("POST", "/api/web/read");
+        req.setRemoteAddr("172.17.0.1");
+        req.addHeader("X-Forwarded-For", "203.0.113.27");
+        req.addHeader("X-Real-IP", "203.0.113.27");
+        req.setContentType("application/json");
+        req.setContent("{\"url\":\"https://example.com\"}".getBytes(StandardCharsets.UTF_8));
+        MockHttpServletResponse res = new MockHttpServletResponse();
+
+        filter.doFilter(req, res, (request, response) -> {
+            request.getInputStream().readAllBytes();
+            response.setContentType("application/json");
+            response.getWriter().write("{\"url\":\"https://example.com\"}");
+        });
+
+        assertNotNull(captured.get());
+        assertEquals("203.0.113.27", captured.get().clientIp());
+    }
+
+    @Test
+    void ignoresForwardedIpWhenDirectCallerIsNotTrustedProxy() throws Exception {
+        WebCapabilityProperties props = new WebCapabilityProperties();
+        AtomicReference<MonitorRequestEvent> captured = new AtomicReference<>();
+        RequestTraceFilter filter = new RequestTraceFilter(captured::set, props, new PayloadRedactor(), JsonMapper.builder().build());
+        MockHttpServletRequest req = new MockHttpServletRequest("POST", "/api/web/read");
+        req.setRemoteAddr("198.51.100.22");
+        req.addHeader("X-Forwarded-For", "1.2.3.4");
+        req.setContentType("application/json");
+        req.setContent("{\"url\":\"https://example.com\"}".getBytes(StandardCharsets.UTF_8));
+        MockHttpServletResponse res = new MockHttpServletResponse();
+
+        filter.doFilter(req, res, (request, response) -> {
+            request.getInputStream().readAllBytes();
+            response.setContentType("application/json");
+            response.getWriter().write("{}");
+        });
+
+        assertEquals("198.51.100.22", captured.get().clientIp());
+    }
+
 }

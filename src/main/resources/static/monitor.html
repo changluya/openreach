@@ -159,6 +159,16 @@
           <option value="/api/web/read">Web Read</option>
         </select>
         <button class="filter-reset" id="reset-filters" type="button">重置筛选</button>
+        <div class="request-time-filter" aria-label="请求时间筛选">
+          <span class="request-time-label">请求时间</span>
+          <label><span>开始</span><input id="request-time-start" type="datetime-local" step="60" /></label>
+          <span class="request-time-separator">至</span>
+          <label><span>结束</span><input id="request-time-end" type="datetime-local" step="60" /></label>
+          <button class="request-time-apply" id="request-time-apply" type="button">应用时间</button>
+          <button class="request-time-clear" id="request-time-clear" type="button">清空</button>
+          <span class="request-time-hint" id="request-time-hint">未单独设置时，请求记录时间默认跟随顶部统计周期。</span>
+          <span class="request-time-error" id="request-time-error" hidden></span>
+        </div>
       </div>
 
       <div class="request-table-wrap panel">

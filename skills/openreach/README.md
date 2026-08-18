@@ -55,6 +55,8 @@ python3 scripts/openreach.py read "https://spring.io/projects/spring-boot/" --ma
 - Init Check：只检查 `config.json` + 1 次无副作用 API 探测；禁止多余初始化动作。
 - Doctor：只读官网 `GET /`，仅人工排障使用，不额外开放 Health API。
 - 安全边界：服务业务面仅包含 Search / Image Search / Read 三个 JSON POST API，不支持文件上传。
+- Read 调用边界：只读取公网 80/443 的 HTML/XHTML/plain-text 页面；私网/localhost/内部附件 URL、非标准端口、图片/压缩包等明显二进制 URL 会在 Skill 侧直接 fail-fast，不再打到 OpenReach。
+- Read 上游错误：`403/412` 视为目标站拒绝/前置条件，不重试同一 URL；`521` 等瞬时 5xx 由 OpenReach 做有界 GET 重试，仍失败后 Agent 应切换来源。
 
 
 ## 连接失败快速判断

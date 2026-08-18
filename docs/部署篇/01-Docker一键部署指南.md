@@ -151,7 +151,39 @@ docker compose up -d --force-recreate
 
 不要把 `docker compose down -v`、删除 `${OPENREACH_DATA_DIR}` 或 `rm -rf /data/openreach/data` 作为升级步骤。未来 Monitor Schema 有增量变更时，新镜像会读取旧数据库并按 Schema Version 执行 forward migration。
 
-## 3. 开发者：从源码构建
+## 3. Nginx 反向代理与监控真实客户端 IP
+
+OpenReach 部署在 Docker 后并由宿主机 Nginx 反代时，Servlet 的 `remoteAddr` 往往只能看到 Docker 网桥地址（常见为 `172.17.0.1`）。要让 `/monitor` 的“IP 地址”显示真实调用服务器 IP，需要 Nginx 显式覆盖以下请求头：
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+OpenReach v0.1.3 默认配置：
+
+```text
+OPENREACH_MONITOR_TRUST_PROXY_HEADERS=true
+OPENREACH_MONITOR_TRUSTED_PROXY_CIDRS=127.0.0.1/32,::1/128,172.16.0.0/12
+```
+
+安全规则：只有 OpenReach 的**直接 TCP 来源**属于可信代理 CIDR 时，应用才会读取 `X-Forwarded-For/X-Real-IP`；随后从 `X-Forwarded-For` **右向左**跳过可信代理节点，取第一个非可信节点作为真实客户端 IP。因此客户端直接访问 OpenReach 并自行伪造 Header 时不会污染监控 IP。
+
+如果你的 Nginx/Ingress 使用 `10.x`、`192.168.x` 或自定义 Docker Network，请把实际代理网段追加到 `OPENREACH_MONITOR_TRUSTED_PROXY_CIDRS`，不要直接配置成 `0.0.0.0/0`。
+
+如果 Nginx 前还有 CDN/SLB，需要同时把**确实可信的 CDN/SLB 出口网段**加入可信代理列表，否则 OpenReach 会把该层公网代理 IP 视为客户端 IP；这属于安全预期。
+
+> 注意：修复只影响升级后的新请求记录，历史 SQLite 中已经保存的 `172.17.0.1` 无法从现有数据反推出真实来源。
+
+---
+
+## 4. 开发者：从源码构建
 
 OpenReach 当前采用 **先打 JAR，再构建 Runtime 镜像** 的方式，不在 Dockerfile 中运行 Maven。
 
@@ -205,7 +237,7 @@ OPENREACH_SKIP_PACKAGE=true ./bin/quick/docker-build.sh openreach:local
 
 ---
 
-## 4. Dockerfile 多架构设计
+## 5. Dockerfile 多架构设计
 
 当前 Dockerfile 是 **Runtime-only Dockerfile**：
 
@@ -240,7 +272,7 @@ Dockerfile 还直接使用数值 UID/GID `10001:10001` 运行应用，不需要�
 
 ---
 
-## 5. 正式发布 Docker Hub 多架构镜像
+## 6. 正式发布 Docker Hub 多架构镜像
 
 先登录：
 
@@ -289,7 +321,7 @@ docker buildx build \
 
 ---
 
-## 6. 验证多架构镜像
+## 7. 验证多架构镜像
 
 发布后：
 
@@ -317,7 +349,7 @@ docker run -d \
 
 ---
 
-## 7. 查看状态与日志
+## 8. 查看状态与日志
 
 Docker Run：
 
@@ -360,7 +392,7 @@ http://localhost:8080
 
 ---
 
-## 8. JVM 参数
+## 9. JVM 参数
 
 默认：
 
@@ -394,7 +426,7 @@ JAVA_OPTS='-Xms256m -Xmx1024m' docker compose up -d
 
 ---
 
-## 9. 容器安全策略
+## 10. 容器安全策略
 
 当前镜像 / Compose 设计包含：
 
@@ -410,7 +442,7 @@ cap_drop: ALL（Compose）
 
 ---
 
-## 10. 国内网络注意事项
+## 11. 国内网络注意事项
 
 ### 构建阶段
 
@@ -436,7 +468,7 @@ Image / GLOBAL : Bing Images Global -> Openverse -> Wikimedia Commons
 
 ---
 
-## 11. 常用命令
+## 12. 常用命令
 
 ```bash
 # 普通用户：公开镜像启动

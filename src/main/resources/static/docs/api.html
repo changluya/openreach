@@ -73,17 +73,17 @@
 
     <section class="endpoint-block">
       <h2 style="margin-top:0"><span class="method">POST</span>/api/web/read</h2>
-      <p>获取公开网页并提取标题、正文、元数据和页面链接。读取链路包含 SSRF 防护和跳转限制。</p>
+      <p>获取<strong>公网文本网页</strong>并提取标题、正文、元数据和页面链接。读取链路包含 SSRF 防护、跳转限制、浏览器导航兼容请求头与瞬时 5xx 有界重试；不用于读取调用方内网附件、图片二进制或非 80/443 服务端口。</p>
       <h3>请求参数</h3>
       <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-        <tr><td><code>url</code></td><td>string</td><td>是</td><td>需要读取的非空 HTTP(S) URL，最长 2048 字符</td></tr>
+        <tr><td><code>url</code></td><td>string</td><td>是</td><td>公网 HTTP(S) 文本网页 URL，最长 2048 字符；仅允许 80/443，禁止私网/本机/内部附件地址与图片等二进制资源</td></tr>
         <tr><td><code>maxChars</code></td><td>integer</td><td>否</td><td>1000–200000；服务端默认最大正文字符数为 50000</td></tr>
       </tbody></table></div>
       <h3>示例</h3>
       <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#api-read">复制</button><pre id="api-read">curl -X POST 'http://localhost:8080/api/web/read' \
   -H 'Content-Type: application/json' \
   -d '{"url":"https://spring.io/projects/spring-boot/","maxChars":20000}'</pre></div>
-      <p>响应字段：<code>url</code>、<code>finalUrl</code>、<code>title</code>、<code>content</code>、<code>contentType</code>、<code>reader</code>、<code>truncated</code>、<code>latencyMs</code>、<code>metadata</code>、<code>links</code>。</p>
+      <p>响应字段：<code>url</code>、<code>finalUrl</code>、<code>title</code>、<code>content</code>、<code>contentType</code>、<code>reader</code>、<code>truncated</code>、<code>latencyMs</code>、<code>metadata</code>、<code>links</code>。若公网目标明确返回 403/412/521 等状态，仍保持 HTTP 502 + <code>UPSTREAM_ERROR</code> 兼容，同时附加 <code>failureType</code>、<code>upstreamStatus</code>、<code>retryable</code>，便于 Agent 判断换源还是结束重试。</p>
     </section>
 
     <h2>安全边界</h2>
@@ -105,7 +105,7 @@
       <tr><td>405</td><td><code>METHOD_NOT_ALLOWED</code></td><td>API 非 POST 或静态资源非 GET/HEAD</td></tr>
       <tr><td>413</td><td><code>PAYLOAD_TOO_LARGE</code></td><td>JSON 请求体超过默认 64 KiB 上限</td></tr>
       <tr><td>415</td><td><code>UPLOAD_DISABLED</code> / <code>UNSUPPORTED_MEDIA_TYPE</code></td><td>Multipart 上传或非 JSON Content-Type</td></tr>
-      <tr><td>502</td><td><code>UPSTREAM_ERROR</code></td><td>Provider 全部失败、无可下载图片或 Read 上游失败</td></tr>
+      <tr><td>502</td><td><code>UPSTREAM_ERROR</code></td><td>Provider 全部失败、无可下载图片或 Read 上游失败；Read 的明确 HTTP 失败会附带 failureType/upstreamStatus/retryable</td></tr>
       <tr><td>500</td><td><code>INTERNAL_ERROR</code></td><td>未预期服务端异常，内部异常不会直接回显</td></tr>
     </tbody></table></div>
 

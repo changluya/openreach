@@ -2,6 +2,7 @@ package io.github.changlu.openreach.read.reader;
 
 import io.github.changlu.openreach.common.BadRequestException;
 import io.github.changlu.openreach.common.UpstreamException;
+import io.github.changlu.openreach.common.UpstreamHttpException;
 import io.github.changlu.openreach.config.WebCapabilityProperties;
 import io.github.changlu.openreach.security.UrlSafetyGuard;
 import org.slf4j.Logger;
@@ -62,8 +63,17 @@ public class SafeHttpFetcher {
                 HttpRequest request = HttpRequest.newBuilder(current)
                         .timeout(Duration.ofMillis(Math.max(1, properties.getRead().effectiveRequestTimeoutMs())))
                         .header("User-Agent", properties.getRead().getUserAgent())
-                        .header("Accept", "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5")
+                        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.5")
                         .header("Accept-Language", properties.getRead().getAcceptLanguage())
+                        // Browser-navigation compatibility headers. These improve ordinary public-page
+                        // compatibility without carrying cookies, credentials or bypassing access controls.
+                        .header("Cache-Control", "no-cache")
+                        .header("Pragma", "no-cache")
+                        .header("Upgrade-Insecure-Requests", "1")
+                        .header("Sec-Fetch-Dest", "document")
+                        .header("Sec-Fetch-Mode", "navigate")
+                        .header("Sec-Fetch-Site", "none")
+                        .header("Sec-Fetch-User", "?1")
                         .GET()
                         .build();
                 long started = System.nanoTime();
@@ -94,7 +104,14 @@ public class SafeHttpFetcher {
 
                     if (status < 200 || status >= 300) {
                         response.body().close();
-                        throw new UpstreamException("Upstream returned HTTP " + status);
+                        boolean retryableStatus = isRetryableHttpStatus(status);
+                        if (retryableStatus && attempt < maxAttempts) {
+                            upstreamLog.warn("[OPENREACH-UPSTREAM] http_status_retry provider=read status={} host={} attempt={}/{}",
+                                    status, current.getHost(), attempt, maxAttempts);
+                            sleepBackoff(properties.getRead().effectiveRetryBackoffMs());
+                            continue;
+                        }
+                        throw new UpstreamHttpException(status, retryableStatus);
                     }
 
                     String contentType = response.headers().firstValue("content-type").orElse("application/octet-stream");
@@ -161,6 +178,19 @@ public class SafeHttpFetcher {
     private String compact(String message) {
         if (message == null || message.isBlank()) return "unknown I/O error";
         return message.replace('\n', ' ').replace('\r', ' ').trim();
+    }
+
+    private boolean isRetryableHttpStatus(int status) {
+        // Read is a GET-only primitive, so one bounded retry is safe for transient gateway/origin failures.
+        // Deliberately exclude 401/403/412/429: those represent credentials/access conditions/rate limits
+        // and retrying the same request would only amplify upstream pressure.
+        return status == 408
+                || status == 425
+                || status == 500
+                || status == 502
+                || status == 503
+                || status == 504
+                || (status >= 520 && status <= 524);
     }
 
     private boolean isReadableContentType(String contentType) {

@@ -127,6 +127,11 @@ class StaticWebsiteResourceTest {
         assertTrue(monitor.contains("调用失败"));
         assertTrue(monitor.contains("id=\"export-failure-records\""));
         assertTrue(monitor.contains("导出失败请求"));
+        assertTrue(monitor.contains("id=\"request-time-start\""));
+        assertTrue(monitor.contains("id=\"request-time-end\""));
+        assertTrue(monitor.contains("type=\"datetime-local\""));
+        assertTrue(monitor.contains("id=\"request-time-apply\""));
+        assertTrue(monitor.contains("id=\"request-time-clear\""));
         assertTrue(monitor.contains("输入参数"));
         assertTrue(monitor.contains("输出参数"));
         assertTrue(monitor.contains("IP 地址"));
@@ -141,6 +146,11 @@ class StaticWebsiteResourceTest {
         assertTrue(script.contains("/api/monitor/distribution"));
         assertTrue(script.contains("/api/monitor/records"));
         assertTrue(script.contains("/api/monitor/records/export"));
+        assertTrue(script.contains("recordApiParams"));
+        assertTrue(script.contains("requestStartTimeMs"));
+        assertTrue(script.contains("requestEndTimeMs"));
+        assertTrue(script.contains("applyRequestTimeRange"));
+        assertTrue(script.contains("clearRequestTimeRange"));
         assertTrue(script.contains("exportFailureRecords"));
         assertTrue(script.contains("buildApiUrl"));
         assertTrue(script.contains("response.blob()"));
