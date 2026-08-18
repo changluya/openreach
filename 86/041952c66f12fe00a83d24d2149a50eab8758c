@@ -1,0 +1,25 @@
+src/main/resources/static/assets/monitor.css
+  s_afe4968176e937::t_135e8d973bbce8 125-137,222-226
+src/main/resources/static/assets/monitor.js
+  s_afe4968176e937::t_deae2868bacbd6 18,41-46,81-88,123-131,255,367,423-472,476-486,503-504
+src/main/resources/static/monitor.html
+  s_afe4968176e937::t_846dff75798396 162-171
+src/test/java/io/github/changlu/openreach/StaticWebsiteResourceTest.java
+  s_afe4968176e937::t_3228d81c0e3259 130-134,149-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "86041952c66f12fe00a83d24d2149a50eab8758c",
+  "prompts": {},
+  "sessions": {
+    "s_afe4968176e937": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a00de4-fa4a-75f2-878a-cb9bc28485c3",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "changlu <939974883@qq.com>"
+    }
+  }
+}
