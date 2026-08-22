@@ -4,9 +4,46 @@ OpenReach 的版本更新记录。
 
 本文件从 **v1.0.1** 开始作为正式维护基线，后续版本按 `Added / Changed / Fixed / Security / Known Limitations / Roadmap` 持续记录，避免能力演进只散落在 README、设计文档或提交记录中。
 
-> 版本说明：正式维护口径从 **v1.0.1** 起记录；v0.1.3 已同步 Maven Artifact、README 与官网版本入口；v0.1.2 的路由、安全与部署能力继续作为当前运行基线。`docs/设计方案/v1.0.1设计访问文档.md` 统一收敛首个正式基线设计、渠道与验收口径；早期市场调研继续保留历史语境。
+> 版本说明：正式维护口径从 **v1.0.1** 起记录；v0.1.4 已同步 Maven Artifact、README、Skill、AgentHub Plugin 与官网版本入口；v0.1.3 的监控能力和 v0.1.2 的路由、安全与部署能力继续作为当前运行基线。`docs/设计方案/v1.0.1设计访问文档.md` 统一收敛首个正式基线设计、渠道与验收口径；早期市场调研继续保留历史语境。
 
 ---
+
+## [v0.1.4] - 2026-08-22
+
+### 版本定位
+
+v0.1.4 在 Search / Image Search / Read 之外新增第四个核心能力 **Safe Curl**：面向 Agent 读取 GitHub REST API、`raw.githubusercontent.com` 源码、公开 JSON/XML/YAML/text API。该能力不是 shell 透传，而是 OpenReach 自己执行的受控公网 HTTP GET/HEAD 请求。
+
+### Added
+
+- 新增 `POST /api/web/curl`，请求字段包含 `url / method / headers / maxChars`；`method` 仅允许 `GET`、`HEAD`，默认 `GET`；
+- 新增 `CurlService`、`CurlTargetGuard`、`CurlRequest/CurlResponse` 与 `SelfTargetContext`，支持受控重定向、文本响应、响应头、状态码、最大字节/字符限制；
+- 新增 GitHub 源码阅读 SOP：`search` 发现仓库后，可通过 `api.github.com` 查询仓库/contents，再通过 `raw.githubusercontent.com` 直接读取源码；
+- AgentHub HTTP Plugin 新增 `curlPublicHttp` Tool；Python Skill 新增 `curl()` 与 `python3 scripts/openreach.py curl ...` CLI；
+- 新增 `docs/核心搜索接口设计/04-curl核心流程设计.md`，说明 API、GitHub 场景与安全边界。
+
+### Security
+
+- **禁止 Curl 请求 OpenReach 自身**：除原有公网 SSRF 检查外，Curl 额外拒绝当前入站 `Host`、Servlet `serverName/localName/localAddr`、进程/容器本地所有网卡地址；
+- 支持 `OPENREACH_CURL_BLOCKED_HOSTS` 显式配置同一 OpenReach 部署的额外公网域名/别名，支持 `*.example.com` 形式；
+- Curl 强制只允许公网 HTTP/HTTPS `80/443`，每次 30x 重定向都重新经过 SSRF + self-target 校验；
+- Curl 拒绝 `Authorization`、`Proxy-Authorization`、`Cookie`、`Host`、`Forwarded`、`X-Forwarded-*`、`X-Real-IP`、`Connection/Upgrade/Transfer-Encoding/Content-Length` 等敏感或代理欺骗请求头；
+- Curl 只返回文本/源码/API 类型响应，拒绝 ZIP、图片等二进制内容，不支持上传、登录态、任意 shell、POST/PUT/PATCH/DELETE 或端口扫描。
+
+### Test
+
+- Python Skill Test 从 15 个扩展到 **20 个**，新增 GitHub 风格 Curl 请求透传、私网目标 fail-fast、OpenReach 自身目标 fail-fast、敏感 Header fail-fast、写 Method fail-fast；20/20 已在交付环境通过；
+- Java 新增 `CurlTargetGuardTest` 与 `CurlServiceTest`，覆盖自身公网 Host、额外 self alias、本机地址、GitHub JSON、重定向回打自己、敏感 Header、写 Method、二进制响应与文本截断；
+- `AttackSurfaceFilterTest` 更新为四个公开 JSON API 的精确 allowlist；AgentHub Plugin 回归同步校验 `/api/web/curl` 与 0.1.4。
+
+### Fixed
+
+- 修复 `CurlService` 同时存在生产构造器与测试构造器时，Spring Boot 全量上下文无法自动选择注入构造器、最终报 `No default constructor found` 的发布阻断问题；生产构造器现显式标记为 Spring 注入入口，并增强 `OpenReachApplicationTest` 对 `CurlService` Bean 的回归断言。
+
+### Known Limitations
+
+- GitHub 匿名 REST API 仍受 GitHub 官方匿名限流；OpenReach 不绕过限流，也不接受 `Authorization` Token。需要认证的 GitHub 私有仓库/高配额调用应使用专用 GitHub Connector；
+- Curl v0.1.4 聚焦“公开机器可读文本资源”，不承担通用 REST Client、内网网关或文件下载器职责。
 
 ## [v0.1.3] - 2026-08-16
 

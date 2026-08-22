@@ -175,6 +175,7 @@ class StaticWebsiteResourceTest {
         assertNoMonitorNavigation(docs, "static/docs/index.html");
         assertNoMonitorNavigation(api, "static/docs/api.html");
         assertNoMonitorNavigation(changelog, "static/changelog.html");
+        assertTrue(changelog.contains("v0.1.4"));
         assertTrue(changelog.contains("v0.1.3"));
         assertTrue(changelog.contains("v0.1.2"));
         assertTrue(changelog.contains("timeRange"));
@@ -183,6 +184,10 @@ class StaticWebsiteResourceTest {
         assertTrue(changelog.contains("SQLite + WAL"));
         assertTrue(changelog.contains("失败请求后端导出"));
         assertTrue(changelog.contains("Schema V2"));
+        assertTrue(home.contains("POST /api/web/curl"));
+        assertTrue(docs.contains("Safe Curl"));
+        assertTrue(api.contains("/api/web/curl"));
+        assertTrue(changelog.contains("Self Block"));
     }
 
     private void assertChangelogNavigation(String html, String resource) {

@@ -34,7 +34,14 @@ class WebCapabilityPropertiesTest {
         assertEquals(4 * 1024 * 1024, props.getImageSearch().getMaxResponseBytes());
         assertEquals(6, props.getImageSearch().getDownloadValidationConcurrency());
         assertEquals(48, props.getImageSearch().getDownloadValidationQueueCapacity());
-        assertEquals("OpenReach/0.1.3 (+https://github.com/changluya/openreach)", props.getImageSearch().getWikimediaUserAgent());
+        assertEquals("OpenReach/0.1.4 (+https://github.com/changluya/openreach)", props.getImageSearch().getWikimediaUserAgent());
+        assertEquals(5000, props.getCurl().getConnectTimeoutMs());
+        assertEquals(10000, props.getCurl().getRequestTimeoutMs());
+        assertEquals(2 * 1024 * 1024, props.getCurl().getMaxBytes());
+        assertEquals(100000, props.getCurl().getMaxChars());
+        assertEquals(5, props.getCurl().getMaxRedirects());
+        assertTrue(props.getCurl().isFollowRedirects());
+        assertEquals("OpenReach/0.1.4 (+https://github.com/changluya/openreach)", props.getCurl().getUserAgent());
     }
 
     @Test
@@ -60,6 +67,7 @@ class WebCapabilityPropertiesTest {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        assertTrue(yaml.contains("${OPENREACH_CURL_BLOCKED_HOSTS:}"));
         assertTrue(yaml.contains("${OPENREACH_MONITOR_USERNAME:openreach}"));
         assertTrue(yaml.contains("${OPENREACH_MONITOR_PASSWORD:openreach}"));
         assertTrue(yaml.contains("${OPENREACH_MONITOR_TRUST_PROXY_HEADERS:true}"));

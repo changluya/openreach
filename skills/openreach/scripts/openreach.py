@@ -99,6 +99,87 @@ def _validate_read_target(url: str) -> None:
         )
 
 
+def _validate_curl_target(url: str, base_url: str) -> None:
+    """Client-side fail-fast for obvious Curl misuse; server remains authoritative.
+
+    Curl is intentionally read-only and public-Web-only. The client also refuses a
+    target whose host is the same as the configured OpenReach service, so Agents do
+    not even send obvious self-calls to the server.
+    """
+    if not isinstance(url, str) or not url.strip():
+        raise OpenReachError("CURL_TARGET_INVALID: url is required")
+    try:
+        parsed = urllib.parse.urlsplit(url.strip())
+    except ValueError as exc:
+        raise OpenReachError("CURL_TARGET_INVALID: malformed URL") from exc
+    if parsed.scheme.lower() not in {"http", "https"}:
+        raise OpenReachError("CURL_TARGET_INVALID: only public HTTP/HTTPS URLs are supported")
+    if not parsed.hostname:
+        raise OpenReachError("CURL_TARGET_INVALID: URL host is required")
+    if parsed.username is not None or parsed.password is not None:
+        raise OpenReachError("CURL_TARGET_INVALID: URLs containing user-info are not supported")
+
+    host = parsed.hostname.lower().rstrip(".")
+    openreach_host = urllib.parse.urlsplit(base_url).hostname
+    if openreach_host and host == openreach_host.lower().rstrip("."):
+        raise OpenReachError("CURL_TARGET_SELF: Curl cannot request the OpenReach service itself")
+
+    if host == "localhost" or host.endswith((".localhost", ".local", ".internal")):
+        raise OpenReachError("CURL_TARGET_PRIVATE: localhost/internal targets are forbidden")
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+    if literal is not None and not literal.is_global:
+        raise OpenReachError("CURL_TARGET_PRIVATE: private/local/reserved IP targets are forbidden")
+
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise OpenReachError("CURL_TARGET_INVALID: invalid URL port") from exc
+    effective_port = port or (443 if parsed.scheme.lower() == "https" else 80)
+    if effective_port not in {80, 443}:
+        raise OpenReachError("CURL_TARGET_PORT: Curl only accepts public Web ports 80/443")
+
+
+
+_CURL_FORBIDDEN_HEADERS = {
+    "authorization", "proxy-authorization", "cookie", "cookie2", "host",
+    "connection", "proxy-connection", "upgrade", "transfer-encoding", "content-length",
+    "forwarded", "via", "x-forwarded-for", "x-forwarded-host", "x-forwarded-proto",
+    "x-real-ip", "x-original-url", "x-rewrite-url",
+    "x-api-key", "api-key", "x-auth-token", "x-access-token", "private-token",
+}
+
+def _validate_curl_headers(headers: Mapping[str, str] | None) -> dict[str, str]:
+    safe: dict[str, str] = {}
+    for raw_name, raw_value in (headers or {}).items():
+        name = str(raw_name).strip()
+        value = str(raw_value).strip()
+        if not name:
+            raise OpenReachError("CURL_HEADER_INVALID: header name cannot be blank")
+        lower = name.lower()
+        if lower in _CURL_FORBIDDEN_HEADERS or lower.startswith("x-forwarded-"):
+            raise OpenReachError(f"CURL_HEADER_FORBIDDEN: sensitive/proxy header is not allowed: {name}")
+        if any(ord(ch) <= 0x1F or ord(ch) == 0x7F for ch in name + value):
+            raise OpenReachError("CURL_HEADER_INVALID: control characters are not allowed")
+        safe[name] = value
+    return safe
+
+def _parse_headers(values: list[str] | None) -> dict[str, str]:
+    headers: dict[str, str] = {}
+    for item in values or []:
+        if ":" not in item:
+            raise OpenReachError("CURL_HEADER_INVALID: use --header 'Name: value'")
+        name, value = item.split(":", 1)
+        name = name.strip()
+        value = value.strip()
+        if not name:
+            raise OpenReachError("CURL_HEADER_INVALID: header name cannot be blank")
+        headers[name] = value
+    return headers
+
+
 def build_base_url(host: str, port: int = 8080, https: bool = False) -> str:
     """Build a Base URL from an IP/domain or accept a complete http(s) URL."""
     host = host.strip()
@@ -199,7 +280,7 @@ class OpenReachClient:
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "User-Agent": "openreach-skill/0.1.3",
+                "User-Agent": "openreach-skill/0.1.4",
             },
         )
         return self._request_json(request)
@@ -207,14 +288,14 @@ class OpenReachClient:
     def health(self) -> dict[str, Any]:
         """Check service reachability through the public static homepage.
 
-        OpenReach v0.1.3 intentionally exposes only three JSON APIs; no separate
+        OpenReach v0.1.4 intentionally exposes only four JSON APIs; no separate
         health/debug API is public. A successful GET / is therefore the zero-upstream
         connectivity check used by the Skill.
         """
         request = urllib.request.Request(
             f"{self.base_url}/",
             method="GET",
-            headers={"Accept": "text/html", "User-Agent": "openreach-skill/0.1.3"},
+            headers={"Accept": "text/html", "User-Agent": "openreach-skill/0.1.4"},
         )
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
@@ -240,6 +321,20 @@ class OpenReachClient:
     def read(self, url: str, *, max_chars: int = 50000) -> dict[str, Any]:
         _validate_read_target(url)
         return self._post("/api/web/read", {"url": url, "maxChars": max_chars})
+
+    def curl(self, url: str, *, method: str = "GET", headers: Mapping[str, str] | None = None,
+             max_chars: int = 100000) -> dict[str, Any]:
+        _validate_curl_target(url, self.base_url)
+        normalized_method = (method or "GET").upper()
+        if normalized_method not in {"GET", "HEAD"}:
+            raise OpenReachError("CURL_METHOD_FORBIDDEN: OpenReach Curl only allows GET/HEAD")
+        safe_headers = _validate_curl_headers(headers)
+        return self._post("/api/web/curl", {
+            "url": url,
+            "method": normalized_method,
+            "headers": safe_headers,
+            "maxChars": max_chars,
+        })
 
 
 def _client(base_url: str | None = None, timeout: float = DEFAULT_TIMEOUT) -> OpenReachClient:
@@ -315,7 +410,7 @@ def check_initialized(config_path: Path | None = None, timeout: float = DEFAULT_
         headers={
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "User-Agent": "openreach-skill/0.1.3",
+            "User-Agent": "openreach-skill/0.1.4",
         },
     )
     try:
@@ -406,8 +501,15 @@ def read(url: str, max_chars: int = 50000, base_url: str | None = None,
     return _client(base_url, timeout).read(url, max_chars=max_chars)
 
 
+def curl(url: str, method: str = "GET", headers: Mapping[str, str] | None = None,
+         max_chars: int = 100000, base_url: str | None = None,
+         timeout: float = DEFAULT_TIMEOUT) -> dict[str, Any]:
+    """Execute a safe read-only public HTTP request through OpenReach."""
+    return _client(base_url, timeout).curl(url, method=method, headers=headers, max_chars=max_chars)
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="openreach", description="OpenReach Skill CLI: check, init, doctor, search, image-search and read.")
+    parser = argparse.ArgumentParser(prog="openreach", description="OpenReach Skill CLI: check, init, doctor, search, image-search, read and safe curl.")
     parser.add_argument("--base-url", default=None, help="Temporary OpenReach URL override. Otherwise env/config.json is used.")
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="HTTP timeout in seconds")
     parser.add_argument("--compact", action="store_true", help="Print compact JSON")
@@ -439,6 +541,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_read = sub.add_parser("read", help="Read a public Web page")
     p_read.add_argument("url")
     p_read.add_argument("--max-chars", type=int, default=50000)
+
+    p_curl = sub.add_parser("curl", help="Safe read-only public HTTP request for APIs/source files")
+    p_curl.add_argument("url")
+    p_curl.add_argument("--method", default="GET", choices=("GET", "HEAD", "get", "head"))
+    p_curl.add_argument("--header", action="append", default=[], help="Repeatable request header in 'Name: value' form")
+    p_curl.add_argument("--max-chars", type=int, default=100000)
     return parser
 
 
@@ -457,8 +565,10 @@ def main(argv: list[str] | None = None) -> int:
                 result = client.search(args.query, limit=args.limit, region=args.region, provider=args.provider, time_range=args.time_range)
             elif args.command in {"image-search", "image_search"}:
                 result = client.image_search(args.query, limit=args.limit, region=args.region, provider=args.provider)
-            else:
+            elif args.command == "read":
                 result = client.read(args.url, max_chars=args.max_chars)
+            else:
+                result = client.curl(args.url, method=args.method, headers=_parse_headers(args.header), max_chars=args.max_chars)
     except (OpenReachError, ValueError, OSError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

@@ -25,7 +25,7 @@ import java.util.Set;
 /**
  * Public attack-surface allowlist.
  *
- * <p>OpenReach intentionally exposes exactly three JSON POST APIs plus a small
+ * <p>OpenReach intentionally exposes exactly four JSON POST APIs plus a small
  * classpath-only static website. Everything else is rejected before controller
  * dispatch. Multipart upload, dangerous methods and oversized/chunked bodies are
  * denied centrally.</p>
@@ -36,7 +36,8 @@ public class AttackSurfaceFilter extends OncePerRequestFilter {
     private static final Set<String> API_PATHS = Set.of(
             "/api/web/search",
             "/api/web/image-search",
-            "/api/web/read"
+            "/api/web/read",
+            "/api/web/curl"
     );
     private static final Set<String> STATIC_EXACT_PATHS = Set.of(
             "/", "/index.html",

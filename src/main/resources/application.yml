@@ -105,7 +105,7 @@ openreach:
       openverse-url: https://api.openverse.org/v1/images/
       wikimedia-url: https://commons.wikimedia.org/w/api.php
       # Wikimedia 请求要求可识别 User-Agent；可按实际部署地址覆盖。
-      wikimedia-user-agent: OpenReach/0.1.3 (+https://github.com/changluya/openreach)
+      wikimedia-user-agent: OpenReach/0.1.4 (+https://github.com/changluya/openreach)
       # 强制可下载校验：Provider 结果只有通过公网 SSRF + 图片字节签名探测后才返回。
       download-candidate-multiplier: 3
       download-max-candidates: 60
@@ -129,6 +129,20 @@ openreach:
       allowed-ports: [80, 443]
       user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
       accept-language: zh-CN,zh;q=0.9,en;q=0.6
+
+    curl:
+      # v0.1.4 safe Curl: read-only public HTTP(S) requests for JSON/text/source files.
+      connect-timeout-ms: 5000
+      request-timeout-ms: 10000
+      max-bytes: 2097152
+      max-chars: 100000
+      max-redirects: 5
+      follow-redirects: true
+      user-agent: OpenReach/0.1.4 (+https://github.com/changluya/openreach)
+      accept-language: zh-CN,zh;q=0.9,en;q=0.6
+      # Optional extra public aliases of this OpenReach service. Incoming Host/serverName,
+      # localAddr and all local interface IPs are denied automatically.
+      blocked-hosts: ${OPENREACH_CURL_BLOCKED_HOSTS:}
 
     monitor:
       # 内部监控后台默认凭据；生产部署建议通过环境变量覆盖。
@@ -155,5 +169,5 @@ openreach:
       trust-proxy-headers: ${OPENREACH_MONITOR_TRUST_PROXY_HEADERS:true}
       trusted-proxy-cidrs: ${OPENREACH_MONITOR_TRUSTED_PROXY_CIDRS:127.0.0.1/32,::1/128,172.16.0.0/12}
     security:
-      # 三个 JSON API 的请求体都很小；过滤器也会对 chunked 请求做真实读取上限。
+      # 四个 JSON API 的请求体都很小；过滤器也会对 chunked 请求做真实读取上限。
       max-api-body-bytes: 65536

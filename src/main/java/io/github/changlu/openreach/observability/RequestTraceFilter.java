@@ -37,7 +37,7 @@ public class RequestTraceFilter extends OncePerRequestFilter {
     public static final String TRACE_HEADER = "X-OpenReach-Trace-Id";
     private static final Logger apiLog = LoggerFactory.getLogger("OPENREACH.API");
     private static final Set<String> MONITORED_API_PATHS = Set.of(
-            "/api/web/search", "/api/web/image-search", "/api/web/read"
+            "/api/web/search", "/api/web/image-search", "/api/web/read", "/api/web/curl"
     );
     private static final Pattern CHARSET_PATTERN = Pattern.compile("charset\\s*=\\s*[\\\"']?([^;\\s\\\"']+)", Pattern.CASE_INSENSITIVE);
     private static final DateTimeFormatter TRACE_TIME = DateTimeFormatter
@@ -210,6 +210,7 @@ public class RequestTraceFilter extends OncePerRequestFilter {
             case "/api/web/search" -> "search";
             case "/api/web/image-search" -> "image-search";
             case "/api/web/read" -> "read";
+            case "/api/web/curl" -> "curl";
             default -> "api-other";
         };
     }

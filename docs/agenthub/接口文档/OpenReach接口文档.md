@@ -1,6 +1,6 @@
 # OpenReach 接口文档
 
-> 适用版本：**v0.1.3** · 本机直接运行示例：`http://localhost:8080`；AgentHub / Tool Runner 必须配置其运行环境真实可达的 `BASE_URL`
+> 适用版本：**v0.1.4** · 本机直接运行示例：`http://localhost:8080`；AgentHub / Tool Runner 必须配置其运行环境真实可达的 `BASE_URL`
 
 本文档基于当前工程源码（`io.github.changlu.openreach`）维护 OpenReach 对外 HTTP 接口的完整说明，面向 Agent 集成方、HTTP 插件开发者和 API 调用方。
 
@@ -13,12 +13,13 @@
 | Web Search | `POST` | `/api/web/search` | 网页搜索，多 Provider 自动降级 |
 | Image Search | `POST` | `/api/web/image-search` | 文搜图，多图片 Provider 自动降级 |
 | Web Read | `POST` | `/api/web/read` | 读取网页正文，内置 SSRF 防护 |
+| Safe Curl | `POST` | `/api/web/curl` | 读取公开 API / JSON / raw 源码，GET/HEAD only + SSRF/Self Guard |
 
-Skill 判断是否已初始化时使用本地 `check`：先检查 Skill `config.json`，存在时仅执行 1 次 `POST /api/web/search` 空 JSON 探测并期待本地校验返回 `400 / VALIDATION_ERROR`，不会触发真实搜索。`doctor` 仅保留为人工官网 `GET /` 排障能力；两者都不新增第四个业务 API。
+Skill 判断是否已初始化时使用本地 `check`：先检查 Skill `config.json`，存在时仅执行 1 次 `POST /api/web/search` 空 JSON 探测并期待本地校验返回 `400 / VALIDATION_ERROR`，不会触发真实搜索。`doctor` 仅保留为人工官网 `GET /` 排障能力；两者都不新增额外业务 API。
 
 Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabilityController.java`。
 
-三个能力完全解耦，均为无需 Search API Key 的公开 HTTP 接口。安全 Filter 只允许这三个精确 POST 路径，Content-Type 仅接受 `application/json` / `application/*+json`；Multipart/文件上传、未知 API、危险 Method 均拒绝。
+四个能力完全解耦，均为无需 Search API Key 的公开 HTTP 接口。安全 Filter 只允许这四个精确 POST 路径，Content-Type 仅接受 `application/json` / `application/*+json`；Multipart/文件上传、未知 API、危险 Method 均拒绝。
 
 ---
 
@@ -28,14 +29,14 @@ Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabi
 
 - `Content-Type: application/json`
 - 请求体为 JSON 对象；仅 `query` / `url` 必填（见各接口说明）
-- 三个业务 API 的请求体统一受 `openreach.web.security.max-api-body-bytes` 限制，默认 **65536 bytes（64 KiB）**；包括无法提前获得 Content-Length 的请求也会在真实读取时限流
+- 四个业务 API 的请求体统一受 `openreach.web.security.max-api-body-bytes` 限制，默认 **65536 bytes（64 KiB）**；包括无法提前获得 Content-Length 的请求也会在真实读取时限流
 - 只接受 `application/json` 或 `application/*+json`；`multipart/*` 明确拒绝
 - 未识别的字段会被忽略；可空字段不传即使用默认值
 
 ### 2.2 响应
 
 - 成功响应直接返回业务对象（**无外层包装**），HTTP `200`
-- 失败响应统一为错误对象，结构见 [第 6 章](#6-错误码与公共错误响应)
+- 失败响应统一为错误对象，结构见 [第 7 章](#7-错误码与公共错误响应)
 
 ### 2.3 字段空值规则
 
@@ -59,7 +60,7 @@ Controller 定义位于 `src/main/java/io/github/changlu/openreach/web/WebCapabi
 | `query` | string | 是 | - | `@NotBlank` `@Size(max=500)` | 搜索关键词或自然语言问题，最长 500 字符 |
 | `limit` | int | 否 | `10` | `@Min(1)` `@Max(20)` | 最多返回条数，服务端还会受配置 `max-results`（默认 20）钳制 |
 | `region` | string | 否 | `auto` | `@Size(max=32)` | 核心路由 + Provider Locale Hint；CN aliases 走 CN，其他显式地区走 GLOBAL |
-| `provider` | string | 否 | `auto` | `@Size(max=32)` | 渠道，见 [第 7 章 Provider 矩阵](#71-web-search) |
+| `provider` | string | 否 | `auto` | `@Size(max=32)` | 渠道，见 [第 8 章 Provider 矩阵](#81-web-search) |
 | `timeRange` / `time_range` | string | 否 | `any` | `@Size(max=32)` | 两种字段名等价；`any/day/week/month/year`；兼容 `all/none/off/0`、`d/w/m/y`、`1d/1w/1m/1y`、`past_*`、`pd/pw/pm/py`、`qdr:*` |
 
 校验失败返回 `400 VALIDATION_ERROR`（如 `query` 为空）。
@@ -141,7 +142,7 @@ curl -sS -X POST 'http://localhost:8080/api/web/search' \
 | `query` | string | 是 | - | `@NotBlank` `@Size(max=500)` | 文搜图关键词或自然语言描述，最长 500 字符 |
 | `limit` | int | 否 | `10` | `@Min(1)` `@Max(30)` | 最多返回条数，服务端还会受配置 `max-results`（默认 30）钳制 |
 | `region` | string | 否 | `auto` | `@Size(max=32)` | 与 Web Search 共用 CN / GLOBAL 路由规则，并作为图片 Provider Locale Hint |
-| `provider` | string | 否 | `auto` | `@Size(max=32)` | 渠道，见 [第 7 章 Provider 矩阵](#72-image-search) |
+| `provider` | string | 否 | `auto` | `@Size(max=32)` | 渠道，见 [第 8 章 Provider 矩阵](#82-image-search) |
 
 ### 4.2 响应字段
 
@@ -306,14 +307,67 @@ curl -sS -X POST 'http://localhost:8080/api/web/read' \
 
 ### 5.5 公网安全基线
 
-- 业务接口精确 allowlist：`POST /api/web/search`、`POST /api/web/image-search`、`POST /api/web/read`；
+- 业务接口精确 allowlist：`POST /api/web/search`、`POST /api/web/image-search`、`POST /api/web/read`、`POST /api/web/curl`；
 - Spring Multipart 全局关闭，Filter 明确拒绝 `multipart/*`；
 - API 请求体默认最大 64 KiB，且 chunked/未知长度请求也会在读取阶段执行同一硬上限；
 - 未知路径、Upload/Actuator/Debug、危险 Method、Path Traversal 提前拒绝；
-- Read/Image remote fetch 仅公网 HTTP/HTTPS 80/443，并对 Redirect 每跳复检；图片结果还必须通过被动图片 Magic Bytes 验证；
+- Read/Image/Curl remote fetch 仅公网 HTTP/HTTPS 80/443，并对 Redirect 每跳复检；Curl 额外禁止请求 OpenReach 自身，图片结果还必须通过被动图片 Magic Bytes 验证；
 - 官网静态资源仅来自 classpath，并配置 CSP / nosniff / DENY frame 等 Header。
 
-## 6. 错误码与公共错误响应
+## 6. Safe Curl — `POST /api/web/curl`
+
+### 6.1 请求参数
+
+| 字段 | 类型 | 必填 | 默认值 | 校验约束 | 说明 |
+|---|---|---|---|---|---|
+| `url` | string | 是 | - | `@NotBlank` `@Size(max=2048)` | 公网 HTTP/HTTPS URL，仅 80/443；适合 GitHub API、raw 源码、JSON/text API |
+| `method` | string | 否 | `GET` | `GET/HEAD` | 只读 Method，不支持 POST/PUT/PATCH/DELETE |
+| `headers` | object | 否 | `{}` | 最多 16 个 | 可传普通内容协商 Header；禁止 Authorization/Cookie/Host/Forwarded/X-Forwarded-* 等敏感或代理欺骗头 |
+| `maxChars` / `max_chars` | int | 否 | `100000` | 1000-200000 | 最多返回字符数；同时受服务端 `curl.max-chars` 限制 |
+
+### 6.2 响应字段
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `url` | string | 原始目标 URL |
+| `finalUrl` | string | 重定向后的最终 URL |
+| `method` | string | 实际 Method |
+| `statusCode` | int | 上游 HTTP 状态码；Curl 本身成功执行时会原样返回该状态值供 Agent 判断 |
+| `contentType` | string | 上游 Content-Type |
+| `body` | string | JSON/text/source 响应正文 |
+| `truncated` | boolean | 是否因 `maxChars` 截断 |
+| `redirects` | int | 已跟随重定向次数 |
+| `latencyMs` | long | 总耗时 |
+| `headers` | object | 经过裁剪的响应 Header；`Set-Cookie` 不返回 |
+
+### 6.3 GitHub 源码阅读示例
+
+```bash
+curl -sS -X POST 'http://localhost:8080/api/web/curl' \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://api.github.com/repos/spring-projects/spring-boot","method":"GET"}'
+```
+
+```bash
+curl -sS -X POST 'http://localhost:8080/api/web/curl' \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://raw.githubusercontent.com/spring-projects/spring-boot/main/README.adoc"}'
+```
+
+推荐 Agent 链路：`search(site:github.com ...) -> curl(api.github.com/...) -> curl(raw.githubusercontent.com/...)`。GitHub 匿名 API 的官方限流保持原样；OpenReach 不绕过限流，也不允许通过 Curl 注入 `Authorization`。需要私有仓库或认证额度时应使用专用 GitHub Connector。
+
+### 6.4 Curl 安全边界
+
+- 共享 `UrlSafetyGuard`：拒绝 localhost、RFC1918、link-local、metadata、保留地址、非 HTTP(S)；
+- Curl 再强制端口锁定为 `80/443`，即使 Read 的端口配置被部署方放宽也不会跟随放宽；
+- **禁止请求 OpenReach 自身**：目标 Host 与当前入站 `Host/serverName/localName` 比较，并将目标解析 IP 与 `localAddr`、本机/容器网卡地址比较；
+- `OPENREACH_CURL_BLOCKED_HOSTS` 可补充同一部署的其他公网域名/别名，支持 `*.example.com`；
+- 每次重定向重新执行全部 SSRF + Self Target 校验；
+- 仅 GET/HEAD、仅文本/API/source 内容；拒绝凭据 Header、代理伪造 Header、写 Method 与二进制下载。
+
+---
+
+## 7. 错误码与公共错误响应
 
 Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `timestamp` 与 `traceId`；所有请求响应头同时返回 `X-OpenReach-Trace-Id`：
 
@@ -347,7 +401,7 @@ Controller / Service 层错误由 `GlobalExceptionHandler` 生成，包含 `time
 | `405` | `METHOD_NOT_ALLOWED` | API 使用非 POST，或静态资源使用非 GET/HEAD |
 | `413` | `PAYLOAD_TOO_LARGE` | JSON 请求体超过 `max-api-body-bytes`，默认 64 KiB |
 | `415` | `UPLOAD_DISABLED` | 请求使用 `multipart/*`，文件上传被明确关闭 |
-| `415` | `UNSUPPORTED_MEDIA_TYPE` | 三个 API 未使用 `application/json` / `application/*+json` |
+| `415` | `UNSUPPORTED_MEDIA_TYPE` | 四个 API 未使用 `application/json` / `application/*+json` |
 | `502` | `UPSTREAM_ERROR` | 上游全部渠道失败 / 指定渠道无结果 / 无可下载图片 / 读取网页失败 / 重定向过多 / 上游非 2xx |
 
 Read 遇到明确的上游 HTTP 状态时，会在保持 `code=UPSTREAM_ERROR` 兼容的前提下增加：`failureType`、`upstreamStatus`、`retryable`。例如目标站返回 412：
@@ -368,9 +422,9 @@ Read 遇到明确的上游 HTTP 状态时，会在保持 `code=UPSTREAM_ERROR` �
 
 ---
 
-## 7. Provider 矩阵
+## 8. Provider 矩阵
 
-### 7.1 Web Search
+### 8.1 Web Search
 
 | 渠道 | `provider` 值 | CN Auto | GLOBAL Auto | 接入形式 | API Key |
 |---|---|---:|---:|---|---:|
@@ -381,7 +435,7 @@ Read 遇到明确的上游 HTTP 状态时，会在保持 `code=UPSTREAM_ERROR` �
 | DuckDuckGo | `duckduckgo` | 5 | 2 | HTML no-JS POST Form | 否 |
 | Brave Web | `brave` | - | 1 | 公开 Web SERP | 否 |
 
-### 7.2 Image Search
+### 8.2 Image Search
 
 | 渠道 | `provider` 值 | CN Auto | GLOBAL Auto | 接入形式 | API Key |
 |---|---|---:|---:|---|---:|
@@ -391,11 +445,11 @@ Read 遇到明确的上游 HTTP 状态时，会在保持 `code=UPSTREAM_ERROR` �
 | Openverse | `openverse` | 4 | 2 | 公开图片 API | 否 |
 | Wikimedia Commons | `wikimedia` | - | 3 | MediaWiki Action API | 否 |
 
-> v0.1.3 默认链继续严格限定为无需 API Key / 无需注册账号的免费能力。公开 SERP Provider 仍属于 **best-effort**，可能受 DOM 改版、限流、CAPTCHA、网络出口影响，不承诺商业 SLA。
+> v0.1.4 默认 Search/Image 链继续严格限定为无需 API Key / 无需注册账号的免费能力。公开 SERP Provider 仍属于 **best-effort**，可能受 DOM 改版、限流、CAPTCHA、网络出口影响，不承诺商业 SLA。
 
 ---
 
-## 8. 配置参考
+## 9. 配置参考
 
 配置前缀：`openreach.web`，见 `src/main/resources/application.yml`。
 
@@ -422,7 +476,7 @@ Read 遇到明确的上游 HTTP 状态时，会在保持 `code=UPSTREAM_ERROR` �
 | `openreach.web.image-search.global-provider-order` | `bing,openverse,wikimedia` | GLOBAL Image Chain |
 | `openreach.web.image-search.bing-global-url` | `https://www.bing.com/images/async` | GLOBAL Bing Images |
 | `openreach.web.image-search.wikimedia-url` | `https://commons.wikimedia.org/w/api.php` | Wikimedia Action API |
-| `openreach.web.image-search.wikimedia-user-agent` | `OpenReach/0.1.3 (...)` | Wikimedia 可识别 UA |
+| `openreach.web.image-search.wikimedia-user-agent` | `OpenReach/0.1.4 (...)` | Wikimedia 可识别 UA |
 | `openreach.web.image-search.timeout-ms` | `8000` | 单渠道图片搜索超时 |
 | `openreach.web.image-search.max-results` | `30` | Image Search 最大结果数 |
 | `openreach.web.image-search.max-response-bytes` | `4194304` | 单个图片 Provider 上游响应硬上限（4 MiB） |
@@ -442,15 +496,21 @@ Read 遇到明确的上游 HTTP 状态时，会在保持 `code=UPSTREAM_ERROR` �
 | `openreach.web.read.max-chars` | `50000` | 正文字数上限 |
 | `openreach.web.read.max-redirects` | `5` | 最大重定向次数 |
 | `openreach.web.read.allowed-ports` | `[80,443]` | Read 允许访问的公网端口 |
-| `openreach.web.security.max-api-body-bytes` | `65536` | 三个 JSON API 请求体统一硬上限（64 KiB） |
+| `openreach.web.curl.connect-timeout-ms` | `5000` | Curl 建连超时 |
+| `openreach.web.curl.request-timeout-ms` | `10000` | Curl 单次请求超时 |
+| `openreach.web.curl.max-bytes` | `2097152` | Curl 文本响应硬上限（2 MiB） |
+| `openreach.web.curl.max-chars` | `100000` | Curl 默认最大返回字符数 |
+| `openreach.web.curl.max-redirects` | `5` | Curl 最大重定向次数 |
+| `openreach.web.curl.blocked-hosts` | `[]` | 额外 OpenReach 自身公网域名/别名；环境变量 `OPENREACH_CURL_BLOCKED_HOSTS` |
+| `openreach.web.security.max-api-body-bytes` | `65536` | 四个 JSON API 请求体统一硬上限（64 KiB） |
 
-### 8.1 兼容策略
+### 9.1 兼容策略
 
 旧部署如果只维护 `provider-order` 而没有 `cn-provider-order`，CN Route 自动继续使用旧字段；因此 v1.0.1 国内配置可平滑升级。GLOBAL Chain 使用独立 `global-provider-order`，不会把海外 Provider 插入旧 CN 链。
 
 ---
 
-## 9. Agent 典型使用闭环
+## 10. Agent 典型使用闭环
 
 ```text
 search(query)
@@ -462,6 +522,18 @@ read(url)
 获得正文 content、标题、metadata、links
    ↓
 Agent 综合回答 / 引用来源
+```
+
+GitHub / 源码场景：
+
+```text
+search("site:github.com <topic>")
+   ↓
+curl("https://api.github.com/repos/<owner>/<repo>")
+   ↓
+curl("https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>")
+   ↓
+Agent 直接分析源码 / JSON
 ```
 
 图片场景：
@@ -478,7 +550,7 @@ read(sourcePageUrl)
 
 ---
 
-## 10. 服务启动与更多资源
+## 11. 服务启动与更多资源
 
 ```bash
 mvn clean test   # 离线单测门禁
@@ -493,7 +565,7 @@ mvn spring-boot:run
 
 ---
 
-## 11. `All connection attempts failed` 快速判断
+## 12. `All connection attempts failed` 快速判断
 
 如果 Search / Read / Image Search 对多个完全不同目标统一出现：
 

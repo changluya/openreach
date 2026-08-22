@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>面向 AI Agent 的开源 Web 访问基础设施</strong><br/>
-  Search · Image Search · Read
+  Search · Image Search · Read · Safe Curl
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
   <img alt="Spring Boot 4.1" src="https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white" />
   <img alt="Maven 3.9+" src="https://img.shields.io/badge/Maven-3.9%2B-C71A36?logo=apachemaven&logoColor=white" />
   <img alt="Docker Ready" src="https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white" />
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.3-blue" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.1.4-blue" />
 </p>
 
 <p align="center">
@@ -32,19 +32,20 @@
 
 ## OpenReach 是什么？
 
-**OpenReach** 是一个基于 **JDK 17 + Spring Boot** 的开源 Web Access Infrastructure，面向 AI Agent、Agent Platform、Research Agent 和 HTTP Tool 场景，提供三个最基础的 Web 原语：
+**OpenReach** 是一个基于 **JDK 17 + Spring Boot** 的开源 Web Access Infrastructure，面向 AI Agent、Agent Platform、Research Agent 和 HTTP Tool 场景，提供四个核心 Web 原语：
 
 ```text
 search(query)        -> 搜索网页 / 发现信息源
 image-search(query)  -> 文搜图 / 发现图片及来源页
 read(url)            -> 读取网页 / 提取正文与元数据
+curl(url)            -> 读取公开 API / JSON / raw 源码
 ```
 
 核心设计目标只有一句话：
 
 > **Agent 依赖稳定的能力接口，不依赖具体搜索厂商。**
 
-当前 v0.1.3 延续国内与海外零 Key 场景，并新增独立的 `/monitor` 内部调用监控后台。该入口不展示在官网导航中，访问时需要先登录；三个 Web API 的调用记录会异步持久化到 SQLite，默认数据目录为 `./data/monitor`（容器内 `/app/data/monitor`）。核心 Search 路由能力在 v0.1.3 继续沿用并增强：`provider=auto` 时复用现有 `region` 参数，通过 `SearchRouteResolver + ProviderChainResolver` 选择 **CN / GLOBAL** Provider Chain；默认 `region=auto` 仍走 CN，保持 v1.0.1 兼容。工程不要求 Serper、Tavily、Brave API 等商业 Search Key 即可启动。
+当前 v0.1.4 在 v0.1.3 监控与 CN/GLOBAL 零 Key能力上新增 Safe Curl，可读取 GitHub REST API、raw 源码与公开 JSON/text API；`/monitor` 内部调用监控后台继续保留。该入口不展示在官网导航中，访问时需要先登录；四个 Web API 的调用记录会异步持久化到 SQLite，默认数据目录为 `./data/monitor`（容器内 `/app/data/monitor`）。核心 Search 路由能力在 v0.1.3 继续沿用并增强：`provider=auto` 时复用现有 `region` 参数，通过 `SearchRouteResolver + ProviderChainResolver` 选择 **CN / GLOBAL** Provider Chain；默认 `region=auto` 仍走 CN，保持 v1.0.1 兼容。工程不要求 Serper、Tavily、Brave API 等商业 Search Key 即可启动。
 
 > Web Search 的 Bing / 百度 / 搜狗 / 360 / Brave / DuckDuckGo 主要基于公开搜索页面做 best-effort 解析，不属于对应厂商商业 Search API，因此不承诺商业 SLA。Openverse 与 Wikimedia Commons 使用公开读接口。
 
@@ -57,17 +58,18 @@ read(url)            -> 读取网页 / 提取正文与元数据
 | **Web Search** | `POST /api/web/search` | ✅ | CN/GLOBAL 多 Provider 自动降级 + `timeRange` | 标题、URL、摘要、排名、来源、时间范围 |
 | **Image Search** | `POST /api/web/image-search` | ✅ | 多图片 Provider 自动降级 + 原图可下载校验 | 已验证可下载原图、缩略图、来源页、尺寸、License |
 | **Web Read** | `POST /api/web/read` | ✅ | Safe HTTP Fetch + Jsoup | 标题、正文、最终 URL、元数据、Links |
+| **Safe Curl** | `POST /api/web/curl` | ✅ | Public GET/HEAD + SSRF/Self Guard | GitHub/API/raw 源码文本、状态码、响应头 |
 | **Provider Auto Fallback** | 内部能力 | ✅ | Provider SPI + Router | 上游失败后自动切换下一渠道 |
 | **URL 去重** | 内部能力 | ✅ | Search / ImageSearch 聚合层 | 去除重复结果 |
 | **SSRF Protection** | Read / 图片探测内部能力 | ✅ | DNS / IP / Port / Redirect 校验 | 拦截内网、元数据地址和危险跳转 |
 | **响应体限制** | Read 内部能力 | ✅ | max-bytes / max-chars | 避免异常大页面 |
-| **Agent HTTP Plugin** | `docs/agenthub/skills/` | ✅ | 标准 HTTP Plugin JSON | Search / Image Search / Read |
+| **Agent HTTP Plugin** | `docs/agenthub/skills/` | ✅ | 标准 HTTP Plugin JSON | Search / Image Search / Read / Safe Curl |
 | **Docker 部署** | Docker / Compose | ✅ | Runtime-only Image | amd64 / arm64 运行模型 |
 | **内置官网 / Docs** | `/` · `/docs/` | ✅ | Spring Boot Static Resources | 服务启动即访问，无需独立前端 |
-| **OpenReach Skill** | `skills/openreach/` | ✅ | Python Tool + CLI | Init / Doctor / Search / Image Search / Read |
+| **OpenReach Skill** | `skills/openreach/` | ✅ | Python Tool + CLI | Init / Doctor / Search / Image Search / Read / Curl |
 | **Dynamic Browser Read** | - | ⏳ | 预留 Playwright Reader | JS 渲染页面 |
 | **CN / GLOBAL Region Router** | 内部能力 | ✅ | `SearchRouteResolver + ProviderChainResolver` | `region` 驱动国内/海外免费链路 |
-| **Public Attack Surface Guard** | HTTP Filter | ✅ | 三 API 精确 Allowlist + JSON-only + 静态资源 Allowlist | 禁上传/危险 Method/未知端点/路径穿越/超大请求体 |
+| **Public Attack Surface Guard** | HTTP Filter | ✅ | 四 API 精确 Allowlist + JSON-only + 静态资源 Allowlist | 禁上传/危险 Method/未知端点/路径穿越/超大请求体 |
 | **Internal Monitor** | `GET /monitor` | ✅ | Session + SQLite + Async Writer | 今日/7日/自定义区间、失败下钻、请求明细、失败记录 UTF-8 日志导出 |
 
 ### 当前能力边界
@@ -79,7 +81,7 @@ read(url)            -> 读取网页 / 提取正文与元数据
 | HTML / SSR 网页读取 | ✅ | 当前 Read 核心场景 |
 | Provider 自动降级 | ✅ | 超时、解析失败、空结果时继续下一 Provider |
 | Region 参数 | ✅ | `CN` aliases 走 CN；其他显式地区走 GLOBAL；`auto` 默认 CN |
-| Pagination | ❌ | v0.1.3 仍聚焦首屏 / Top-N |
+| Pagination | ❌ | v0.1.4 仍聚焦首屏 / Top-N |
 | Search 时间范围 | ✅ | `timeRange=any/day/week/month/year`；auto 只调用真正支持该过滤的 Provider |
 | 精确 Geo | ❌ | 不承诺商业级地理定位 |
 | Knowledge Graph / Shopping / Places | ❌ | 后续以垂直 Provider 扩展 |
@@ -97,7 +99,7 @@ OpenReach 的核心价值不是只提供一个“搜索接口”，而是把 **�
 | 场景 | Search | Read | 典型用途 |
 |---|---:|---:|---|
 | **企业 / 产品官网** | ✅ | ✅ | 搜索官网、产品页、解决方案、价格页、更新日志，再读取页面正文 |
-| **技术文档 / 开源项目** | ✅ | ✅ | 搜索官方文档、GitHub 相关页面、博客、技术说明，并提取正文供 Agent 分析 |
+| **技术文档 / 开源项目** | ✅ | ✅ | 搜索官方文档、GitHub 页面；遇到 GitHub API/raw 源码时继续用 Safe Curl 读取机器可读内容 |
 | **新闻 / 行业资讯** | ✅ | ✅ | 搜索新闻、媒体报道、行业动态，继续读取原始来源页面 |
 | **博客 / 专栏 / 内容站点** | ✅ | ✅ | 搜索文章并读取正文，用于知识整理、摘要、研究与引用 |
 | **微信公众号公开文章** | ✅* | ✅* | 搜索公开推文链接，或直接传入公开文章 URL 读取正文 |
@@ -125,7 +127,7 @@ Agent 总结、问答、对比、引用或继续深度检索
 
 > **微信公众号说明：** OpenReach 可以对公开可访问的微信文章 URL 尝试执行 `read`；也可以通过 Web Search 尝试发现已经被搜索引擎收录的微信公众号文章。实际可发现性取决于搜索引擎收录情况，页面能否读取则取决于微信页面当时的访问策略、反爬限制和网络环境，因此属于 best-effort 能力，不承诺所有公众号文章都能稳定搜索或读取。
 
-> 对于需要登录、验证码、强 JavaScript 渲染或严格反爬的页面，当前 v0.1.3 的静态 HTTP Reader 可能无法完整读取，后续计划通过 Playwright / Browser Reader 扩展动态页面能力。
+> 对于需要登录、验证码、强 JavaScript 渲染或严格反爬的页面，当前 v0.1.4 的静态 HTTP Reader 可能无法完整读取，后续计划通过 Playwright / Browser Reader 扩展动态页面能力。
 
 ---
 
@@ -151,7 +153,7 @@ docker run -d \
   --log-driver json-file \
   --log-opt max-size=20m \
   --log-opt max-file=3 \
-  codercl/openreach:0.1.3
+  codercl/openreach:0.1.4
 ```
 
 服务启动后同时内置 OpenReach 官网与文档站点：
@@ -197,7 +199,7 @@ docker run -d \
   -e OPENREACH_MONITOR_PASSWORD="$MONITOR_PASSWORD" \
   -v /data/openreach/data:/app/data \
   -v /data/openreach/logs:/app/logs \
-  codercl/openreach:0.1.3
+  codercl/openreach:0.1.4
 ```
 
 不传时默认仍为 `openreach / openreach`。如果密码包含 `$`、`!`、空格等 shell 特殊字符，推荐使用项目提供的 `.env.example` 复制成 `.env` 后由 Compose 读取，避免命令行转义错误。
@@ -570,6 +572,7 @@ openreach/
 - [WebSearch 核心流程设计](docs/核心搜索接口设计/01-websearch核心流程设计.md)
 - [ImageSearch 核心流程设计](docs/核心搜索接口设计/02-imagesearch核心流程设计.md)
 - [Read 核心流程设计](docs/核心搜索接口设计/03-read核心流程设计.md)
+- [Safe Curl 核心流程设计](docs/核心搜索接口设计/04-curl核心流程设计.md)
 
 ### 核心市场调研
 
@@ -610,12 +613,13 @@ docs/agenthub/skills/openreach-http-plugin.json
 
 > **容器 / 沙箱注意：** Plugin 的 `BASE_URL` 必须是 **AgentHub / Tool Runner 所在环境可以访问** 的 OpenReach 地址。不要把 `localhost:8080` 当成跨容器默认值；Tool Runner 在另一个容器时，`localhost` 指向 Tool Runner 自身。若两个容器在同一 Docker Network，可使用 `http://openreach:8080`（以实际 Service/Container 名称为准）。出现裸 `All connection attempts failed` 且没有 OpenReach `traceId` 时，先运行 `BASE_URL=<实际地址> ./bin/quick/connectivity-test.sh`。
 
-三个核心能力可以直接封装为 Agent Tool：
+四个核心能力可以直接封装为 Agent Tool：
 
 ```text
 search
 image-search
 read
+curl
 ```
 
 适合作为 AgentHub、Research Agent、Coding Agent、企业内部智能体平台的 Web 基础能力层。
@@ -643,6 +647,14 @@ v0.1.2
 ├── 三 API + 官网静态资源安全白名单     ✅
 └── 路由 / Provider / 安全 / 回归测试扩增 ✅
 ```
+
+### v0.1.4 Safe Curl / GitHub 源码读取
+
+- `POST /api/web/curl`：仅公网 80/443，GET/HEAD only；
+- 适合 GitHub REST API、`raw.githubusercontent.com` 与公开 JSON/text API；
+- 禁止请求 OpenReach 自身：当前 Host/serverName/localAddr、自身 Host 解析出的公网 IP、本机网卡地址及 `OPENREACH_CURL_BLOCKED_HOSTS` 均参与校验；
+- 禁止 Authorization/Cookie/Host/X-Forwarded-* 等敏感 Header、写 Method、二进制下载；
+- 每次 Redirect 重新执行 SSRF + self-target 校验。
 
 ### v0.1.3 内部监控后台
 
@@ -675,7 +687,7 @@ OPENREACH_MONITOR_TRUSTED_PROXY_CIDRS='127.0.0.1/32,::1/128,172.16.0.0/12,10.10.
 ```bash
 OPENREACH_MONITOR_USERNAME=admin \
 OPENREACH_MONITOR_PASSWORD='change-me' \
-OPENREACH_IMAGE=codercl/openreach:0.1.3 \
+OPENREACH_IMAGE=codercl/openreach:0.1.4 \
   docker compose up -d --force-recreate
 ```
 

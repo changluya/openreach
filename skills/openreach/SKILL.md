@@ -36,7 +36,7 @@ python3 scripts/openreach.py check
 - `config.json` 无效：报告配置无效，并提示用户提供/确认正确的 `<OPENREACH_BASE_URL>`；**禁止自动修复、覆盖或删除**。
 - 单次接口探测失败：只报告探测失败，**禁止自动重试、切换地址或连续探测其他接口**。
 - `check` 失败 **不等于获得执行 `init` 的权限**。未初始化时应先向用户索要 `<OPENREACH_BASE_URL>`；只有用户明确提供该地址并要求初始化时，才执行 `init`。
-- `check` 成功一次后，本次任务内直接使用 Search / Image Search / Read，**不要在每次 Tool 调用前重复 check**。
+- `check` 成功一次后，本次任务内直接使用 Search / Image Search / Read / Curl，**不要在每次 Tool 调用前重复 check**。
 - `check` 判断的是 Skill 自己的持久化初始化状态，因此只认当前 Skill 的 `config.json`；不会因为环境变量或本机某个地址恰好可用就把“未初始化”误判为“已初始化”。
 
 成功示例：
@@ -88,7 +88,7 @@ python3 scripts/openreach.py doctor
 
 **正常 Agent 不应执行 `check -> doctor -> search`。正确流程是 `check` 成功后直接调用业务 Tool。**
 
-## 4. 三个核心 Tool
+## 4. 四个核心 Tool
 
 ### search
 
@@ -100,7 +100,7 @@ python3 scripts/openreach.py search "Spring Boot AI Agent" \
   --limit 5
 ```
 
-`region` **始终建议显式展示**。默认值为 `auto`；v0.1.3 中 `auto` 默认进入 CN Route。`CN / zh-CN` 等中国 alias 走国内免费链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 免费链；之后 `region` 继续作为 Provider 的 locale/country Hint。它不是商业级精确 Geo，但已是核心 Route 参数。
+`region` **始终建议显式展示**。默认值为 `auto`；v0.1.4 中 `auto` 默认进入 CN Route。`CN / zh-CN` 等中国 alias 走国内免费链，`US / JP / SG / GB / GLOBAL / wt-wt` 等其他显式地区进入 GLOBAL 免费链；之后 `region` 继续作为 Provider 的 locale/country Hint。它不是商业级精确 Geo，但已是核心 Route 参数。
 
 `time-range` 对应 HTTP `timeRange`，支持 `any/day/week/month/year`，默认 `any`。需要“最近一天/一周/一月/一年”的最新性约束时应显式传入；`provider=auto` 会自动跳过不能真实执行时间过滤的 Provider，不能把该参数仅当作提示词。
 
@@ -135,15 +135,51 @@ AgentHub/沙箱内部附件 URL                   -> 禁止 read
 
 如果 URL 是当前 Agent/Tool Runner 自己的附件、图片、日志或内部服务资源，**使用调用方已有的文件/图片/资源读取能力**，不要把内部 URL 交给 OpenReach 当代理。Skill 客户端会对明显的私网 IP、非 80/443 和二进制图片 URL 本地 fail-fast，避免制造无意义的 400 失败请求；服务端仍保留完整 SSRF/DNS/Redirect 二次校验。
 
+### curl
+
+`curl` 用于读取**公开机器可读文本资源**，重点补齐 GitHub REST API、`raw.githubusercontent.com` 源码、公开 JSON/XML/YAML/text API：
+
+```bash
+python3 scripts/openreach.py curl \
+  "https://api.github.com/repos/spring-projects/spring-boot" \
+  --method GET \
+  --header "Accept: application/vnd.github+json" \
+  --max-chars 100000
+```
+
+读取 raw 源码：
+
+```bash
+python3 scripts/openreach.py curl \
+  "https://raw.githubusercontent.com/spring-projects/spring-boot/main/README.adoc"
+```
+
+**Curl 不是任意 shell/HTTP 代理。v0.1.4 强约束：**
+
+```text
+只允许 GET / HEAD
+只允许公网 HTTP/HTTPS 80/443
+禁止 localhost / 私网 / link-local / metadata / 保留地址
+禁止请求 OpenReach 自身
+禁止 Authorization / Cookie / Host / X-Forwarded-* 等敏感头
+每次 Redirect 重新做 SSRF + self-target 校验
+只返回 JSON / text / source 等文本内容，不下载图片/ZIP 等二进制
+```
+
+“禁止请求 OpenReach 自身”不仅比较 URL 字符串：服务端还会检查当前请求 `Host/serverName/localAddr`、这些自身 Host 解析出的公网 IP、OpenReach 本机/容器所有网卡地址，以及 `OPENREACH_CURL_BLOCKED_HOSTS` 中配置的额外公网别名。
+
+如果是 GitHub 私有仓库、需要 Token 的高配额 API 或其他登录态接口，**不要**把 Token 塞给 Curl；应改用专用 GitHub Connector/上层凭据能力。
+
 ## 5. Python Tool 调用
 
 ```python
-from skills.openreach import check_initialized, search, image_search, read
+from skills.openreach import check_initialized, search, image_search, read, curl
 
 state = check_initialized()  # 每个任务只需一次；成功后不要重复 check
 results = search("OpenReach AI Agent", limit=5, region="US", provider="auto", time_range="month")
 page = read(results["items"][0]["url"], max_chars=20000)
 images = image_search("OpenReach logo", limit=5, region="auto")
+repo = curl("https://api.github.com/repos/spring-projects/spring-boot")
 ```
 
 Base URL 读取优先级：
@@ -160,7 +196,7 @@ skills/openreach/config.json
 
 ## 6. ChatGPT-like Search SOP
 
-> 这不是对 ChatGPT 私有服务端实现的复刻。它基于项目现有调研中公开可观察的 Agentic Search 思路，抽象为 OpenReach 三原语可以执行的通用 SOP。
+> 这不是对 ChatGPT 私有服务端实现的复刻。它基于项目现有调研中公开可观察的 Agentic Search 思路，抽象为 OpenReach 四原语可以执行的通用 SOP。
 
 ### Step 0：判断是否需要 Web
 
@@ -207,18 +243,20 @@ python3 scripts/openreach.py search "..." --region US --provider auto --time-ran
 
 对于重要结论，尽量选择多个相互独立的来源，而不是只依赖一个搜索结果。
 
-### Step 4：Read 打开原页面
+### Step 4：Read / Curl 打开原始来源
 
-对真正相关的候选 URL 调用：
+对普通网页正文调用 `read`；对 GitHub API、raw 源码或公开 JSON/text API 调用 `curl`：
 
 ```bash
 python3 scripts/openreach.py read "https://..."
+python3 scripts/openreach.py curl "https://api.github.com/repos/owner/repo"
+python3 scripts/openreach.py curl "https://raw.githubusercontent.com/owner/repo/main/path/to/File.java"
 ```
 
 核心原则：
 
 ```text
-Search Result ≠ Consulted Source ≠ Citation
+Search Result ≠ Consulted Source（Read/Curl）≠ Citation
 ```
 
 “搜到一个 URL”并不代表已经读取过，也不代表它足以支持最终答案。
@@ -251,6 +289,26 @@ Evidence
 Citation
 ```
 
+### GitHub 源码任务
+
+当目标是“搜索 GitHub 并真正阅读源码”时，不要停留在仓库 README 页面：
+
+```text
+Search: site:github.com <主题/仓库>
+  ↓
+确认 owner/repo
+  ↓
+Curl: https://api.github.com/repos/<owner>/<repo>
+  ↓
+Curl: https://api.github.com/repos/<owner>/<repo>/contents/<path>
+  ↓
+必要时转 raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>
+  ↓
+直接阅读源码 / JSON / 配置文件
+```
+
+GitHub 匿名 API 有官方限流，遇到限流应减少请求、使用 Search/Read 补充公开页面或切换专用 GitHub Connector，不通过伪造身份、Token 透传或代理轮换绕过。
+
 ### 图片任务
 
 需要图片时独立调用 `image-search`。`imageUrl` 已通过即时可下载校验；同时优先保留 `sourcePageUrl`，必要时继续 `read(sourcePageUrl)` 获取图片上下文、出处与许可信息。
@@ -258,7 +316,7 @@ Citation
 ## 7. 公众号 / 官网等典型场景
 
 - **官网 / 产品页**：Search 找官网与具体页面，再 Read 原页面。
-- **技术文档 / GitHub**：Search 找官方文档、仓库说明、Release 页面，再 Read。
+- **技术文档 / GitHub**：Search 找官方文档/仓库；普通页面用 Read，GitHub API、raw 源码和机器可读 JSON/text 用 Curl。
 - **微信公众号公开文章**：Search 尝试发现已被搜索引擎收录的公开文章；若已知公开 URL，则直接 Read。是否可发现/读取受搜索引擎收录、微信访问策略和页面可访问状态影响。
 - **新闻 / 行业调研**：多 Query + 多来源 Search，再 Read 原始报道并交叉验证。
 - **内容配图**：image-search 获取图片、来源页和许可元数据（Provider 可提供时）。
@@ -268,7 +326,8 @@ Citation
 - 免费 Search Provider 属于 best-effort，上游页面改版、限流或网络出口都可能影响结果。
 - `read` 面向公开 HTTP/HTTPS 页面，不用于绕过登录、验证码、访问控制或反爬机制。
 - **不要把私网/localhost/非 80/443、AgentHub/沙箱内部附件 URL、图片/压缩包二进制 URL 传给 `read`**；这是调用方使用错误，不应通过放宽 SSRF 修复。
-- 服务公网只开放三个 JSON POST API 与官网只读静态资源；Skill 不应尝试文件上传、任意 Method、Actuator/debug 等未暴露能力。
+- 服务公网只开放四个 JSON POST API（Search / Image Search / Read / Curl）与官网只读静态资源；Skill 不应尝试文件上传、任意 Method、Actuator/debug 等未暴露能力。
+- Curl 只允许 GET/HEAD，并禁止请求 OpenReach 自身；不要尝试用其他 Host alias、回环/私网 IP、Redirect 或代理 Header 绕过。
 - Read 与图片原图探测只允许公网 HTTP/HTTPS 80/443，并对跳转目标重新做 SSRF 校验。
 - `502 UPSTREAM_ERROR` 如果返回 `failureType/upstreamStatus/retryable`：
   - `HTTP_403 / HTTP_412` 且 `retryable=false`：目标站拒绝当前公开 HTTP 读取，**不要对同一 URL 机械重试**；优先换一手公开来源，其次回退 Search snippet 并明确未成功读取正文。
@@ -278,4 +337,4 @@ Citation
 
 ## 连接失败快速判断
 
-如果 Search / Read / Image Search 统一出现 `All connection attempts failed`（或 Skill 报 `Cannot reach OpenReach at ...`），并且没有 OpenReach 后端 `traceId`，说明请求没有到 OpenReach。不要继续换 query、Provider 或目标 URL 重试；应检查已配置 `base_url` 是否从当前 Agent/Tool Runner 环境真实可达。容器/沙箱中的 `localhost` 指向当前容器自身，不代表 OpenReach。
+如果 Search / Read / Image Search / Curl 统一出现 `All connection attempts failed`（或 Skill 报 `Cannot reach OpenReach at ...`），并且没有 OpenReach 后端 `traceId`，说明请求没有到 OpenReach。不要继续换 query、Provider 或目标 URL 重试；应检查已配置 `base_url` 是否从当前 Agent/Tool Runner 环境真实可达。容器/沙箱中的 `localhost` 指向当前容器自身，不代表 OpenReach。

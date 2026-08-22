@@ -20,9 +20,11 @@ class AgentHubPluginConfigTest {
 
         assertTrue(json.contains("\"baseUrl\": \"{{BASE_URL}}\""));
         assertTrue(json.contains("Tool Runner"));
-        assertTrue(json.contains("v0.1.3"));
+        assertTrue(json.contains("v0.1.4"));
         assertTrue(json.contains("私网"));
         assertTrue(json.contains("HTTP_412"));
+        assertTrue(json.contains("/api/web/curl"));
+        assertTrue(json.contains("OpenReach 自身"));
         assertFalse(json.contains("\"baseUrl\": \"http://localhost:8080\""));
     }
 }

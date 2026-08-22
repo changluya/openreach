@@ -28,14 +28,14 @@
   <main class="docs-main">
     <div class="mobile-docs"><select data-doc-select aria-label="切换文档"><option value="/docs/" selected>1. 快速启动</option><option value="/docs/api.html">2. 官方接口文档</option><option value="/changelog">3. 更新日志</option></select></div>
     <div class="doc-eyebrow">Getting Started</div><h1>快速启动</h1>
-    <p class="lead">从启动 OpenReach 到完成第一次 Search / Image Search / Read 调用。服务启动后，根地址就是内置官网，无需额外部署前端。</p>
+    <p class="lead">从启动 OpenReach 到完成第一次 Search / Image Search / Read / Safe Curl 调用。服务启动后，根地址就是内置官网，无需额外部署前端。</p>
 
     <section class="docs-concept" id="design">
       <div class="doc-eyebrow">Core Design</div>
       <h2>核心设计思路</h2>
-      <p>OpenReach 不做“单一搜索引擎代理”，而是把 Agent 联网能力收敛成 <strong>Search / Image Search / Read</strong> 三个稳定原语。上层 Agent 只依赖统一接口，底层 Provider 可以按地区、可用性和能力持续替换或扩展。</p>
+      <p>OpenReach 不做“单一搜索引擎代理”，而是把 Agent 联网能力收敛成 <strong>Search / Image Search / Read / Safe Curl</strong> 四个稳定原语。上层 Agent 只依赖统一接口，底层 Provider 可以按地区、可用性和能力持续替换或扩展。</p>
       <div class="design-flow" aria-label="OpenReach 核心调用流程">
-        <div><b>Agent / Skill</b><span>统一调用三大原语</span></div>
+        <div><b>Agent / Skill</b><span>统一调用四大原语</span></div>
         <i>→</i>
         <div><b>OpenReach API</b><span>参数校验 · 安全边界</span></div>
         <i>→</i>
@@ -47,7 +47,7 @@
         <article><b>统一原语</b><span>Agent 不感知各搜索渠道差异，降低接入和迁移成本。</span></article>
         <article><b>双路由 + Fallback</b><span><code>region</code> 先解析为 CN / GLOBAL，再执行对应 Provider Chain；单路失败自动切换。</span></article>
         <article><b>免费优先</b><span>默认链无需 Search API Key，不绑定商业搜索服务，适合自托管和 Agent 基础设施。</span></article>
-        <article><b>安全默认拒绝</b><span>仅开放三个核心 POST API；Read 与图片下载统一执行 SSRF、重定向和响应体安全校验。</span></article>
+        <article><b>安全默认拒绝</b><span>仅开放四个核心 POST API；Read/Curl 与图片下载统一执行 SSRF、重定向和响应体安全校验，Curl 额外禁止请求 OpenReach 自身。</span></article>
       </div>
     </section>
 
@@ -62,6 +62,7 @@
             <tr><td><strong>Web Search</strong></td><td><code>Bing CN</code> → <code>Baidu</code> → <code>Sogou</code> → <code>360</code> → <code>DuckDuckGo</code></td><td><code>Brave</code> → <code>DuckDuckGo</code> → <code>Bing Global</code></td><td>逐路 fallback，结果 URL 去重并统一重排</td></tr>
             <tr><td><strong>Image Search</strong></td><td><code>Bing Images</code> → <code>Baidu Images</code> → <code>Sogou Images</code> → <code>Openverse</code></td><td><code>Bing Images</code> → <code>Openverse</code> → <code>Wikimedia Commons</code></td><td>候选图片必须通过即时下载与真实图片字节校验</td></tr>
             <tr><td><strong>Web Read</strong></td><td colspan="2"><code>JsoupPageReader</code> + <code>SafeHttpFetcher</code> 本地读取链</td><td>读取公开 HTML / SSR 页面，不依赖第三方 Reader Key</td></tr>
+            <tr><td><strong>Safe Curl</strong></td><td colspan="2"><code>CurlService</code> + <code>CurlTargetGuard</code> 安全公网请求链</td><td>只读 GET/HEAD；适合 GitHub API/raw 与公开 JSON/text，禁止私网和 OpenReach 自请求</td></tr>
           </tbody>
         </table>
       </div>
@@ -142,6 +143,15 @@ mvn spring-boot:run</pre></div>
     "url": "https://spring.io/projects/spring-boot/",
     "maxChars": 20000
   }'</pre></div>
+    <h3>读取 GitHub API / raw 源码</h3>
+    <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#safe-curl">复制</button><pre id="safe-curl">curl -X POST 'http://localhost:8080/api/web/curl' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "url": "https://raw.githubusercontent.com/changluya/openreach/main/README.md",
+    "method": "GET",
+    "maxChars": 100000
+  }'</pre></div>
+    <div class="note"><strong>Safe Curl：</strong>只允许公网 HTTP(S) 80/443 的 GET/HEAD 文本请求；禁止 localhost/私网/Metadata、禁止敏感认证头，并强制禁止请求 OpenReach 自身及其本机网卡地址。若存在额外公网别名，通过 <code>OPENREACH_CURL_BLOCKED_HOSTS</code> 一并加入拒绝列表。</div>
 
     <h2>5. 使用 OpenReach Skill / Python CLI</h2>
     <p>项目根目录内置 <code>skills/openreach/</code>，官网也提供 ZIP 一键下载。CLI 只依赖 Python 标准库，不需要额外安装 requests。</p>
@@ -149,11 +159,12 @@ mvn spring-boot:run</pre></div>
 
 python3 skills/openreach/scripts/openreach.py search "AI Agent" --region US --provider auto --time-range month --limit 5
 python3 skills/openreach/scripts/openreach.py image-search "杭州西湖" --region auto --provider auto --limit 8
-python3 skills/openreach/scripts/openreach.py read "https://spring.io/projects/spring-boot/" --max-chars 20000</pre></div>
-    <p>推荐 Agent 调用顺序：<code>search(query)</code> 发现可信来源 → 仅对<strong>公网 80/443 的 HTML/XHTML/纯文本页面</strong>使用 <code>read(url)</code> → 再由模型总结、对比或引用。AgentHub/沙箱生成的私网附件 URL、图片二进制和非标准端口资源应由调用方自己的文件/图片能力处理，不应转交 OpenReach Read。</p>
+python3 skills/openreach/scripts/openreach.py read "https://spring.io/projects/spring-boot/" --max-chars 20000
+python3 skills/openreach/scripts/openreach.py curl "https://raw.githubusercontent.com/changluya/openreach/main/README.md" --max-chars 100000</pre></div>
+    <p>推荐 Agent 调用顺序：<code>search(query)</code> 发现可信来源 → 普通 HTML 页面使用 <code>read(url)</code>；GitHub REST API、raw 源码、公开 JSON/text API 使用 <code>curl(url)</code> → 再由模型总结、对比或引用。AgentHub/沙箱生成的私网附件 URL、图片二进制和非标准端口资源应由调用方自己的文件/图片能力处理，不应转交 OpenReach Read。</p>
 
     <h2>6. 当前边界</h2>
-    <ul><li>免费搜索 Provider 属于 best-effort，不承诺商业 SLA。</li><li>微信公众号仅支持公开可访问页面；搜索可发现性依赖搜索引擎是否已收录。</li><li>当前 Read 聚焦公网 HTML/XHTML/纯文本页面，只允许 HTTP/HTTPS 80/443；私网/本机/内部附件与图片二进制不属于 Read 能力边界。</li><li>强 JavaScript、登录、验证码、HTTP 403/412 等访问策略页面不保证可读；此类明确拒绝不应对同一 URL 机械重试，应换公开来源或退回搜索摘要。</li><li>v0.1.3 默认链无需 API Key；免费 SERP 不承诺商业级精确 Geo 或高 QPS SLA。</li></ul>
+    <ul><li>免费搜索 Provider 属于 best-effort，不承诺商业 SLA。</li><li>微信公众号仅支持公开可访问页面；搜索可发现性依赖搜索引擎是否已收录。</li><li>当前 Read 聚焦公网 HTML/XHTML/纯文本页面，只允许 HTTP/HTTPS 80/443；私网/本机/内部附件与图片二进制不属于 Read 能力边界。</li><li>强 JavaScript、登录、验证码、HTTP 403/412 等访问策略页面不保证可读；此类明确拒绝不应对同一 URL 机械重试，应换公开来源或退回搜索摘要。</li><li>v0.1.4 默认链无需 Search API Key；免费 SERP 不承诺商业级精确 Geo 或高 QPS SLA。</li></ul>
 
     
     <h2 id="skill">下载并初始化 OpenReach Skill</h2>
@@ -162,7 +173,7 @@ python3 skills/openreach/scripts/openreach.py read "https://spring.io/projects/s
 
 # 只有用户明确给出服务地址并要求初始化时才执行
 python3 scripts/openreach.py init '&lt;OPENREACH_BASE_URL&gt;'</pre></div>
-    <p><code>check</code> 的唯一网络探测是 <code>POST /api/web/search</code> + 空 JSON，预期在本地参数校验阶段返回 <code>400 / VALIDATION_ERROR</code>，不会执行真实搜索或访问上游 Provider。check 成功后，本次任务直接使用 Search / Image Search / Read；<code>doctor</code> 只用于人工排障。</p>
+    <p><code>check</code> 的唯一网络探测是 <code>POST /api/web/search</code> + 空 JSON，预期在本地参数校验阶段返回 <code>400 / VALIDATION_ERROR</code>，不会执行真实搜索或访问上游 Provider。check 成功后，本次任务直接使用 Search / Image Search / Read / Curl；<code>doctor</code> 只用于人工排障。</p>
     <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#skill-search">复制</button><pre id="skill-search">python3 scripts/openreach.py search "OpenReach AI Agent" \
   --region US \
   --provider auto \

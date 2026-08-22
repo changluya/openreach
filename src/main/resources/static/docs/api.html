@@ -27,8 +27,8 @@
   </aside>
   <main class="docs-main">
     <div class="mobile-docs"><select data-doc-select aria-label="切换文档"><option value="/docs/">1. 快速启动</option><option value="/docs/api.html" selected>2. 官方接口文档</option><option value="/changelog">3. 更新日志</option></select></div>
-    <div class="doc-eyebrow">API Reference · v0.1.3</div><h1>官方接口文档</h1>
-    <p class="lead">OpenReach v0.1.3 继续只对外提供三个核心 HTTP POST 能力；官网、文档和 Skill ZIP 作为只读静态资源提供。以下参数以当前 Java DTO、Service 与安全过滤器为准。</p>
+    <div class="doc-eyebrow">API Reference · v0.1.4</div><h1>官方接口文档</h1>
+    <p class="lead">OpenReach v0.1.4 对外提供四个核心 HTTP POST 能力；官网、文档和 Skill ZIP 作为只读静态资源提供。以下参数以当前 Java DTO、Service 与安全过滤器为准。</p>
     <div class="note">Base URL：<code>http://localhost:8080</code>。所有接口路径统一位于 <code>/api/web</code>。</div>
 
 
@@ -54,7 +54,7 @@
 
     <section class="endpoint-block">
       <h2 style="margin-top:0"><span class="method">POST</span>/api/web/image-search</h2>
-      <p>根据文本搜索图片与来源页面。v0.1.3 会继续对原始 <code>imageUrl</code> 做公网 URL/重定向校验和真实图片字节探测，只把当前可直接下载的被动图片格式返回给调用方。</p>
+      <p>根据文本搜索图片与来源页面。v0.1.4 会继续对原始 <code>imageUrl</code> 做公网 URL/重定向校验和真实图片字节探测，只把当前可直接下载的被动图片格式返回给调用方。</p>
       <h3>请求参数</h3>
       <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
         <tr><td><code>query</code></td><td>string</td><td>是</td><td>非空图片搜索关键词，最长 500 字符</td></tr>
@@ -86,8 +86,27 @@
       <p>响应字段：<code>url</code>、<code>finalUrl</code>、<code>title</code>、<code>content</code>、<code>contentType</code>、<code>reader</code>、<code>truncated</code>、<code>latencyMs</code>、<code>metadata</code>、<code>links</code>。若公网目标明确返回 403/412/521 等状态，仍保持 HTTP 502 + <code>UPSTREAM_ERROR</code> 兼容，同时附加 <code>failureType</code>、<code>upstreamStatus</code>、<code>retryable</code>，便于 Agent 判断换源还是结束重试。</p>
     </section>
 
+    <section class="endpoint-block">
+      <h2 style="margin-top:0"><span class="method">POST</span>/api/web/curl</h2>
+      <p><strong>Safe Curl</strong> 用于读取公网 HTTP(S) 的 JSON、文本和源码内容，典型场景是 GitHub REST API、<code>raw.githubusercontent.com</code>、公开 OpenAPI/JSON/YAML 数据源。它不是 shell curl 透传，也不允许写请求。</p>
+      <h3>请求参数</h3>
+      <div class="table-wrap param-table"><table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
+        <tr><td><code>url</code></td><td>string</td><td>是</td><td>公网 HTTP(S) URL，最长 2048 字符；仅允许 80/443</td></tr>
+        <tr><td><code>method</code></td><td>string</td><td>否</td><td>仅允许 <code>GET</code> / <code>HEAD</code>，默认 GET</td></tr>
+        <tr><td><code>headers</code></td><td>object</td><td>否</td><td>最多 16 个普通请求头；Authorization、Cookie、Host、X-Forwarded-*、常见 Token/API-Key 头等敏感头禁止透传</td></tr>
+        <tr><td><code>maxChars</code></td><td>integer</td><td>否</td><td>1000–200000；默认 100000，并同时受服务端最大响应字节数限制</td></tr>
+      </tbody></table></div>
+      <h3>GitHub 源码读取示例</h3>
+      <div class="codebox"><button type="button" class="copy-btn" aria-label="复制代码" data-copy="#api-curl">复制</button><pre id="api-curl">curl -X POST 'http://localhost:8080/api/web/curl' \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://raw.githubusercontent.com/changluya/openreach/main/README.md","method":"GET","maxChars":100000}'</pre></div>
+      <p><strong>强制安全边界：</strong>目标 URL 每一跳都先执行 SSRF 校验；禁止 localhost、RFC1918/链路本地/保留地址、云 Metadata、非 80/443 端口，并额外禁止请求 OpenReach 自身。自请求识别会综合当前请求的 <code>Host/serverName/localAddr</code>、本机所有网卡地址以及 <code>OPENREACH_CURL_BLOCKED_HOSTS</code> 配置的额外域名/通配域名，防止该接口被用于回打自身管理面或爆破自身服务。</p>
+      <p><strong>内容边界：</strong>只接收文本类响应（text/*、JSON、XML、JavaScript、YAML/TOML 等）；图片、压缩包、可执行文件等二进制内容直接拒绝。GitHub 私有仓库或需要登录/Token 的内容不应通过该接口获取。</p>
+      <p>响应字段：<code>url</code>、<code>finalUrl</code>、<code>method</code>、<code>statusCode</code>、<code>contentType</code>、<code>body</code>、<code>truncated</code>、<code>redirects</code>、<code>latencyMs</code>、<code>headers</code>。</p>
+    </section>
+
     <h2>安全边界</h2>
-    <ul><li>公网 API 仅允许上述三个精确 POST 路径；只接受 <code>application/json</code> / <code>application/*+json</code>，不提供上传、写文件、Actuator 或调试接口。</li><li>三个 JSON API 请求体默认统一限制为 <strong>64 KiB</strong>；即使是 chunked / 未声明 Content-Length 的请求，也会在真实读取时执行同一上限。</li><li><code>multipart/*</code>、危险 HTTP Method、未知 API 路径、路径穿越会在统一安全 Filter 中提前拒绝。</li><li>Read 与图片下载探测只允许公网 HTTP/HTTPS 80/443，并对重定向目标重新执行 SSRF 校验；图片还必须通过真实图片 Magic Bytes 验证。</li><li>官网静态资源固定来自 classpath，并使用 CSP、nosniff、DENY frame 等响应头限制浏览器攻击面。</li></ul>
+    <ul><li>公网 API 仅允许上述四个精确 POST 路径；只接受 <code>application/json</code> / <code>application/*+json</code>，不提供上传、写文件、Actuator 或调试接口。</li><li>四个 JSON API 请求体默认统一限制为 <strong>64 KiB</strong>；即使是 chunked / 未声明 Content-Length 的请求，也会在真实读取时执行同一上限。</li><li><code>multipart/*</code>、危险 HTTP Method、未知 API 路径、路径穿越会在统一安全 Filter 中提前拒绝。</li><li>Read、Safe Curl 与图片下载探测只允许公网 HTTP/HTTPS 80/443，并对重定向目标重新执行 SSRF 校验；图片还必须通过真实图片 Magic Bytes 验证。</li><li>官网静态资源固定来自 classpath，并使用 CSP、nosniff、DENY frame 等响应头限制浏览器攻击面。</li></ul>
 
     <h2>错误响应</h2>
     <p>Controller / Service 层错误包含时间戳、HTTP 状态码、错误码、<code>traceId</code> 和信息；安全 Filter 提前拒绝的响应也包含 <code>traceId</code>。所有请求响应头同时返回 <code>X-OpenReach-Trace-Id</code>，可用于检索持久化日志。</p>
@@ -116,12 +135,16 @@
       <tr><td><code>image-search.download-max-candidates</code></td><td>60</td><td>单请求最多验证的图片候选数</td></tr>
       <tr><td><code>image-search.download-validation-concurrency</code></td><td>6</td><td>图片可下载验证并发</td></tr>
       <tr><td><code>read.allowed-ports</code></td><td>80, 443</td><td>Read 公网访问允许端口</td></tr>
-      <tr><td><code>security.max-api-body-bytes</code></td><td>65536</td><td>三个 JSON API 请求体统一硬上限</td></tr>
+      <tr><td><code>curl.max-bytes</code></td><td>2 MiB</td><td>Safe Curl 单次公网文本响应字节上限</td></tr>
+      <tr><td><code>curl.max-chars</code></td><td>100000</td><td>Safe Curl 默认返回字符上限</td></tr>
+      <tr><td><code>curl.max-redirects</code></td><td>5</td><td>Safe Curl 最大跳转次数，每跳重新安全校验</td></tr>
+      <tr><td><code>curl.blocked-hosts</code></td><td>空</td><td>额外声明 OpenReach 自身公网域名/别名，支持逗号分隔与通配域名</td></tr>
+      <tr><td><code>security.max-api-body-bytes</code></td><td>65536</td><td>四个 JSON API 请求体统一硬上限</td></tr>
     </tbody></table></div>
 
     <h2>Provider 默认顺序</h2>
     <ul><li>Web CN：Bing → 百度 → 搜狗 → 360 → DuckDuckGo</li><li>Web GLOBAL：Brave → DuckDuckGo → Bing Global</li><li>Image CN：Bing → 百度图片 → 搜狗图片 → Openverse</li><li>Image GLOBAL：Bing Global → Openverse → Wikimedia</li></ul>
-    <div class="note">免费搜索结果依赖公开页面结构、访问策略和网络环境，因此属于 best-effort。v0.1.3 默认链均无需 API Key；Openverse 与 Wikimedia 使用公开读接口。</div>
+    <div class="note">免费搜索结果依赖公开页面结构、访问策略和网络环境，因此属于 best-effort。v0.1.4 默认链均无需 Search API Key；Openverse 与 Wikimedia 使用公开读接口。</div>
 
     <section id="community" class="api-community docs-community">
       <div class="doc-eyebrow">Project & Community</div>

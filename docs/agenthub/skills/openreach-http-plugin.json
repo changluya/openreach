@@ -2,13 +2,13 @@
   "version": "1.0",
   "source": "manual",
   "plugin": {
-    "name": "OpenReach Web 搜索 / 图片搜索 / 网页读取插件",
+    "name": "OpenReach Web 搜索 / 图片搜索 / 网页读取 / Curl 插件",
     "logoUrl": "",
     "baseUrl": "{{BASE_URL}}",
     "staticHeaders": "{\"Content-Type\":\"application/json\",\"Accept\":\"application/json\"}",
     "maskConfig": "[{\"sourceType\":2,\"key\":\"baseUrl\",\"exportValue\":\"{{BASE_URL}}\"}]",
-    "description": "OpenReach v0.1.3 为 Agent 提供 Web Search、可下载图片搜索与公开网页读取。region 驱动 CN/GLOBAL 免费 Provider Chain；Search 支持 timeRange；默认无需 API Key。Read 仅面向公网 80/443 的 HTML/XHTML/plain-text 页面，不作为内网/附件代理。",
-    "installConfig": "{\"installDesc\":\"导入时必须显式配置 BASE_URL，并确保该地址能从 AgentHub/Tool Runner 所在运行环境访问 OpenReach。不要默认使用 localhost：当 Tool Runner 位于容器或沙箱时，localhost 指向 Tool Runner 自身而不是 OpenReach。无需 API Key。\",\"installVersion\":\"v0.1.3\"}",
+    "description": "OpenReach v0.1.4 为 Agent 提供 Web Search、可下载图片搜索、公开网页读取与安全 Curl。Curl 面向 GitHub API/raw 源码/公开 JSON 或文本 API，仅允许公网 80/443 的 GET/HEAD，禁止私网、OpenReach 自身、凭据头和写请求。",
+    "installConfig": "{\"installDesc\":\"导入时必须显式配置 BASE_URL，并确保该地址能从 AgentHub/Tool Runner 所在运行环境访问 OpenReach。不要默认使用 localhost：当 Tool Runner 位于容器或沙箱时，localhost 指向 Tool Runner 自身而不是 OpenReach。无需 API Key。\",\"installVersion\":\"v0.1.4\"}",
     "methods": [
       {
         "methodName": "searchWeb",
@@ -132,6 +132,42 @@
             "useTypeValue": 2,
             "dataTypeValue": 2,
             "defaultValue": "50000",
+            "required": 0
+          }
+        ]
+      },
+      {
+        "methodName": "curlPublicHttp",
+        "methodDescription": "对公网 HTTP/HTTPS 资源执行安全只读请求，适合 GitHub REST API、raw.githubusercontent.com 源码、公开 JSON/text API。仅允许 GET/HEAD 和 80/443；拒绝 localhost/私网/保留地址、当前 OpenReach 自身（含当前 Host/serverName/localAddr/本机网卡地址及可配置别名）、Authorization/Cookie/Host/X-Forwarded-* 等敏感头；每次重定向都会重新校验。不要用于登录、内网代理、端口扫描、写操作或二进制下载。",
+        "httpMethodType": 2,
+        "uri": "/api/web/curl",
+        "status": 1,
+        "parameters": [
+          {
+            "methodParamName": "url",
+            "methodParamDescription": "公网 HTTP/HTTPS URL，仅允许 80/443。可用于 api.github.com、raw.githubusercontent.com 以及其他公开 JSON/text API；禁止 OpenReach 自身、私网/localhost/内部地址。",
+            "mappedName": "url",
+            "useTypeValue": 2,
+            "dataTypeValue": 1,
+            "defaultValue": "",
+            "required": 1
+          },
+          {
+            "methodParamName": "method",
+            "methodParamDescription": "只读 HTTP 方法，仅 GET 或 HEAD；默认 GET。",
+            "mappedName": "method",
+            "useTypeValue": 2,
+            "dataTypeValue": 1,
+            "defaultValue": "GET",
+            "required": 0
+          },
+          {
+            "methodParamName": "maxChars",
+            "methodParamDescription": "最多返回字符数，范围 1000-200000；默认 100000。",
+            "mappedName": "maxChars",
+            "useTypeValue": 2,
+            "dataTypeValue": 2,
+            "defaultValue": "100000",
             "required": 0
           }
         ]

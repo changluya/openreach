@@ -40,21 +40,24 @@ python3 scripts/openreach.py doctor
 python3 scripts/openreach.py search "AI Agent" --region US --provider auto --time-range month --limit 5
 python3 scripts/openreach.py image-search "杭州西湖" --region auto --provider auto --limit 8
 python3 scripts/openreach.py read "https://spring.io/projects/spring-boot/" --max-chars 20000
+python3 scripts/openreach.py curl "https://api.github.com/repos/spring-projects/spring-boot" --max-chars 100000
 ```
 
 详细 Agent Search SOP 见 [SKILL.md](SKILL.md)。
 
-## v0.1.3 Route
+## v0.1.4 Safe Curl + Route
 
 `region=auto` 默认走 CN；`CN/zh-CN` 等走国内链，其他显式地区如 `US/JP/SG/GLOBAL` 走 GLOBAL 免费链。Web GLOBAL 默认 `brave -> duckduckgo -> bing`，Image GLOBAL 默认 `bing -> openverse -> wikimedia`。
 
-## v0.1.3 时间范围、图片可下载与初始化检查
+## v0.1.4 Curl、安全边界与既有能力
 
 - Web Search：`--time-range any|day|week|month|year`，对应 HTTP `timeRange`。指定时间范围后只使用真正支持该过滤的 Provider。
 - Image Search：返回的 `imageUrl` 均在响应生成时通过公网 SSRF、跳转、HTTP 状态与图片字节签名探测，可直接作为下载目标。
 - Init Check：只检查 `config.json` + 1 次无副作用 API 探测；禁止多余初始化动作。
 - Doctor：只读官网 `GET /`，仅人工排障使用，不额外开放 Health API。
-- 安全边界：服务业务面仅包含 Search / Image Search / Read 三个 JSON POST API，不支持文件上传。
+- Safe Curl：新增 `/api/web/curl`，用于 GitHub API/raw 源码/公开 JSON 或 text API；仅 GET/HEAD + 公网 80/443。
+- 自请求防护：Curl 禁止请求 OpenReach 自身、localhost/私网/本机网卡，并拒绝 Authorization/Cookie/Host/X-Forwarded-* 等敏感 Header。
+- 安全边界：服务业务面包含 Search / Image Search / Read / Curl 四个 JSON POST API，不支持文件上传。
 - Read 调用边界：只读取公网 80/443 的 HTML/XHTML/plain-text 页面；私网/localhost/内部附件 URL、非标准端口、图片/压缩包等明显二进制 URL 会在 Skill 侧直接 fail-fast，不再打到 OpenReach。
 - Read 上游错误：`403/412` 视为目标站拒绝/前置条件，不重试同一 URL；`521` 等瞬时 5xx 由 OpenReach 做有界 GET 重试，仍失败后 Agent 应切换来源。
 

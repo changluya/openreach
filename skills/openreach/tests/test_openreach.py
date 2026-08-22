@@ -226,6 +226,46 @@ class OpenReachClientTest(unittest.TestCase):
         self.assertIn("READ_TARGET_BINARY", str(ctx.exception))
         self.assertEqual(Handler.received, [])
 
+    def test_curl_forwards_safe_get_request(self):
+        self.client.curl(
+            "https://api.github.com/repos/openai/openai-python",
+            headers={"Accept": "application/vnd.github+json"},
+            max_chars=12000,
+        )
+        self.assertEqual(Handler.received[-1][0], "/api/web/curl")
+        payload = Handler.received[-1][1]
+        self.assertEqual(payload["method"], "GET")
+        self.assertEqual(payload["maxChars"], 12000)
+        self.assertEqual(payload["headers"]["Accept"], "application/vnd.github+json")
+
+    def test_curl_rejects_private_target_before_network(self):
+        Handler.received.clear()
+        with self.assertRaises(openreach.OpenReachError) as ctx:
+            self.client.curl("http://10.0.0.1/admin")
+        self.assertIn("CURL_TARGET_PRIVATE", str(ctx.exception))
+        self.assertEqual(Handler.received, [])
+
+    def test_curl_rejects_openreach_itself_before_network(self):
+        Handler.received.clear()
+        with self.assertRaises(openreach.OpenReachError) as ctx:
+            self.client.curl(self.base_url + "/api/web/search")
+        self.assertIn("CURL_TARGET_SELF", str(ctx.exception))
+        self.assertEqual(Handler.received, [])
+
+    def test_curl_rejects_write_method_before_network(self):
+        Handler.received.clear()
+        with self.assertRaises(openreach.OpenReachError) as ctx:
+            self.client.curl("https://example.com/api", method="POST")
+        self.assertIn("CURL_METHOD_FORBIDDEN", str(ctx.exception))
+        self.assertEqual(Handler.received, [])
+
+
+    def test_curl_rejects_sensitive_headers_before_network(self):
+        Handler.received.clear()
+        with self.assertRaisesRegex(openreach.OpenReachError, "CURL_HEADER_FORBIDDEN"):
+            self.client.curl("https://api.github.com/repos/owner/repo", headers={"X-Api-Key": "secret"})
+        self.assertEqual(Handler.received, [])
+
 
 if __name__ == "__main__":
     unittest.main()

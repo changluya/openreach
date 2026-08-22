@@ -18,8 +18,8 @@ class AttackSurfaceFilterTest {
     private final AttackSurfaceFilter filter = new AttackSurfaceFilter(props, monitorAuthService);
 
     @Test
-    void allowsOnlyThreeJsonApiPathsToReachApplication() throws Exception {
-        for (String path : new String[]{"/api/web/search", "/api/web/image-search", "/api/web/read"}) {
+    void allowsOnlyFourJsonApiPathsToReachApplication() throws Exception {
+        for (String path : new String[]{"/api/web/search", "/api/web/image-search", "/api/web/read", "/api/web/curl"}) {
             MockHttpServletRequest req = jsonPost(path, "{}");
             MockHttpServletResponse res = new MockHttpServletResponse();
             AtomicBoolean reached = new AtomicBoolean(false);

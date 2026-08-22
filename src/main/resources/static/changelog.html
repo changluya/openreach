@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="OpenReach 更新日志：查看 v0.1.3、v0.1.2、v1.0.1 的新增能力、修复、安全加固与测试变化。" />
+  <meta name="description" content="OpenReach 更新日志：查看 v0.1.4、v0.1.3、v0.1.2、v1.0.1 的新增能力、修复、安全加固与测试变化。" />
   <title>更新日志 · OpenReach</title>
   <link rel="icon" href="/assets/logo-mark.png" />
   <link rel="stylesheet" href="/assets/site.css" />
@@ -22,7 +22,8 @@
     <a class="active" href="/changelog">3. 更新日志</a>
     <div class="sidebar-project">
       <div class="label">版本</div>
-      <a href="#v0-1-3">v0.1.3 · 最新</a>
+      <a href="#v0-1-4">v0.1.4 · 最新</a>
+      <a href="#v0-1-3">v0.1.3</a>
       <a href="#v1-0-2">v0.1.2</a>
       <a href="#v1-0-1">v1.0.1 · 基线</a>
       <a class="sidebar-github" href="https://github.com/changluya/openreach/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md ↗</a>
@@ -35,8 +36,33 @@
     <h1>更新日志</h1>
     <p class="lead">OpenReach 从 <strong>v1.0.1</strong> 开始正式维护版本记录。这里按当前工程 <code>CHANGELOG.md</code> 展示用户真正需要关注的能力变化、安全边界和兼容信息。</p>
 
+    <section class="release-hero" id="v0-1-4">
+      <div class="release-hero-top"><div><span class="release-version">v0.1.4</span><span class="release-latest">Latest</span></div><time datetime="2026-08-22">2026-08-22</time></div>
+      <h2>Safe Curl：GitHub 源码 / 公开 API 读取与自请求防护</h2>
+      <p>v0.1.4 在 Search、Image Search、Read 之外新增第四个核心能力 <strong>Safe Curl</strong>。Agent 可以读取 GitHub REST API、raw 源码以及公网 JSON/XML/YAML/text 数据，但该能力不是 shell 透传：只允许 GET/HEAD，并强制阻断私网、敏感认证头、二进制下载和对 OpenReach 自身的回打。</p>
+      <div class="release-metrics"><div><b>4</b><span>公开核心 API</span></div><div><b>GET/HEAD</b><span>只读目标方法</span></div><div><b>Self Block</b><span>禁止请求自身</span></div><div><b>20/20</b><span>Skill Tests</span></div></div>
+    </section>
+
+    <div class="release-highlights">
+      <article><span>Curl</span><h3>GitHub 源码级读取</h3><p>支持从搜索结果继续访问 GitHub REST API、<code>raw.githubusercontent.com</code> 和其他公开机器可读文本源。</p></article>
+      <article><span>SSRF</span><h3>公网目标强校验</h3><p>仅允许 HTTP(S) 80/443；localhost、RFC1918、链路本地、保留地址、Metadata 与每一跳 Redirect 都重新校验。</p></article>
+      <article><span>Self Guard</span><h3>禁止回打 OpenReach</h3><p>综合 Host、serverName、localAddr、本机所有网卡地址与可配置公网别名，阻止 Curl 被拿来扫描或爆破 OpenReach 自身。</p></article>
+      <article><span>Read-only</span><h3>拒绝写入和秘密透传</h3><p>POST/PUT/PATCH/DELETE、Authorization、Cookie、Host、X-Forwarded-*、常见 Token/API-Key 头和二进制响应均拒绝。</p></article>
+    </div>
+
+    <section class="release-section release-security">
+      <h2>v0.1.4 新增与安全加固</h2>
+      <ul>
+        <li><strong>新增接口：</strong><code>POST /api/web/curl</code>，请求体指定目标 <code>url/method/headers/maxChars</code>，返回目标 HTTP 状态、最终 URL、文本 body、跳转次数与安全响应头。</li>
+        <li><strong>GitHub 场景：</strong>推荐 Search 定位仓库 → Safe Curl 读取 <code>api.github.com</code> 公开元数据/目录 → Safe Curl 读取 raw 源码；私有仓库和认证 API 不走该能力。</li>
+        <li><strong>自身防爆破：</strong>当前请求 Host/serverName/localName/localAddr、本机网卡 IP 自动加入 Self Target Guard；额外公网域名或 LB 别名可通过 <code>OPENREACH_CURL_BLOCKED_HOSTS</code> 配置，支持通配域名。</li>
+        <li><strong>响应边界：</strong>默认最多读取 2 MiB / 100000 字符，仅接受文本类 Content-Type；图片、压缩包、可执行文件等二进制内容拒绝。</li>
+        <li><strong>测试：</strong>新增 Java <code>CurlTargetGuardTest</code> / <code>CurlServiceTest</code> 覆盖自请求、Redirect 二次校验、敏感头、写方法、二进制与截断；Skill Python 测试共 20 项通过。</li>
+      </ul>
+    </section>
+
     <section class="release-hero" id="v0-1-3">
-      <div class="release-hero-top"><div><span class="release-version">v0.1.3</span><span class="release-latest">Latest</span></div><time datetime="2026-08-16">2026-08-16</time></div>
+      <div class="release-hero-top"><div><span class="release-version">v0.1.3</span><span class="release-baseline">Previous</span></div><time datetime="2026-08-16">2026-08-16</time></div>
       <h2>内部调用监控、SQLite 持久化与运维闭环</h2>
       <p>v0.1.3 在不改变 Search、Image Search、Read 三个公开 API 的前提下，新增受保护的内部调用监控能力，支持真实请求采集、日期总览、失败下钻、独立 IP、请求详情和失败诊断日志导出；监控数据默认使用 SQLite + WAL 持久化，并为未来 MySQL / PostgreSQL 迁移保留存储 SPI。</p>
       <div class="release-metrics"><div><b>3</b><span>公开核心 API</span></div><div><b>SQLite</b><span>默认持久化</span></div><div><b>V2</b><span>Monitor Schema</span></div><div><b>0</b><span>新增公开监控入口</span></div></div>

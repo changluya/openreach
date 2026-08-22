@@ -1,5 +1,9 @@
 package io.github.changlu.openreach.web;
 
+import io.github.changlu.openreach.curl.CurlService;
+import io.github.changlu.openreach.curl.SelfTargetContext;
+import io.github.changlu.openreach.curl.dto.CurlRequest;
+import io.github.changlu.openreach.curl.dto.CurlResponse;
 import io.github.changlu.openreach.imagesearch.ImageSearchService;
 import io.github.changlu.openreach.imagesearch.dto.ImageSearchRequest;
 import io.github.changlu.openreach.imagesearch.dto.ImageSearchResponse;
@@ -9,6 +13,7 @@ import io.github.changlu.openreach.read.dto.ReadResponse;
 import io.github.changlu.openreach.search.SearchService;
 import io.github.changlu.openreach.search.dto.SearchRequest;
 import io.github.changlu.openreach.search.dto.SearchResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,11 +27,13 @@ public class WebCapabilityController {
     private final SearchService searchService;
     private final ImageSearchService imageSearchService;
     private final WebReadService webReadService;
+    private final CurlService curlService;
 
-    public WebCapabilityController(SearchService searchService, ImageSearchService imageSearchService, WebReadService webReadService) {
+    public WebCapabilityController(SearchService searchService, ImageSearchService imageSearchService, WebReadService webReadService, CurlService curlService) {
         this.searchService = searchService;
         this.imageSearchService = imageSearchService;
         this.webReadService = webReadService;
+        this.curlService = curlService;
     }
 
     @PostMapping("/search")
@@ -42,5 +49,16 @@ public class WebCapabilityController {
     @PostMapping("/read")
     public ReadResponse read(@Valid @RequestBody ReadRequest request) {
         return webReadService.read(request);
+    }
+
+    @PostMapping("/curl")
+    public CurlResponse curl(@Valid @RequestBody CurlRequest request, HttpServletRequest servletRequest) {
+        SelfTargetContext self = new SelfTargetContext(
+                servletRequest.getServerName(),
+                servletRequest.getLocalName(),
+                servletRequest.getLocalAddr(),
+                servletRequest.getHeader("Host")
+        );
+        return curlService.execute(request, self);
     }
 }

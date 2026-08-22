@@ -11,6 +11,7 @@ public class WebCapabilityProperties {
     private final Search search = new Search();
     private final ImageSearch imageSearch = new ImageSearch();
     private final Read read = new Read();
+    private final Curl curl = new Curl();
     private final Security security = new Security();
     private final Monitor monitor = new Monitor();
 
@@ -18,6 +19,7 @@ public class WebCapabilityProperties {
     public Search getSearch() { return search; }
     public ImageSearch getImageSearch() { return imageSearch; }
     public Read getRead() { return read; }
+    public Curl getCurl() { return curl; }
     public Security getSecurity() { return security; }
     public Monitor getMonitor() { return monitor; }
 
@@ -135,7 +137,7 @@ public class WebCapabilityProperties {
         private String sogouUrl = "https://pic.sogou.com/pics";
         private String openverseUrl = "https://api.openverse.org/v1/images/";
         private String wikimediaUrl = "https://commons.wikimedia.org/w/api.php";
-        private String wikimediaUserAgent = "OpenReach/0.1.3 (+https://github.com/changluya/openreach)";
+        private String wikimediaUserAgent = "OpenReach/0.1.4 (+https://github.com/changluya/openreach)";
         // Image results are only returned after a bounded secure download probe.
         private int downloadCandidateMultiplier = 3;
         private int downloadMaxCandidates = 60;
@@ -242,6 +244,41 @@ public class WebCapabilityProperties {
         public String getAcceptLanguage() { return acceptLanguage; }
         public void setAcceptLanguage(String acceptLanguage) { this.acceptLanguage = acceptLanguage; }
     }
+    public static class Curl {
+        private int connectTimeoutMs = 5000;
+        private int requestTimeoutMs = 10000;
+        private int maxBytes = 2 * 1024 * 1024;
+        private int maxChars = 100000;
+        private int maxRedirects = 5;
+        private boolean followRedirects = true;
+        private String userAgent = "OpenReach/0.1.4 (+https://github.com/changluya/openreach)";
+        private String acceptLanguage = "zh-CN,zh;q=0.9,en;q=0.6";
+        // Additional public aliases of this OpenReach deployment. Incoming Host,
+        // servlet local address and local network interfaces are blocked automatically.
+        private List<String> blockedHosts = new ArrayList<>();
+
+        public int getConnectTimeoutMs() { return connectTimeoutMs; }
+        public void setConnectTimeoutMs(int connectTimeoutMs) { this.connectTimeoutMs = connectTimeoutMs; }
+        public int getRequestTimeoutMs() { return requestTimeoutMs; }
+        public void setRequestTimeoutMs(int requestTimeoutMs) { this.requestTimeoutMs = requestTimeoutMs; }
+        public int getMaxBytes() { return maxBytes; }
+        public void setMaxBytes(int maxBytes) { this.maxBytes = maxBytes; }
+        public int getMaxChars() { return maxChars; }
+        public void setMaxChars(int maxChars) { this.maxChars = maxChars; }
+        public int getMaxRedirects() { return maxRedirects; }
+        public void setMaxRedirects(int maxRedirects) { this.maxRedirects = maxRedirects; }
+        public boolean isFollowRedirects() { return followRedirects; }
+        public void setFollowRedirects(boolean followRedirects) { this.followRedirects = followRedirects; }
+        public String getUserAgent() { return userAgent; }
+        public void setUserAgent(String userAgent) { this.userAgent = userAgent; }
+        public String getAcceptLanguage() { return acceptLanguage; }
+        public void setAcceptLanguage(String acceptLanguage) { this.acceptLanguage = acceptLanguage; }
+        public List<String> getBlockedHosts() { return blockedHosts; }
+        public void setBlockedHosts(List<String> blockedHosts) {
+            this.blockedHosts = blockedHosts == null ? new ArrayList<>() : new ArrayList<>(blockedHosts);
+        }
+    }
+
     public static class Monitor {
         // Internal monitor console credentials. Override these defaults in real deployments.
         private String username = "openreach";
@@ -254,7 +291,7 @@ public class WebCapabilityProperties {
         private String sqliteFile = "openreach-monitor.db";
         private int sqliteBusyTimeoutMs = 5000;
 
-        // Capture/write isolation. Monitor failure must never fail the three public Web APIs.
+        // Capture/write isolation. Monitor failure must never fail the four public Web APIs.
         private boolean persistenceEnabled = true;
         private int maxPayloadBytes = 65536;
         private int queueCapacity = 10000;
