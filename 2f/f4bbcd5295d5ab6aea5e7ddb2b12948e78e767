@@ -1,0 +1,86 @@
+.env.example
+  h_415c008e101ba5 1,4,13-16
+CHANGELOG.md
+  h_415c008e101ba5 7,11-47
+README.md
+  h_415c008e101ba5 9,17,35,41,48,61,66,69,72,84,102,130,156,202,575,616,622,651-658,690
+bin/quick/README.md
+  h_415c008e101ba5 3,51,58,76,85,223,230,236,289,317,347,355,361,370
+bin/quick/release.sh
+  h_415c008e101ba5 26
+docker-compose.yml
+  h_415c008e101ba5 32
+docs/agenthub/skills/openreach-http-plugin.json
+  h_415c008e101ba5 5,10-11,138-173
+docs/agenthub/接口文档/OpenReach接口文档.md
+  h_415c008e101ba5 3,16,18,22,32,39,63,145,310,314,317-370,404,425,427,438,448,452,479,499-505,507,513,527-538,553,568
+docs/核心搜索接口设计/04-curl核心流程设计.md
+  h_415c008e101ba5 1-87
+pom.xml
+  h_415c008e101ba5 16
+skills/openreach/README.md
+  h_415c008e101ba5 43,48,52,58-60
+skills/openreach/SKILL.md
+  h_415c008e101ba5 39,91,103,138-172,176,182,199,246,248,252-253,259,292-311,319,329-330,340
+skills/openreach/__init__.py
+  h_415c008e101ba5 2,4
+skills/openreach/scripts/openreach.py
+  h_415c008e101ba5 102-182,283,291,298,325-338,413,504-510,512,544-549,568,570-571
+skills/openreach/tests/test_openreach.py
+  h_415c008e101ba5 229-268
+src/main/java/io/github/changlu/openreach/config/WebCapabilityProperties.java
+  h_415c008e101ba5 14,22,140,247-281,294
+src/main/java/io/github/changlu/openreach/curl/CurlService.java
+  h_415c008e101ba5 1-243
+src/main/java/io/github/changlu/openreach/curl/CurlTargetGuard.java
+  h_415c008e101ba5 1-165
+src/main/java/io/github/changlu/openreach/curl/SelfTargetContext.java
+  h_415c008e101ba5 1-13
+src/main/java/io/github/changlu/openreach/curl/dto/CurlRequest.java
+  h_415c008e101ba5 1-21
+src/main/java/io/github/changlu/openreach/curl/dto/CurlResponse.java
+  h_415c008e101ba5 1-17
+src/main/java/io/github/changlu/openreach/observability/RequestTraceFilter.java
+  h_415c008e101ba5 40,213
+src/main/java/io/github/changlu/openreach/security/AttackSurfaceFilter.java
+  h_415c008e101ba5 28,39-40
+src/main/java/io/github/changlu/openreach/web/WebCapabilityController.java
+  h_415c008e101ba5 3-6,16,30,32,36,53-63
+src/main/resources/application.yml
+  h_415c008e101ba5 108,133-146,172
+src/main/resources/static/changelog.html
+  h_415c008e101ba5 6,25-26,39-63,65
+src/main/resources/static/docs/api.html
+  h_415c008e101ba5 30-31,57,89-107,109,138-142,147
+src/main/resources/static/docs/index.html
+  h_415c008e101ba5 31,36,38,50,65,146-154,162-164,167,176
+src/main/resources/static/index.html
+  h_415c008e101ba5 42,44,53,60,65,75,144
+src/main/resources/static/monitor.html
+  h_415c008e101ba5 18,30
+src/test/java/io/github/changlu/openreach/AgentHubPluginConfigTest.java
+  h_415c008e101ba5 23,26-27
+src/test/java/io/github/changlu/openreach/OpenReachApplicationTest.java
+  h_415c008e101ba5 3,5,7-9,13-16,18-19
+src/test/java/io/github/changlu/openreach/StaticWebsiteResourceTest.java
+  h_415c008e101ba5 178,187-190
+src/test/java/io/github/changlu/openreach/config/WebCapabilityPropertiesTest.java
+  h_415c008e101ba5 37-44,70
+src/test/java/io/github/changlu/openreach/curl/CurlServiceTest.java
+  h_415c008e101ba5 1-144
+src/test/java/io/github/changlu/openreach/curl/CurlTargetGuardTest.java
+  h_415c008e101ba5 1-67
+src/test/java/io/github/changlu/openreach/security/AttackSurfaceFilterTest.java
+  h_415c008e101ba5 21-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "2ff4bbcd5295d5ab6aea5e7ddb2b12948e78e767",
+  "prompts": {},
+  "humans": {
+    "h_415c008e101ba5": {
+      "author": "changlu <939974883@qq.com>"
+    }
+  }
+}
